@@ -1,4 +1,5 @@
 #include "mainFrame.h"
+#include "HplHeader.h"
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -33,6 +34,11 @@ void mainFrame::OnExit(wxCommandEvent& event)
 
 void mainFrame::OnRun(wxCommandEvent& event)
 {
+	std::fstream fin;
+	fin.open("../../../data/co/2013/201301/20130124/Stare_05_20130124_16.hpl", std::ios::in);
+	HplHeader hplHeader;
+	fin >> hplHeader;
+	fin.close();
 }
 
 void mainFrame::OnAbout(wxCommandEvent& event)
