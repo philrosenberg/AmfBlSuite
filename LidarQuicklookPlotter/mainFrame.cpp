@@ -1,5 +1,6 @@
 #include "mainFrame.h"
 #include "HplHeader.h"
+#include "HplProfile.h"
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -35,9 +36,31 @@ void mainFrame::OnExit(wxCommandEvent& event)
 void mainFrame::OnRun(wxCommandEvent& event)
 {
 	std::fstream fin;
-	fin.open("../../../data/co/2013/201301/20130124/Stare_05_20130124_16.hpl", std::ios::in);
 	HplHeader hplHeader;
-	fin >> hplHeader;
+	std::vector<HplProfile> profiles;
+	try
+	{
+		fin.open("../../../data/co/2013/201301/20130124/Stare_05_20130124_16.hpl", std::ios::in);
+		fin >> hplHeader;
+
+		bool readingOkay = true;
+		while (readingOkay)
+		{
+			profiles.resize(profiles.size() + 1);
+			readingOkay = profiles.back().readFromStream(fin, hplHeader);
+			if (!readingOkay) //we hit the end of the file while reading this profile
+				profiles.resize(profiles.size() - 1);
+		}
+	}
+	catch (char *err)
+	{
+		wxMessageBox(err);
+	}
+	catch (std::string err)
+	{
+		wxMessageBox(err);
+	}
+
 	fin.close();
 }
 

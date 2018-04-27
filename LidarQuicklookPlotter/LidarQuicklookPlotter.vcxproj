@@ -160,11 +160,13 @@
   <ItemGroup>
     <ClCompile Include="app.cpp" />
     <ClCompile Include="HplHeader.cpp" />
+    <ClCompile Include="HplProfile.cpp" />
     <ClCompile Include="mainFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h" />
     <ClInclude Include="HplHeader.h" />
+    <ClInclude Include="HplProfile.h" />
     <ClInclude Include="mainFrame.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
