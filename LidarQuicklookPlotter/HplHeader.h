@@ -8,6 +8,7 @@ enum ScanType
 	st_stare,
 	st_rhi,
 	st_vad,
+	st_wind,
 	st_user1,
 	st_user2,
 	st_user3,

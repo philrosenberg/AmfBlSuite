@@ -1,6 +1,7 @@
 #include "mainFrame.h"
 #include "HplHeader.h"
 #include "HplProfile.h"
+#include "Plotting.h"
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -33,14 +34,14 @@ void mainFrame::OnExit(wxCommandEvent& event)
 	Close();
 }
 
-void mainFrame::OnRun(wxCommandEvent& event)
+void plotFile(const std::string &inputFilename, const std::string &outputFilename, wxWindow *parent)
 {
 	std::fstream fin;
 	HplHeader hplHeader;
 	std::vector<HplProfile> profiles;
 	try
 	{
-		fin.open("../../../data/co/2013/201301/20130124/Stare_05_20130124_16.hpl", std::ios::in);
+		fin.open(inputFilename.c_str(), std::ios::in);
 		fin >> hplHeader;
 
 		bool readingOkay = true;
@@ -51,6 +52,8 @@ void mainFrame::OnRun(wxCommandEvent& event)
 			if (!readingOkay) //we hit the end of the file while reading this profile
 				profiles.resize(profiles.size() - 1);
 		}
+
+		plotProfiles(hplHeader, profiles, outputFilename, parent);
 	}
 	catch (char *err)
 	{
@@ -62,6 +65,12 @@ void mainFrame::OnRun(wxCommandEvent& event)
 	}
 
 	fin.close();
+}
+
+void mainFrame::OnRun(wxCommandEvent& event)
+{
+	//plotFile("../../../data/co/2013/201301/20130124/Stare_05_20130124_16.hpl", "testStare.png", this);
+	plotFile("../../../data/co/2013/201301/20130124/Wind_Profile_05_20130124_162124.hpl", "testWindProfile.png", this);
 }
 
 void mainFrame::OnAbout(wxCommandEvent& event)

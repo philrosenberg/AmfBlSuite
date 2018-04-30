@@ -19,13 +19,15 @@ struct ColonIsSpace : std::ctype<char>
 std::istream & operator>> (std::istream & stream, ScanType &scanType)
 {
 	std::string tempString;
-	stream >> tempString;
+	std::getline(stream, tempString);
 	if (tempString == "Stare")
 		scanType = st_stare;
 	else if (tempString == "RHI")
 		scanType = st_rhi;
 	else if (tempString == "VAD")
 		scanType = st_vad;
+	else if (tempString == "Wind profile")
+		scanType = st_wind;
 	else if (tempString == "User file 1")
 		scanType = st_user1;
 	else if (tempString == "User file 2")
