@@ -4,7 +4,7 @@
 bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 {
 	double decimalHour;
-	stream >> decimalHour >> m_azimuthDeg >> m_elevationDeg;
+	stream >> decimalHour >> m_azimuthDeg >> m_elevationDeg >> m_pitch >> m_roll;
 	if (stream.eof())
 	{
 		return false;

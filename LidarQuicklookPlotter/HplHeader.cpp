@@ -134,7 +134,7 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 		throw("Did not find the expected altitude of measurement equation. Incorrect file format.");
 
 	std::getline(stream, tempString);
-	if (tempString != "Data line 1: Decimal time (hours)  Azimuth (degrees)  Elevation (degrees)")
+	if (tempString != "Data line 1: Decimal time (hours)  Azimuth (degrees)  Elevation (degrees) Pitch (degrees) Roll (degrees)")
 		throw("Did not find the expected data line 1 descriptor. Incorrect file format.");
 
 	std::getline(stream, tempString);

@@ -20,6 +20,8 @@ private:
 	sci::UtcTime m_time;
 	double m_azimuthDeg;
 	double m_elevationDeg;
+	double m_pitch;
+	double m_roll;
 	std::vector<size_t> m_gates;
 	std::vector<double> m_dopplerVelocities;
 	std::vector<double> m_intensities;
