@@ -160,10 +160,10 @@ void mainFrame::OnCheckDataTimer(wxTimerEvent& event)
 	plot();
 }
 
-std::vector<std::string> getDirectoryListing(const std::string &directory)
+std::vector<std::string> getDirectoryListing(const std::string &directory, const std::string &filespec)
 {
 	wxArrayString files;
-	wxDir::GetAllFiles(directory, &files);
+	wxDir::GetAllFiles(directory, &files, filespec);
 	std::vector<std::string> result(files.size());
 	for (size_t i = 0; i < files.size(); ++i)
 		result[i] = std::string(files[i]);
@@ -171,6 +171,17 @@ std::vector<std::string> getDirectoryListing(const std::string &directory)
 }
 
 void mainFrame::plot()
+{
+	plot("*Stare_??_????????_??.hpl");
+	plot("*VAD_??_????????_??????.hpl");
+	(*m_progressReporter) << "Generated plots for all files found. Waiting approx 5 mins to check again.\n\n"
+}
+
+//Plot just a specific file type - the last file found alphabetically
+//is assumed to be the last file chronologically (assuming you have a
+//sensible naming structure) and it is assumed that this file may be
+//incomplete, so will be replotted next time just in case.
+void mainFrame::plot(const std::string &filter)
 {
 	if (m_plotting)
 		return;
@@ -218,21 +229,37 @@ void mainFrame::plot()
 			previouslyPlottedFiles.push_back(filename);
 			std::getline(fin, filename);
 		}
+		fin.close();
 
 		//Find all the files in the input directory
-		std::vector<std::string> allFiles = getDirectoryListing(m_inputDirectory);
+		std::vector<std::string> allFiles = getDirectoryListing(m_inputDirectory, filter);
+
+		//Sort the files in alphabetical order - this will also put them in time order
+		//which is important for hunting out the last file of any type which may have been
+		//incomplete.
+		if(allFiles.size() > 0)
+			std::sort(allFiles.begin(), allFiles.end());
+
+		//Remember the name of the last file in the list - we assume thismay be incomplete
+		//so don't let it get remembered as a previously plotted file
+		std::string lastFileToPlot;
+		if (allFiles.size() > 0)
+			lastFileToPlot = allFiles.back();
 
 		//Filter for just files we are interested in
-		std::vector<std::string> filesOfInterest;
-		filesOfInterest.reserve(allFiles.size());
-		for (size_t i = 0; i < allFiles.size(); ++i)
-		{
-			if (allFiles[i].find("Stare", m_inputDirectory.length()) != std::string::npos)
-				filesOfInterest.push_back(allFiles[i]);
-			if (allFiles[i].find("VAD", m_inputDirectory.length()) != std::string::npos)
-				filesOfInterest.push_back(allFiles[i]);
-		}
-
+		//std::vector<std::string> filesOfInterest;
+		//filesOfInterest.reserve(allFiles.size());
+		//for (size_t i = 0; i < allFiles.size(); ++i)
+		//{
+		//	if (allFiles[i].find("Stare", m_inputDirectory.length()) != std::string::npos)
+		//		filesOfInterest.push_back(allFiles[i]);
+		//	if (allFiles[i].find("VAD", m_inputDirectory.length()) != std::string::npos)
+		//		filesOfInterest.push_back(allFiles[i]);
+		//}
+		//The code above was replaced by wildcard filtering when we hunt for files
+		//however it has been left in place in case we need to do something similar in
+		//the future
+		std::vector<std::string> filesOfInterest = allFiles;
 
 		std::vector<std::string> filesToPlot;
 		filesToPlot.reserve(filesOfInterest.size());
@@ -253,43 +280,32 @@ void mainFrame::plot()
 
 		if (filesToPlot.size() == 0)
 			(*m_progressReporter) << "Found no new files to plot.\n";
-
 		else
 		{
-			//Sort the files in alphabetical order - this will also put them in time order
-			//which is important for hunting out the last file of any type which may have been
-			//incomplete.
-			std::sort(filesToPlot.begin(), filesToPlot.end());
-
 			(*m_progressReporter) << "Found the following new files to plot:\n";
 			for(size_t i=0; i<filesToPlot.size(); ++i)
 				(*m_progressReporter) << "\t" << filesToPlot[i] << "\n";
 
-			std::fstream fout;
-			fout.open(previouslyPlottedFilename.c_str(), std::ios::app);
-			try
+			for (size_t i = 0; i < filesToPlot.size(); ++i)
 			{
-				for (size_t i = 0; i < filesToPlot.size(); ++i)
+				(*m_progressReporter) << "Processing " << filesToPlot[i] << "\n";
+				std::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), std::string::npos);
+				plotFile(filesToPlot[i], outputFile, std::numeric_limits<double>::max(), *m_progressReporter, this);
+				if (m_progressReporter->shouldStop())
 				{
-					(*m_progressReporter) << "Processing " << filesToPlot[i] << "\n";
-					std::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), std::string::npos);
-					plotFile(filesToPlot[i], outputFile, std::numeric_limits<double>::max(), *m_progressReporter, this);
-					if (m_progressReporter->shouldStop())
-					{
-						(*m_progressReporter) << "Operation halted at user request.\n";
-						break;
-					}
+					(*m_progressReporter) << "Operation halted at user request.\n";
+					break;
+				}
 
-					//remember which files have been plotted
+				//remember which files have been plotted
+				if (filesToPlot[i] != lastFileToPlot)
+				{
+					std::fstream fout;
+					fout.open(previouslyPlottedFilename.c_str(), std::ios::app);
 					fout << filesToPlot[i] << "\n";
+					fout.close();
 				}
 			}
-			catch (...)
-			{
-				fout.close();
-				throw;
-			}
-			fout.close();
 
 			//plotFile("../../../data/co/2013/201301/20130124/Stare_05_20130124_16.hpl", "testStare.png", this);
 			//plotFile("../../../data/co/2013/201301/20130124/Wind_Profile_05_20130124_162124.hpl", "testWindProfile.png", this);

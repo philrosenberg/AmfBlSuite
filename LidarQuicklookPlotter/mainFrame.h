@@ -40,6 +40,7 @@ private:
 	void start();
 	void stop();
 	void plot();
+	void plot(const std::string &filter);
 
 	DECLARE_EVENT_TABLE();
 };
