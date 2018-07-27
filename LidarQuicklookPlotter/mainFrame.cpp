@@ -531,7 +531,7 @@ void mainFrame::plot(const std::string &filter)
 
 void mainFrame::OnAbout(wxCommandEvent& event)
 {
-	wxMessageBox(wxT("$projectname$ Version 1.00.0"), wxT("About $projectname$..."));
+	wxMessageBox(wxT("Lidar Quicklook Plotter Version 1.00.0"), wxT("About Lidar Quicklook Plotter..."));
 }
 
 mainFrame::~mainFrame()
