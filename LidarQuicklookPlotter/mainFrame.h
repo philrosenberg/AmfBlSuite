@@ -16,20 +16,26 @@ public:
 	static const int ID_FILE_EXIT;
 	static const int ID_FILE_RUN;
 	static const int ID_FILE_STOP;
+	static const int ID_FILE_SELECT_INPUT_DIR;
+	static const int ID_FILE_SELECT_OUTPUT_DIR;
 	static const int ID_HELP_ABOUT;
 	static const int ID_CHECK_DATA_TIMER;
+	static const int ID_INSTANT_CHECK_DATA_TIMER;
 
-	mainFrame(wxFrame *frame, const wxString& title);
+	mainFrame(wxFrame *frame, const wxString& title, const wxString &inputDirectory, const wxString &outputDirectory, bool runImmediately);
 	~mainFrame();
 private:
 	void OnExit(wxCommandEvent& event);
 	void OnRun(wxCommandEvent& event);
 	void OnStop(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
+	void OnSelectInputDir(wxCommandEvent& event);
+	void OnSelectOutputDir(wxCommandEvent& event);
 	void OnCheckDataTimer(wxTimerEvent& event);
 
 	wxTextCtrl *m_logText;
 	wxTimer *m_checkForNewDataTimer;
+	wxTimer *m_instantCheckTimer;
 
 	std::string m_inputDirectory;
 	std::string m_outputDirectory;

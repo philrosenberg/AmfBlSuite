@@ -9,18 +9,24 @@
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
 const int mainFrame::ID_FILE_STOP = ::wxNewId();
+const int mainFrame::ID_FILE_SELECT_INPUT_DIR = ::wxNewId();
+const int mainFrame::ID_FILE_SELECT_OUTPUT_DIR = ::wxNewId();
 const int mainFrame::ID_HELP_ABOUT = ::wxNewId();
 const int mainFrame::ID_CHECK_DATA_TIMER = ::wxNewId();
+const int mainFrame::ID_INSTANT_CHECK_DATA_TIMER = ::wxNewId();
 
 BEGIN_EVENT_TABLE(mainFrame, wxFrame)
 EVT_MENU(ID_FILE_EXIT, mainFrame::OnExit)
 EVT_MENU(ID_FILE_RUN, mainFrame::OnRun)
 EVT_MENU(ID_FILE_STOP, mainFrame::OnStop)
+EVT_MENU(ID_FILE_SELECT_INPUT_DIR, mainFrame::OnSelectInputDir)
+EVT_MENU(ID_FILE_SELECT_OUTPUT_DIR, mainFrame::OnSelectOutputDir)
 EVT_MENU(ID_HELP_ABOUT, mainFrame::OnAbout)
 EVT_TIMER(ID_CHECK_DATA_TIMER, mainFrame::OnCheckDataTimer)
+EVT_TIMER(ID_INSTANT_CHECK_DATA_TIMER, mainFrame::OnCheckDataTimer)
 END_EVENT_TABLE()
 
-mainFrame::mainFrame(wxFrame *frame, const wxString& title)
+mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inputDirectory, const wxString &outputDirectory, bool runImmediately)
 	: wxFrame(frame, -1, title)
 {
 	wxMenuBar* mbar = new wxMenuBar();
@@ -28,6 +34,8 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title)
 	fileMenu->Append(ID_FILE_EXIT, wxT("E&xit\tAlt+F4"), wxT("Exit the application"));
 	fileMenu->Append(ID_FILE_RUN, wxT("Run\tCtrl+R"), wxT("Run Code"));
 	fileMenu->Append(ID_FILE_STOP, wxT("Stop\tCtrl+X"), wxT("Stop Code"));
+	fileMenu->Append(ID_FILE_SELECT_INPUT_DIR, wxT("Select Input Dir"), wxT("Select directory to search for data files"));
+	fileMenu->Append(ID_FILE_SELECT_OUTPUT_DIR, wxT("Select Output Dir"), wxT("Select directory to store plots"));
 	mbar->Append(fileMenu, wxT("&File"));
 
 	wxMenu* helpMenu = new wxMenu(wxT(""));
@@ -48,14 +56,18 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title)
 	topSizer->SetSizeHints(panel);
 
 	m_checkForNewDataTimer = new wxTimer(this, ID_CHECK_DATA_TIMER);
+	m_instantCheckTimer = new wxTimer(this, ID_INSTANT_CHECK_DATA_TIMER);
 
 	m_plotting = false;
 
-	m_inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\";
-	m_outputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\quicklooks\\";
+	m_inputDirectory = inputDirectory;
+	m_outputDirectory = outputDirectory;
 
 	m_progressReporter.reset(new TextCtrlProgressReporter(m_logText, true, this));
 	m_progressReporter->setShouldStop(true);
+
+	if (runImmediately)
+		start();
 }
 
 void mainFrame::OnExit(wxCommandEvent& event)
@@ -85,10 +97,17 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 			readingOkay = profiles.back().readFromStream(fin, hplHeader);
 			if (!readingOkay) //we hit the end of the file while reading this profile
 				profiles.resize(profiles.size() - 1);
-			if (profiles.size() == 1)
-				progressReporter << "Read profile 1";
-			else
-				progressReporter << ", " << profiles.size();
+			if (readingOkay)
+			{
+				if (profiles.size() == 1)
+					progressReporter << "Read profile 1";
+				else if (profiles.size() <= 50)
+					progressReporter << ", " << profiles.size();
+				else if (profiles.size() <=500 && profiles.size() % 10 == 0)
+					progressReporter << ", " << profiles.size() - 9 << "-" << profiles.size();
+				else if (profiles.size() % 100 == 0)
+					progressReporter << ", " << profiles.size() - 99 << "-" << profiles.size();
+			}
 			if (progressReporter.shouldStop())
 				break;
 		}
@@ -125,6 +144,32 @@ void mainFrame::OnStop(wxCommandEvent& event)
 	stop();
 }
 
+void mainFrame::OnSelectInputDir(wxCommandEvent& event)
+{
+	if (m_plotting || !m_progressReporter->shouldStop())
+	{
+		wxMessageBox("Please stop processing before attempting to change a directory.");
+		return;
+	}
+	std::string dir = wxDirSelector("Select the input directory to search for data files.",m_inputDirectory, wxDD_DIR_MUST_EXIST|wxDD_CHANGE_DIR);
+	if (!dir.length() == 0)
+		m_inputDirectory = dir;
+	(*m_progressReporter) << "Input directory changed to " << m_inputDirectory;
+}
+
+void mainFrame::OnSelectOutputDir(wxCommandEvent& event)
+{
+	if (m_plotting || !m_progressReporter->shouldStop())
+	{
+		wxMessageBox("Please stop processing before attempting to change a directory.");
+		return;
+	}
+	std::string dir = wxDirSelector("Select the output directory to store plots.", m_outputDirectory, wxDD_DIR_MUST_EXIST | wxDD_CHANGE_DIR);
+	if (!dir.length() == 0)
+		m_outputDirectory = dir;
+	(*m_progressReporter) << "Output directory changed to " << m_outputDirectory;
+}
+
 void mainFrame::start()
 {
 	if (!m_progressReporter->shouldStop())
@@ -137,8 +182,8 @@ void mainFrame::start()
 	}
 	m_progressReporter->setShouldStop(false);
 	m_logText->AppendText("Starting\n");
-	m_checkForNewDataTimer->Start(300000);//5 mins
-	plot();
+	m_checkForNewDataTimer->Start(300000);//Use this timer to check for new data every 5 mins
+	m_instantCheckTimer->StartOnce(1);//Use this timer to check for new data now
 }
 
 void mainFrame::stop()
@@ -174,7 +219,7 @@ void mainFrame::plot()
 {
 	plot("*Stare_??_????????_??.hpl");
 	plot("*VAD_??_????????_??????.hpl");
-	(*m_progressReporter) << "Generated plots for all files found. Waiting approx 5 mins to check again.\n\n"
+	(*m_progressReporter) << "Generated plots for all files found. Waiting approx 5 mins to check again.\n\n";
 }
 
 //Plot just a specific file type - the last file found alphabetically
