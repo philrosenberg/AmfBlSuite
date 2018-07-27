@@ -100,9 +100,8 @@ void mainFrame::OnExit(wxCommandEvent& event)
 	Close();
 }
 
-void plotFile(const std::string &inputFilename, const std::string &outputFilename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void plotFile(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
-
 	//If this is a processed wind profile then we jsut send the file straiht off to the code to plot that
 	if (inputFilename.find("Processed_Wind_Profile"))
 	{
@@ -122,7 +121,14 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 		}
 		fin.close();
 
-		plotProcessedWindProfile(height, degrees, speed, outputFilename, maxRange, progressReporter, parent);
+		for (size_t i = 0; i < maxRanges.size(); ++i)
+		{
+			std::ostringstream rangeLimitedfilename;
+			rangeLimitedfilename << outputFilename;
+			if (maxRanges[i] != std::numeric_limits<double>::max())
+				rangeLimitedfilename << "_maxRange_" << maxRanges[i];
+			plotProcessedWindProfile(height, degrees, speed, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
+		}
 		return;
 	}
 
@@ -168,7 +174,15 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 		}
 		progressReporter << ", done.\n";
 
-		plotProfiles(hplHeader, profiles, outputFilename, maxRange, progressReporter, parent);
+
+		for (size_t i = 0; i < maxRanges.size(); ++i)
+		{
+			std::ostringstream rangeLimitedfilename;
+			rangeLimitedfilename << outputFilename;
+			if (maxRanges[i] != std::numeric_limits<double>::max())
+				rangeLimitedfilename << "_maxRange_" << maxRanges[i];
+			plotProfiles(hplHeader, profiles, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
+		}
 	}
 	catch (char *err)
 	{
@@ -439,7 +453,7 @@ void mainFrame::plot(const std::string &filter)
 			std::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), std::string::npos);
 			try
 			{
-				plotFile(filesToPlot[i], outputFile, std::numeric_limits<double>::max(), *m_progressReporter, this);
+				plotFile(filesToPlot[i], outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
 				
 				if (m_progressReporter->shouldStop())
 				{
