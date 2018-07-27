@@ -77,7 +77,7 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 			"The file structure in the input directory will be searched for data that can be plotted and the same "
 			"structure will be mirrored in the output directory. A file called \"previouslyPlottedFiles.txt\" "
 			"will be place in the output directory and, as you might expect, lists all previously plotted files. "
-			"The software will check every 5 minutes to see if new files have been created that can be plotted. "
+			"The software will check every 10 minutes to see if new files have been created that can be plotted. "
 			"Note that the last file alphabetically of a given type is assumed to be the latest one created, and "
 			"it is assumed that this file may not be complete, therefore it is never listed as previously plotted.\n"
 			"You may run multiple instances of this software to plot data from multiple directories, but it may "
@@ -242,7 +242,7 @@ void mainFrame::start()
 	}
 	m_progressReporter->setShouldStop(false);
 	m_logText->AppendText("Starting\n");
-	m_checkForNewDataTimer->Start(300000);//Use this timer to check for new data every 5 mins
+	m_checkForNewDataTimer->Start(600000);//Use this timer to check for new data every 5 mins
 	m_instantCheckTimer->StartOnce(1);//Use this timer to check for new data now
 }
 
@@ -295,7 +295,7 @@ void mainFrame::plot()
 
 		//Tell the user we are done for now
 		if (!m_progressReporter->shouldStop())
-			(*m_progressReporter) << "Generated plots for all files found. Waiting approx 5 mins to check again.\n\n";
+			(*m_progressReporter) << "Generated plots for all files found. Waiting approx 10 mins to check again.\n\n";
 	}
 	catch (sci::err err)
 	{
