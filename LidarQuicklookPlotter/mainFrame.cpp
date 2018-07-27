@@ -103,6 +103,29 @@ void mainFrame::OnExit(wxCommandEvent& event)
 void plotFile(const std::string &inputFilename, const std::string &outputFilename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 
+	//If this is a processed wind profile then we jsut send the file straiht off to the code to plot that
+	if (inputFilename.find("Processed_Wind_Profile"))
+	{
+		std::fstream fin;
+		fin.open(inputFilename.c_str(), std::ios::in);
+		if (!fin.is_open())
+			throw("Could not open file");
+		size_t nPoints;
+		fin >> nPoints;
+		std::vector<double> height(nPoints);
+		std::vector<double> degrees(nPoints);
+		std::vector<double> speed(nPoints);
+
+		for (size_t i = 0; i < nPoints; ++i)
+		{
+			fin >> height[i] >> degrees[i] >> speed[i];
+		}
+		fin.close();
+
+		plotProcessedWindProfile(height, degrees, speed, outputFilename, maxRange, progressReporter, parent);
+		return;
+	}
+
 	std::fstream fin;
 	HplHeader hplHeader;
 	std::vector<HplProfile> profiles;
@@ -248,12 +271,17 @@ void mainFrame::plot()
 	//There must be no code that can throw without being caught until m_plotting is set back to false
 	try
 	{
+		//run the plot routines for the different type of profiles
+		if (!m_progressReporter->shouldStop())
+			plot("*Processed_Wind_Profile_??_????????_??????.hpl");
 		if(!m_progressReporter->shouldStop())
 			plot("*Stare_??_????????_??.hpl");
 		if (!m_progressReporter->shouldStop())
 			plot("*VAD_??_????????_??????.hpl");
 		if (!m_progressReporter->shouldStop())
 			plot("*User*.hpl");
+
+		//Tell the user we are done for now
 		if (!m_progressReporter->shouldStop())
 			(*m_progressReporter) << "Generated plots for all files found. Waiting approx 5 mins to check again.\n\n";
 	}

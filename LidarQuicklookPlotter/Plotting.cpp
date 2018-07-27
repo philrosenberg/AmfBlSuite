@@ -651,3 +651,61 @@ void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfi
 
 	window->Destroy();
 }
+
+void plotProcessedWindProfile(const std::vector<double> &height, const std::vector<double> &degrees, const std::vector<double> &speed, const std::string &filename, double maxRange, ProgressReporter& progressReporter, wxWindow *parent)
+{
+	splotframe *window = new splotframe(parent, true);
+	splot2d *speedPlot = window->addplot(0.1, 0.1, 0.4, 0.7, false, false);
+	splot2d *directionPlot = window->addplot(0.5, 0.1, 0.4, 0.7, false, false);
+	std::shared_ptr<PointData> speedData(new PointData(speed, height, Symbol(sym::filledCircle, 1.0)));
+	std::shared_ptr<PointData> directionData(new PointData(degrees, height, Symbol(sym::filledCircle, 1.0)));
+
+	speedPlot->addData(speedData);
+	directionPlot->addData(directionData);
+	if (maxRange < height.back())
+	{
+		speedPlot->setmaxy(maxRange);
+		directionPlot->setmaxy(maxRange);
+	}
+
+	speedPlot->setminy(0.0);
+	directionPlot->setminy(0.0);
+
+	speedPlot->setminx(0.0);
+	directionPlot->setxlimits(0.0, 360.0);
+
+
+	speedPlot->getyaxis()->settitle("Height (m)");
+	speedPlot->getyaxis()->settitlesize(15);
+	speedPlot->getyaxis()->settitledistance(4.5);
+	speedPlot->getyaxis()->setlabelsize(15);
+	speedPlot->getxaxis()->settitle("Wind Speed (m s#u-1#d)");
+	speedPlot->getxaxis()->settitlesize(15);
+	speedPlot->getxaxis()->settitledistance(4.5);
+	speedPlot->getxaxis()->setlabelsize(15);
+
+	directionPlot->getyaxis()->settitle("");
+	directionPlot->getyaxis()->setlabelsize(0);
+	directionPlot->getxaxis()->settitle("Wind Direction (#uo#d)");
+	directionPlot->getxaxis()->settitlesize(15);
+	directionPlot->getxaxis()->settitledistance(4.5);
+	directionPlot->getxaxis()->setlabelsize(15);
+	directionPlot->getxaxis()->setmajorinterval(45);
+
+	splotlegend* legend = window->addlegend(0.1, 0.8, 0.8, 0.15,wxColour(0,0,0), 0);
+	legend->settitlesize(20);
+	std::ostringstream plotTitle;
+	plotTitle << "Lidar Wind Retrieval\n";
+	if (filename.find('/') != std::string::npos)
+		plotTitle << filename.substr(filename.find_last_of('/') + 1, std::string::npos);
+	else if (filename.find('\\') != std::string::npos)
+		plotTitle << filename.substr(filename.find_last_of('\\') + 1, std::string::npos);
+	else
+		plotTitle << filename;
+	
+	legend->settitle(plotTitle.str());
+
+	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
+
+	window->Destroy();
+}
