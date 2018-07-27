@@ -99,6 +99,8 @@ std::string getScanTypeString (const HplHeader &header)
 		return "User Scan 3";
 	if (header.scanType == st_user4)
 		return "User Scan 4";
+
+	return "Unknown Scan Type";
 }
 
 void setupCanvas(splotframe **window, splot2d **plot, const std::string &extraDescriptor, wxWindow *parent, const HplHeader &header)
