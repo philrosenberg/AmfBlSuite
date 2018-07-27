@@ -282,7 +282,7 @@ void mainFrame::plot(const std::string &filter)
 			(*m_progressReporter) << "Found no new files to plot.\n";
 		else
 		{
-			(*m_progressReporter) << "Found the following new files to plot:\n";
+			(*m_progressReporter) << "Found the following new files to plot matching the filter " << filter << " :\n";
 			for(size_t i=0; i<filesToPlot.size(); ++i)
 				(*m_progressReporter) << "\t" << filesToPlot[i] << "\n";
 
@@ -313,6 +313,7 @@ void mainFrame::plot(const std::string &filter)
 			//plotFile("D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\201807\\20180711\\Stare_18_20180711_20.hpl", "moccha_test_stare_cubehelix.png", 1000, this);
 			//plotFile("D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\201807\\20180711\\VAD_18_20180711_081948.hpl", "moccha_test_vad_cubehelix.png", 10000, this);
 		}
+		(*m_progressReporter) << "Generated plots for all files matching filter " << filter << "\n";
 	}
 	catch (sci::err err)
 	{
