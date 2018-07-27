@@ -157,10 +157,8 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 					progressReporter << "Read profile 1";
 				else if (profiles.size() <= 50)
 					progressReporter << ", " << profiles.size();
-				else if (profiles.size() <=500 && profiles.size() % 10 == 0)
+				else if ( profiles.size() % 10 == 0)
 					progressReporter << ", " << profiles.size() - 9 << "-" << profiles.size();
-				else if (profiles.size() % 100 == 0)
-					progressReporter << ", " << profiles.size() - 99 << "-" << profiles.size();
 			}
 			if (progressReporter.shouldStop())
 				break;
