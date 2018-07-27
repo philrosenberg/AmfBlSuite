@@ -68,6 +68,31 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 
 	if (runImmediately)
 		start();
+	else
+	{
+		m_logText->SetValue("To run Lidar Quicklook Plotter either run with 2 command line arguments - the first "
+			"being the directory to search for data and the second being the directory to store the plots - or "
+			"run with no command line arguments and manually select the directories and start processing using "
+			"the items under the file menu. If you use the command line then the plotting will start immediately\n"
+			"The file structure in the input directory will be searched for data that can be plotted and the same "
+			"structure will be mirrored in the output directory. A file called \"previouslyPlottedFiles.txt\" "
+			"will be place in the output directory and, as you might expect, lists all previously plotted files. "
+			"The software will check every 5 minutes to see if new files have been created that can be plotted. "
+			"Note that the last file alphabetically of a given type is assumed to be the latest one created, and "
+			"it is assumed that this file may not be complete, therefore it is never listed as previously plotted.\n"
+			"You may run multiple instances of this software to plot data from multiple directories, but it may "
+			"be prudent to use different output directories for each instance so that clashes do not occur with "
+			"the previouslyPlottedFiles.txt file."
+			"\n\n");
+		if (wxTheApp->argc != 1 && wxTheApp->argc != 3)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			m_logText->AppendText("You ran Lidar Quicklook Plotter with the wrong number of arguments. Check above for "
+				"usage instructions. You may still manually select directories and start the plotting.\n\n");
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+	}
 }
 
 void mainFrame::OnExit(wxCommandEvent& event)
