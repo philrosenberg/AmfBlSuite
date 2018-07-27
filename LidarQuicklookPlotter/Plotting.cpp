@@ -3,6 +3,7 @@
 #include"HplHeader.h"
 #include"HplProfile.h"
 #include<fstream>
+#include<wx/filename.h>
 
 void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, wxWindow *parent);
 void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, wxWindow *parent);
@@ -121,7 +122,7 @@ void setupCanvas(splotframe **window, splot2d **plot, const std::string &extraDe
 	legend->addentry("", g_lidarColourscale, false, false, 0.05, 0.3, 15, "", 0, 0.05, wxColour(0, 0, 0), 128, false, 150, false);
 }
 
-void createDirectoryAndWritePlot(splotframe *plotCanvas, const std::string &filename)
+void createDirectoryAndWritePlot(splotframe *plotCanvas, std::string filename)
 {
 	size_t lastSlashPosition = filename.find_last_of("/\\");
 	std::string directory;
@@ -131,7 +132,7 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, const std::string &file
 		directory = filename.substr(0, lastSlashPosition + 1);
 	
 	if (!wxDirExists(directory))
-		wxMkDir(directory);
+		wxFileName::Mkdir(directory, 770, wxPATH_MKDIR_FULL);
 	if (!wxDirExists(directory))
 	{
 		std::ostringstream message;
@@ -139,7 +140,11 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, const std::string &file
 		throw (message.str());
 	}
 
-	if( plotCanvas->writetofile(filename))
+	std::string lastFourChars = filename.length() < 4 ? "" : filename.substr(filename.length() - 4, std::string::npos);
+	if (lastFourChars != ".png" && lastFourChars != ".PNG")
+		filename = filename + ".png";
+
+	if( !plotCanvas->writetofile(filename))
 	{
 		std::ostringstream message;
 		message << "The output file " << filename << " could not be created.";

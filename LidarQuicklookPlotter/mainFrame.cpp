@@ -3,6 +3,7 @@
 #include "HplProfile.h"
 #include "Plotting.h"
 #include<wx/dir.h>
+#include<wx/filename.h>
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -153,7 +154,7 @@ void mainFrame::plot()
 		logStream << "Looking for data files to plot.\n";
 		//check the output directory exists
 		if (!wxDirExists(m_outputDirectory))
-			wxMkDir(m_outputDirectory);
+			wxFileName::Mkdir(m_outputDirectory, 770, wxPATH_MKDIR_FULL);
 		if (!wxDirExists(m_outputDirectory))
 		{
 			std::ostringstream message;
