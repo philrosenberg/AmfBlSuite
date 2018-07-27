@@ -51,8 +51,8 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title)
 
 	m_plotting = false;
 
-	m_inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018";
-	m_outputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\quicklooks";
+	m_inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\";
+	m_outputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\quicklooks\\";
 
 	m_progressReporter.reset(new TextCtrlProgressReporter(m_logText, true, this));
 	m_progressReporter->setShouldStop(true);
@@ -179,6 +179,12 @@ void mainFrame::plot()
 
 	try
 	{
+		//ensure that the input and output directories end with a slash or are empty
+		if (m_inputDirectory.length() > 0 && m_inputDirectory.back()!= '/' && m_inputDirectory.back()!= '\\')
+			m_inputDirectory = m_inputDirectory+"/";
+		if (m_outputDirectory.length() > 0 && m_outputDirectory.back() != '/' && m_outputDirectory.back() != '\\')
+			m_outputDirectory = m_outputDirectory + "/";
+
 		std::vector<std::string> plottedFiles;
 		(*m_progressReporter) << "Looking for data files to plot.\n";
 		//check the output directory exists
