@@ -47,5 +47,11 @@
     <ClInclude Include="Plotting.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ProgressReporter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextCtrlProgressReporter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

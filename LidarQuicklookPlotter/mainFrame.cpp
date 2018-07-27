@@ -4,6 +4,7 @@
 #include "Plotting.h"
 #include<wx/dir.h>
 #include<wx/filename.h>
+#include"TextCtrlProgressReporter.h"
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -48,12 +49,13 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title)
 
 	m_checkForNewDataTimer = new wxTimer(this, ID_CHECK_DATA_TIMER);
 
-	m_started = false;
 	m_plotting = false;
-	m_shouldStop = false;
 
 	m_inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018";
 	m_outputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\quicklooks";
+
+	m_progressReporter.reset(new TextCtrlProgressReporter(m_logText, true, this));
+	m_progressReporter->setShouldStop(true);
 }
 
 void mainFrame::OnExit(wxCommandEvent& event)
@@ -61,8 +63,9 @@ void mainFrame::OnExit(wxCommandEvent& event)
 	Close();
 }
 
-void plotFile(const std::string &inputFilename, const std::string &outputFilename, double maxRange, wxWindow *parent)
+void plotFile(const std::string &inputFilename, const std::string &outputFilename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
+
 	std::fstream fin;
 	HplHeader hplHeader;
 	std::vector<HplProfile> profiles;
@@ -71,6 +74,8 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 		fin.open(inputFilename.c_str(), std::ios::in);
 		if (!fin.is_open())
 			throw("Could not open file");
+
+		progressReporter << "Reading file.\n";
 		fin >> hplHeader;
 
 		bool readingOkay = true;
@@ -80,9 +85,23 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 			readingOkay = profiles.back().readFromStream(fin, hplHeader);
 			if (!readingOkay) //we hit the end of the file while reading this profile
 				profiles.resize(profiles.size() - 1);
+			if (profiles.size() == 1)
+				progressReporter << "Read profile 1";
+			else
+				progressReporter << ", " << profiles.size();
+			if (progressReporter.shouldStop())
+				break;
 		}
+		if (progressReporter.shouldStop())
+		{
+			progressReporter << "\n";
+			fin.close();
+			return;
 
-		plotProfiles(hplHeader, profiles, outputFilename, maxRange, parent);
+		}
+		progressReporter << ", done.\n";
+
+		plotProfiles(hplHeader, profiles, outputFilename, maxRange, progressReporter, parent);
 	}
 	catch (char *err)
 	{
@@ -108,8 +127,15 @@ void mainFrame::OnStop(wxCommandEvent& event)
 
 void mainFrame::start()
 {
-	if (m_started)
+	if (!m_progressReporter->shouldStop())
 		return;
+	if (m_progressReporter->shouldStop() && m_plotting)
+	{
+		//The user has requested to stop but before the stop has happened they requested to start again
+		//Tell them to be patient
+		wxMessageBox("Although you have requested plotting to stop, the software is just waiting for code to finish execution before it can do so. Please wait for the current processing to halt before trying to restart.");
+	}
+	m_progressReporter->setShouldStop(false);
 	m_logText->AppendText("Starting\n");
 	m_checkForNewDataTimer->Start(300000);//5 mins
 	plot();
@@ -117,10 +143,10 @@ void mainFrame::start()
 
 void mainFrame::stop()
 {
-	if (!m_started)
+	if (m_progressReporter->shouldStop())
 		return;
 	m_checkForNewDataTimer->Stop();
-	m_shouldStop = true;
+	m_progressReporter->setShouldStop(true);
 	if( m_plotting)
 		m_logText->AppendText("Stopping\n");
 	else
@@ -146,12 +172,15 @@ std::vector<std::string> getDirectoryListing(const std::string &directory)
 
 void mainFrame::plot()
 {
+	if (m_plotting)
+		return;
 	m_plotting = true;
-	std::vector<std::string> plottedFiles;
+	//There must be no code that can throw without being caught until m_plotting is set back to false
+
 	try
 	{
-		std::ostream logStream(m_logText);
-		logStream << "Looking for data files to plot.\n";
+		std::vector<std::string> plottedFiles;
+		(*m_progressReporter) << "Looking for data files to plot.\n";
 		//check the output directory exists
 		if (!wxDirExists(m_outputDirectory))
 			wxFileName::Mkdir(m_outputDirectory, 770, wxPATH_MKDIR_FULL);
@@ -217,7 +246,7 @@ void mainFrame::plot()
 		}
 
 		if (filesToPlot.size() == 0)
-			logStream << "Found no new files to plot.\n";
+			(*m_progressReporter) << "Found no new files to plot.\n";
 
 		else
 		{
@@ -226,9 +255,9 @@ void mainFrame::plot()
 			//incomplete.
 			std::sort(filesToPlot.begin(), filesToPlot.end());
 
-			logStream << "Found the following new files to plot:\n";
+			(*m_progressReporter) << "Found the following new files to plot:\n";
 			for(size_t i=0; i<filesToPlot.size(); ++i)
-				logStream << "\t" << filesToPlot[i] << "\n";
+				(*m_progressReporter) << "\t" << filesToPlot[i] << "\n";
 
 			std::fstream fout;
 			fout.open(previouslyPlottedFilename.c_str(), std::ios::app);
@@ -236,10 +265,14 @@ void mainFrame::plot()
 			{
 				for (size_t i = 0; i < filesToPlot.size(); ++i)
 				{
-					logStream << "Plotting " << filesToPlot[i] << "\n";
+					(*m_progressReporter) << "Processing " << filesToPlot[i] << "\n";
 					std::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), std::string::npos);
-					plotFile(filesToPlot[i], outputFile, std::numeric_limits<double>::max(), this);
-					logStream << "File plotted to " << outputFile << "\n";
+					plotFile(filesToPlot[i], outputFile, std::numeric_limits<double>::max(), *m_progressReporter, this);
+					if (m_progressReporter->shouldStop())
+					{
+						(*m_progressReporter) << "Operation halted at user request.\n";
+						break;
+					}
 
 					//remember which files have been plotted
 					fout << filesToPlot[i] << "\n";
@@ -250,7 +283,7 @@ void mainFrame::plot()
 				fout.close();
 				throw;
 			}
-
+			fout.close();
 
 			//plotFile("../../../data/co/2013/201301/20130124/Stare_05_20130124_16.hpl", "testStare.png", this);
 			//plotFile("../../../data/co/2013/201301/20130124/Wind_Profile_05_20130124_162124.hpl", "testWindProfile.png", this);
@@ -300,11 +333,9 @@ void mainFrame::plot()
 		m_logText->SetDefaultStyle(originalStyle);
 	}
 
-	if(m_shouldStop)
-		m_logText->AppendText("Stopped\n\n");
-
 	m_plotting = false;
-	m_shouldStop = false;
+	if(m_progressReporter->shouldStop())
+		m_logText->AppendText("Stopped\n\n");
 }
 
 void mainFrame::OnAbout(wxCommandEvent& event)

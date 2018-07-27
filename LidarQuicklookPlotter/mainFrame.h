@@ -7,6 +7,8 @@
 #include<svector/sreadwrite.h>
 #include<svector/sstring.h>
 #include<faam/faam.h>
+#include"TextCtrlProgressReporter.h"
+#include<memory>
 
 class mainFrame : public wxFrame
 {
@@ -32,9 +34,8 @@ private:
 	std::string m_inputDirectory;
 	std::string m_outputDirectory;
 
-	bool m_started;
 	bool m_plotting;
-	bool m_shouldStop;
+	std::unique_ptr<TextCtrlProgressReporter> m_progressReporter;
 
 	void start();
 	void stop();

@@ -4,13 +4,14 @@
 #include"HplProfile.h"
 #include<fstream>
 #include<wx/filename.h>
+#include"ProgressReporter.h"
 
-void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, wxWindow *parent);
-void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, wxWindow *parent);
-void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, wxWindow *parent);
-void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, wxWindow *parent);
+void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
+void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
+void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
+void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
 void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double viewAzimuth, size_t nSegmentsMin, double maxRange, splot2d *plot);
-void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, wxWindow *parent);
+void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, ProgressReporter& progressReporter, wxWindow *parent);
 
 class CubehelixColourscale : public splotcolourscale
 {
@@ -68,18 +69,18 @@ public:
 const CubehelixColourscale g_lidarColourscale(1e-8, 1e-3, 101, 180., 540.0, 1.0, 0.0, 1.0, 1.0 , true, false);
 
 
-void plotProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, wxWindow *parent)
+void plotProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	if (header.scanType == st_rhi)
-		plotRhiProfiles(header, profiles, filename, parent);
+		plotRhiProfiles(header, profiles, filename, progressReporter, parent);
 	else if (header.scanType == st_vad || header.scanType == st_wind)
 	{
-		plotVadPlanProfiles(header, profiles, filename, 24, maxRange, parent);
-		plotVadConeProfiles(header, profiles, filename + std::string("cone.png"), 1, maxRange, parent);
-		plotVadUnrolledProfiles(header, profiles, filename + std::string("unrolled.png"), 1, maxRange, parent);
+		plotVadPlanProfiles(header, profiles, filename, 24, maxRange, progressReporter, parent);
+		plotVadConeProfiles(header, profiles, filename + std::string("cone.png"), 1, maxRange, progressReporter, parent);
+		plotVadUnrolledProfiles(header, profiles, filename + std::string("unrolled.png"), 1, maxRange, progressReporter, parent);
 	}
 	else //stare or user
-		plotStareProfiles(header, profiles, filename, maxRange, parent);
+		plotStareProfiles(header, profiles, filename, maxRange, progressReporter, parent);
 }
 
 std::string getScanTypeString (const HplHeader &header)
@@ -122,7 +123,7 @@ void setupCanvas(splotframe **window, splot2d **plot, const std::string &extraDe
 	legend->addentry("", g_lidarColourscale, false, false, 0.05, 0.3, 15, "", 0, 0.05, wxColour(0, 0, 0), 128, false, 150, false);
 }
 
-void createDirectoryAndWritePlot(splotframe *plotCanvas, std::string filename)
+void createDirectoryAndWritePlot(splotframe *plotCanvas, std::string filename, size_t width, size_t height, ProgressReporter &progressReporter)
 {
 	size_t lastSlashPosition = filename.find_last_of("/\\");
 	std::string directory;
@@ -144,16 +145,21 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, std::string filename)
 	if (lastFourChars != ".png" && lastFourChars != ".PNG")
 		filename = filename + ".png";
 
-	if( !plotCanvas->writetofile(filename))
+	progressReporter << "Rendering plot to file - the application may be unresponsive for a minute.\n";
+	if (progressReporter.shouldStop())
+	{
+		return;
+	}
+	if( !plotCanvas->writetofile(filename, width, height, 1.0))
 	{
 		std::ostringstream message;
 		message << "The output file " << filename << " could not be created.";
 		throw (message.str());
 	}
-	
+	progressReporter << "Plot rendered to " << filename << "\n";
 }
 
-void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, wxWindow *parent)
+void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, ProgressReporter& progressReporter, wxWindow *parent)
 {
 	splotframe *window;
 	splot2d *plot;
@@ -197,7 +203,7 @@ void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &p
 	if (ys.back() > maxRange)
 		plot->setmaxy(maxRange);
 
-	createDirectoryAndWritePlot(window, filename);
+	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 
 	window->Destroy();
 }
@@ -215,7 +221,7 @@ public:
 	}
 };
 
-void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, wxWindow *parent)
+void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, ProgressReporter& progressReporter, wxWindow *parent)
 {
 	splotframe *window;
 	splot2d *plot;
@@ -259,7 +265,7 @@ void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &pro
 	plot->getxaxis()->settitle("Horizontal Distance (m)");
 	plot->getyaxis()->settitle("Height (m)");
 
-	createDirectoryAndWritePlot(window, filename);
+	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 
 	window->Destroy();
 }
@@ -320,7 +326,7 @@ private:
 	const double m_sinElevationRad;
 };
 
-void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, wxWindow *parent)
+void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent)
 {
 	splotframe *window;
 	splot2d *plot;
@@ -412,12 +418,12 @@ void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> 
 	plot->getxaxis()->settitle("Horizontal Distance (m)");
 	plot->getyaxis()->settitle("Horizontal Distance (m)");
 
-	createDirectoryAndWritePlot(window, filename);
+	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 
 	window->Destroy();
 }
 
-void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, wxWindow *parent)
+void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent)
 {
 	splotframe *window = new splotframe(parent, true);
 	window->SetClientSize(1000, 2000);
@@ -435,7 +441,7 @@ void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> 
 	plot = window->addplot(0.1, 0.05, 0.8, 0.15, false, false);
 	plotVadConeProfiles(header, profiles, filename, 270.0, nSegmentsMin, maxRange, plot);
 
-	createDirectoryAndWritePlot(window, filename);
+	createDirectoryAndWritePlot(window, filename, 1000, 2000, progressReporter);
 	window->Destroy();
 }
 
@@ -556,7 +562,7 @@ void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> 
 	plot->getyaxis()->settitledistance(4.5);
 }
 
-void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, wxWindow *parent)
+void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent)
 {
 	splotframe *window;
 	splot2d *plot;
@@ -641,7 +647,7 @@ void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfi
 	if (ranges.back() > maxRange)
 		plot->setmaxy(maxRange);
 
-	createDirectoryAndWritePlot(window, filename);
+	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 
 	window->Destroy();
 }
