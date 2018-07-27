@@ -253,6 +253,8 @@ void mainFrame::plot()
 		if (!m_progressReporter->shouldStop())
 			plot("*VAD_??_????????_??????.hpl");
 		if (!m_progressReporter->shouldStop())
+			plot("*User*.hpl");
+		if (!m_progressReporter->shouldStop())
 			(*m_progressReporter) << "Generated plots for all files found. Waiting approx 5 mins to check again.\n\n";
 	}
 	catch (sci::err err)
