@@ -103,7 +103,7 @@ void mainFrame::OnExit(wxCommandEvent& event)
 void plotFile(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	//If this is a processed wind profile then we jsut send the file straiht off to the code to plot that
-	if (inputFilename.find("Processed_Wind_Profile"))
+	if (inputFilename.find("Processed_Wind_Profile") != std::string::npos)
 	{
 		std::fstream fin;
 		fin.open(inputFilename.c_str(), std::ios::in);
