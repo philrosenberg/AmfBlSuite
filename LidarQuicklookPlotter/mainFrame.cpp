@@ -154,7 +154,7 @@ void mainFrame::OnSelectInputDir(wxCommandEvent& event)
 	std::string dir = wxDirSelector("Select the input directory to search for data files.",m_inputDirectory, wxDD_DIR_MUST_EXIST|wxDD_CHANGE_DIR);
 	if (!dir.length() == 0)
 		m_inputDirectory = dir;
-	(*m_progressReporter) << "Input directory changed to " << m_inputDirectory;
+	(*m_progressReporter) << "Input directory changed to " << m_inputDirectory << "\n";
 }
 
 void mainFrame::OnSelectOutputDir(wxCommandEvent& event)
@@ -167,7 +167,7 @@ void mainFrame::OnSelectOutputDir(wxCommandEvent& event)
 	std::string dir = wxDirSelector("Select the output directory to store plots.", m_outputDirectory, wxDD_DIR_MUST_EXIST | wxDD_CHANGE_DIR);
 	if (!dir.length() == 0)
 		m_outputDirectory = dir;
-	(*m_progressReporter) << "Output directory changed to " << m_outputDirectory;
+	(*m_progressReporter) << "Output directory changed to " << m_outputDirectory << "\n";
 }
 
 void mainFrame::start()
