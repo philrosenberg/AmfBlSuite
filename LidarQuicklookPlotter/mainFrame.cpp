@@ -385,6 +385,21 @@ void mainFrame::plot(const std::string &filter)
 			try
 			{
 				plotFile(filesToPlot[i], outputFile, std::numeric_limits<double>::max(), *m_progressReporter, this);
+				
+				if (m_progressReporter->shouldStop())
+				{
+					(*m_progressReporter) << "Operation halted at user request.\n";
+					break;
+				}
+
+				//remember which files have been plotted
+				if (filesToPlot[i] != lastFileToPlot)
+				{
+					std::fstream fout;
+					fout.open(previouslyPlottedFilename.c_str(), std::ios::app);
+					fout << filesToPlot[i] << "\n";
+					fout.close();
+				}
 			}
 			catch (sci::err err)
 			{
@@ -426,19 +441,11 @@ void mainFrame::plot(const std::string &filter)
 				stream << "Error: Unknown\n";
 				m_logText->SetDefaultStyle(originalStyle);
 			}
+
 			if (m_progressReporter->shouldStop())
 			{
 				(*m_progressReporter) << "Operation halted at user request.\n";
 				break;
-			}
-
-			//remember which files have been plotted
-			if (filesToPlot[i] != lastFileToPlot)
-			{
-				std::fstream fout;
-				fout.open(previouslyPlottedFilename.c_str(), std::ios::app);
-				fout << filesToPlot[i] << "\n";
-				fout.close();
 			}
 		}
 
