@@ -121,6 +121,33 @@ void setupCanvas(splotframe **window, splot2d **plot, const std::string &extraDe
 	legend->addentry("", g_lidarColourscale, false, false, 0.05, 0.3, 15, "", 0, 0.05, wxColour(0, 0, 0), 128, false, 150, false);
 }
 
+void createDirectoryAndWritePlot(splotframe *plotCanvas, const std::string &filename)
+{
+	size_t lastSlashPosition = filename.find_last_of("/\\");
+	std::string directory;
+	if (lastSlashPosition == std::string::npos)
+		directory = ".";
+	else
+		directory = filename.substr(0, lastSlashPosition + 1);
+	
+	if (!wxDirExists(directory))
+		wxMkDir(directory);
+	if (!wxDirExists(directory))
+	{
+		std::ostringstream message;
+		message << "The output directory " << directory << "does not exist and could not be created.";
+		throw (message.str());
+	}
+
+	if( plotCanvas->writetofile(filename))
+	{
+		std::ostringstream message;
+		message << "The output file " << filename << " could not be created.";
+		throw (message.str());
+	}
+	
+}
+
 void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, wxWindow *parent)
 {
 	splotframe *window;
@@ -165,7 +192,7 @@ void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &p
 	if (ys.back() > maxRange)
 		plot->setmaxy(maxRange);
 
-	window->writetofile(filename);
+	createDirectoryAndWritePlot(window, filename);
 
 	window->Destroy();
 }
@@ -227,7 +254,7 @@ void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &pro
 	plot->getxaxis()->settitle("Horizontal Distance (m)");
 	plot->getyaxis()->settitle("Height (m)");
 
-	window->writetofile(filename);
+	createDirectoryAndWritePlot(window, filename);
 
 	window->Destroy();
 }
@@ -380,7 +407,7 @@ void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> 
 	plot->getxaxis()->settitle("Horizontal Distance (m)");
 	plot->getyaxis()->settitle("Horizontal Distance (m)");
 
-	window->writetofile(filename);
+	createDirectoryAndWritePlot(window, filename);
 
 	window->Destroy();
 }
@@ -403,7 +430,7 @@ void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> 
 	plot = window->addplot(0.1, 0.05, 0.8, 0.15, false, false);
 	plotVadConeProfiles(header, profiles, filename, 270.0, nSegmentsMin, maxRange, plot);
 
-	window->writetofile(filename);
+	createDirectoryAndWritePlot(window, filename);
 	window->Destroy();
 }
 
@@ -609,8 +636,7 @@ void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfi
 	if (ranges.back() > maxRange)
 		plot->setmaxy(maxRange);
 
-	if(!window->writetofile(filename))
-		throw ("Could not write file");
+	createDirectoryAndWritePlot(window, filename);
 
 	window->Destroy();
 }
