@@ -5,6 +5,7 @@
 #include<wx/dir.h>
 #include<wx/filename.h>
 #include"TextCtrlProgressReporter.h"
+#include"FolderChangesLister.h"
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -377,67 +378,11 @@ void mainFrame::plot(const std::string &filter)
 		throw(message.str());
 	}
 
-	//get a list of all the files previously plotted
-	std::vector<std::string> previouslyPlottedFiles;
-	std::string previouslyPlottedFilename = m_outputDirectory + "previouslyPlottedFiles.txt";
 
-	std::fstream fin;
-	fin.open(previouslyPlottedFilename.c_str(), std::ios::in);
-	std::string filename;
-	std::getline(fin, filename);
-	while (filename.length() > 0)
-	{
-		previouslyPlottedFiles.push_back(filename);
-		std::getline(fin, filename);
-	}
-	fin.close();
+	//check for new files
+	ExistedFolderChangesLister changesLister(m_inputDirectory, m_outputDirectory + "previouslyPlottedFiles.txt");
+	std::vector<std::string> filesToPlot = changesLister.getChanges(filter);
 
-	//Find all the files in the input directory
-	std::vector<std::string> allFiles = getDirectoryListing(m_inputDirectory, filter);
-
-	//Sort the files in alphabetical order - this will also put them in time order
-	//which is important for hunting out the last file of any type which may have been
-	//incomplete.
-	if(allFiles.size() > 0)
-		std::sort(allFiles.begin(), allFiles.end());
-
-	//Remember the name of the last file in the list - we assume thismay be incomplete
-	//so don't let it get remembered as a previously plotted file
-	std::string lastFileToPlot;
-	if (allFiles.size() > 0)
-		lastFileToPlot = allFiles.back();
-
-	//Filter for just files we are interested in
-	//std::vector<std::string> filesOfInterest;
-	//filesOfInterest.reserve(allFiles.size());
-	//for (size_t i = 0; i < allFiles.size(); ++i)
-	//{
-	//	if (allFiles[i].find("Stare", m_inputDirectory.length()) != std::string::npos)
-	//		filesOfInterest.push_back(allFiles[i]);
-	//	if (allFiles[i].find("VAD", m_inputDirectory.length()) != std::string::npos)
-	//		filesOfInterest.push_back(allFiles[i]);
-	//}
-	//The code above was replaced by wildcard filtering when we hunt for files
-	//however it has been left in place in case we need to do something similar in
-	//the future
-	std::vector<std::string> filesOfInterest = allFiles;
-
-	std::vector<std::string> filesToPlot;
-	filesToPlot.reserve(filesOfInterest.size());
-	for (size_t i = 0; i < filesOfInterest.size(); ++i)
-	{
-		bool alreadyPlotted = false;
-		for (size_t j = 0; j < previouslyPlottedFiles.size(); ++j)
-		{
-			if (filesOfInterest[i] == previouslyPlottedFiles[j])
-			{
-				alreadyPlotted = true;
-				break;
-			}
-		}
-		if (!alreadyPlotted)
-			filesToPlot.push_back(filesOfInterest[i]);
-	}
 
 	if (filesToPlot.size() == 0)
 		(*m_progressReporter) << "Found no new files to plot.\n";
@@ -446,6 +391,9 @@ void mainFrame::plot(const std::string &filter)
 		(*m_progressReporter) << "Found the following new files to plot matching the filter " << filter << " :\n";
 		for(size_t i=0; i<filesToPlot.size(); ++i)
 			(*m_progressReporter) << "\t" << filesToPlot[i] << "\n";
+
+
+		std::string lastFileToPlot = filesToPlot.back();
 
 		for (size_t i = 0; i < filesToPlot.size(); ++i)
 		{
@@ -460,14 +408,11 @@ void mainFrame::plot(const std::string &filter)
 					(*m_progressReporter) << "Operation halted at user request.\n";
 					break;
 				}
-
+				
 				//remember which files have been plotted
 				if (filesToPlot[i] != lastFileToPlot)
 				{
-					std::fstream fout;
-					fout.open(previouslyPlottedFilename.c_str(), std::ios::app);
-					fout << filesToPlot[i] << "\n";
-					fout.close();
+					changesLister.updateSnapshotFile(filesToPlot[i]);
 				}
 			}
 			catch (sci::err err)
