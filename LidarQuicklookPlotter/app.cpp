@@ -8,7 +8,8 @@ bool MyApp::OnInit()
 	wxString inputDirectory;
 	wxString outputDirectory;
 #ifdef _DEBUG
-	inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\";
+	//inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\";
+	inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\ceilometer_backup_ds1\\";
 	outputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\quicklooks\\";
 #endif
 	if (argc == 3)

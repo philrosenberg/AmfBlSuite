@@ -159,6 +159,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="app.cpp" />
+    <ClCompile Include="Campbell.cpp" />
     <ClCompile Include="FolderChangesLister.cpp" />
     <ClCompile Include="HplHeader.cpp" />
     <ClCompile Include="HplProfile.cpp" />
@@ -167,6 +168,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h" />
+    <ClInclude Include="Campbell.h" />
     <ClInclude Include="FolderChangesLister.h" />
     <ClInclude Include="TextCtrlProgressReporter.h" />
     <ClInclude Include="HplHeader.h" />

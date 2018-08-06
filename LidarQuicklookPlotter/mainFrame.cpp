@@ -6,6 +6,7 @@
 #include<wx/filename.h>
 #include"TextCtrlProgressReporter.h"
 #include"FolderChangesLister.h"
+#include"Campbell.h"
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -130,6 +131,35 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 				rangeLimitedfilename << "_maxRange_" << maxRanges[i];
 			plotProcessedWindProfile(height, degrees, speed, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
 		}
+		return;
+	}
+	if (inputFilename.find("_ceilometer.csv") != std::string::npos)
+	{
+		std::fstream fin;
+		fin.open(inputFilename.c_str(), std::ios::in | std::ios::binary);
+		if (!fin.is_open())
+			throw("Could not open file");
+
+		progressReporter << "Reading file " << inputFilename << "\n";
+
+		char character;
+		fin.read(&character, 1);
+		size_t counter = 1;
+		std::string timeDate;
+		while (character != ',' && counter < 50 && !fin.eof())
+		{
+			timeDate = timeDate + character;
+			fin.read(&character, 1);
+			++counter;
+		}
+		if (counter == 50)
+			throw("Failed to find the comma after the timestamp in a ceilometer file. Reading aborted.");
+		if (fin.eof())
+			progressReporter << "Completed reading file.\n";
+
+		CampbellHeader header;
+		header.readHeader(fin);
+		fin.close();
 		return;
 	}
 
@@ -287,6 +317,8 @@ void mainFrame::plot()
 	try
 	{
 		//run the plot routines for the different type of profiles
+		if (!m_progressReporter->shouldStop())
+		plot("*_ceilometer.csv");
 		if (!m_progressReporter->shouldStop())
 			plot("*Processed_Wind_Profile_??_????????_??????.hpl");
 		if(!m_progressReporter->shouldStop())
