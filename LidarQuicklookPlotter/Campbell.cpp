@@ -185,3 +185,78 @@ void DefaultMessage::readMessage(std::istream &stream)
 {
 
 }
+
+CampbellMessage2::CampbellMessage2(char endOfTextCharacter)
+	:m_endOfTextCharacter(endOfTextCharacter)
+{
+}
+
+void CampbellMessage2::read(std::istream &stream)
+{
+	char crlf[2];
+	char space;
+
+	char messageStatus;
+	char alarmStatus;
+	char transmission[3];
+	char height1[5];
+	char height2[5];
+	char height3[5];
+	char height4[5];
+	char flags[12];
+	stream.read(&messageStatus, 1);
+	stream.read(&alarmStatus, 1);
+	stream.read(&space, 1);
+	stream.read(transmission, 3);
+	stream.read(&space, 1);
+	stream.read(height1, 5);
+	stream.read(&space, 1);
+	stream.read(height2, 5);
+	stream.read(&space, 1);
+	stream.read(height3, 5);
+	stream.read(&space, 1);
+	stream.read(height4, 5);
+	stream.read(&space, 1);
+	stream.read(flags, 12);
+	stream.read(crlf, 2);
+
+	char scale[5];
+	char res[2];
+	char n[4];
+	char energy[3];
+	char laserTemperature[3];
+	char tiltAngle[2];
+	char background[4];
+	char pulseQuantity[4];
+	char sampleRate[2];
+	char sum[3];
+	stream.read(scale, 5);
+	stream.read(&space, 1);
+	stream.read(res, 2);
+	stream.read(&space, 1);
+	stream.read(n, 4);
+	stream.read(&space, 1);
+	stream.read(energy, 3);
+	stream.read(&space, 1);
+	stream.read(laserTemperature, 3);
+	stream.read(&space, 1);
+	stream.read(tiltAngle, 2);
+	stream.read(&space, 1);
+	stream.read(background, 4);
+	stream.read(&space, 1);
+	stream.read(pulseQuantity, 4);
+	stream.read(&space, 1);
+	stream.read(sampleRate, 2);
+	stream.read(&space, 1);
+	stream.read(sum, 3);
+	stream.read(crlf, 2);
+	
+	std::vector<char> data(10240);
+	stream.read(&data[0], 10240);
+	stream.read(crlf, 2);
+
+	char endOfTextCharacter;
+	char checksum[4];
+	stream.read(&endOfTextCharacter, 1);
+	stream.read(checksum, 4);
+}

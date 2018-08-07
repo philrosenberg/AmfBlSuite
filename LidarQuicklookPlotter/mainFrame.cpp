@@ -142,23 +142,54 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 
 		progressReporter << "Reading file " << inputFilename << "\n";
 
-		char character;
-		fin.read(&character, 1);
-		size_t counter = 1;
+		std::vector<CampbellMessage2> data;
+		const size_t displayInterval = 120;
+		std::string firstBatchDate;
 		std::string timeDate;
-		while (character != ',' && counter < 50 && !fin.eof())
+		while (!fin.eof())
 		{
-			timeDate = timeDate + character;
+			timeDate = "";
+			char character;
 			fin.read(&character, 1);
-			++counter;
-		}
-		if (counter == 50)
-			throw("Failed to find the comma after the timestamp in a ceilometer file. Reading aborted.");
-		if (fin.eof())
-			progressReporter << "Completed reading file.\n";
+			size_t counter = 1;
+			while (character != ',' && counter < 50 && !fin.eof())
+			{
+				timeDate = timeDate + character;
+				fin.read(&character, 1);
+				++counter;
+			}
+			if (counter == 50)
+			{
+				fin.close();
+				throw("Failed to find the comma after the timestamp in a ceilometer file. Reading aborted.");
+			}
+			if (fin.eof())
+				break;
 
-		CampbellHeader header;
-		header.readHeader(fin);
+			CampbellHeader header;
+			header.readHeader(fin);
+			if (header.getMessageType() == cmt_cs && header.getMessageNumber() == 2)
+			{
+				if (data.size() == 0)
+					progressReporter << "Found CS 002 messages: ";
+				if (data.size()%displayInterval == 0)
+					firstBatchDate = timeDate;
+				if (data.size() % displayInterval == displayInterval - 1)
+					progressReporter << firstBatchDate << "-" << timeDate << "(" << displayInterval << " profiles) ";
+				data.resize(data.size() + 1);
+				data.back().read(fin);
+				char cr;
+				fin.read(&cr, 1);
+			}
+			else
+			{
+				progressReporter << "Found " << header.getMessageNumber() << " message " << timeDate << ". Halting Read\n";
+				break;
+			}
+		}
+		if (data.size() % displayInterval != displayInterval - 1)
+			progressReporter << firstBatchDate << "-" << timeDate << "(" << (data.size() % displayInterval)+1 << " profiles)\n";
+		progressReporter << "Completed reading file. " << data.size() << " profiles found\n";
 		fin.close();
 		return;
 	}
