@@ -169,6 +169,7 @@
   <ItemGroup>
     <ClInclude Include="app.h" />
     <ClInclude Include="Campbell.h" />
+    <ClInclude Include="Ceilometer.h" />
     <ClInclude Include="FolderChangesLister.h" />
     <ClInclude Include="TextCtrlProgressReporter.h" />
     <ClInclude Include="HplHeader.h" />

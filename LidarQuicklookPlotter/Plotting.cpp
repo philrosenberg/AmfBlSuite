@@ -5,6 +5,7 @@
 #include<fstream>
 #include<wx/filename.h>
 #include"ProgressReporter.h"
+#include"Ceilometer.h"
 
 void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
 void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
@@ -712,6 +713,80 @@ void plotProcessedWindProfile(const std::vector<double> &height, const std::vect
 		plotTitle << filename;
 	
 	legend->settitle(plotTitle.str());
+
+	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
+}
+
+
+void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, std::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+{
+	splotframe *window;
+	splot2d *plot;
+	setupCanvas(&window, &plot, "", parent, header);
+	WindowCleaner cleaner(window);
+
+	//We will do some averaging with the data - there is no point plotting thousands of profiles
+	//on a plot that is ~800 pixels across.
+	size_t timeAveragePeriod = 1;
+	while (profiles.size() / timeAveragePeriod > 800)
+		timeAveragePeriod *= 2;
+
+	std::vector<std::vector<double>> data(profiles.size()/ timeAveragePeriod);
+	for (size_t i = 0; i < data.size(); ++i)
+	{
+		data[i] = profiles[i*timeAveragePeriod].getBetas();
+		for (size_t j = 1; j < timeAveragePeriod; ++j)
+			data[i] += profiles[i*timeAveragePeriod + j].getBetas();
+	}
+	data /= (double)timeAveragePeriod;
+
+	if (profiles[0].getResolution()*data[0].size() - 1 > maxRange)
+	{
+		size_t pointsNeeded = std::min((size_t)std::ceil(maxRange / profiles[0].getResolution()), data[0].size());
+		for (size_t i = 0; i < profiles.size(); ++i)
+			data[i].resize(pointsNeeded);
+	}
+
+	size_t heightAveragePeriod = 1;
+	while (data[0].size() / heightAveragePeriod > 800)
+		heightAveragePeriod *= 2;
+	if (heightAveragePeriod > 1)
+	{
+		for (size_t i = 0; i < data.size(); ++i)
+			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod);
+	}
+
+	std::vector<double> xs(data.size() + 1);
+	std::vector<double> ys(data[0].size() + 1);
+
+	//calculating our heights assumes that the profiles have range gates of 0, 1, 2, 3, ... so check this;
+	bool gatesGood = true;
+	for (size_t i = 0; i < profiles.size(); ++i)
+	{
+		std::vector<size_t> gates = profiles[i].getGates();
+		for (size_t j = 0; j < gates.size(); ++j)
+			if (gates[j] != j)
+				throw("The plotting code currently assumes gates go 0, 1, 2, 3, ... but it found a profile where this was not the case.");
+	}
+
+	xs[0] = profiles[0].getTime().getUnixTime();
+	for (size_t i = 1; i < xs.size() - 1; ++i)
+		xs[i] = (profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / 2.0;
+	xs.back() = profiles.back().getTime().getUnixTime();
+
+	for (size_t i = 0; i < ys.size(); ++i)
+		ys[i] = i * heightAveragePeriod*header.rangeGateLength;
+
+	std::shared_ptr<GridData> gridData(new GridData(xs, ys, data, g_lidarColourscale, true, true));
+
+	plot->addData(gridData);
+
+	plot->getxaxis()->settitle("Time");
+	plot->getxaxis()->settimeformat("%H:%M:%S");
+	plot->getyaxis()->settitle("Height (m)");
+
+	if (ys.back() > maxRange)
+		plot->setmaxy(maxRange);
 
 	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 }

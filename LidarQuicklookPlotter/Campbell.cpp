@@ -186,6 +186,28 @@ void DefaultMessage::readMessage(std::istream &stream)
 
 }
 
+int hexCharToNumber(char hexChar)
+{
+	if (hexChar > char(47) && hexChar < char(58))
+		return int(hexChar) - int(48);
+	else if (hexChar > char(96) && hexChar < char(103))
+		return int(hexChar) - int(87);
+
+	else
+		throw("Recieved a non hex number to parse.");
+}
+
+int hexTextToNumber(char* textHex)
+{
+	int result = (((hexCharToNumber(textHex[0])*16+ hexCharToNumber(textHex[1]))*16 + hexCharToNumber(textHex[2]))*16 + hexCharToNumber(textHex[3]))*16 + hexCharToNumber(textHex[4]);
+	//two's compliment format means the first bit is actually negative - correct for the
+	//fact that we have aded it on.
+	if (result > (8 * 16 * 16 * 16 * 16))
+		result -= 2 * 8 * 16 * 16 * 16 * 16;
+
+	return result;
+}
+
 CampbellMessage2::CampbellMessage2(char endOfTextCharacter)
 	:m_endOfTextCharacter(endOfTextCharacter)
 {
@@ -198,11 +220,11 @@ void CampbellMessage2::read(std::istream &stream)
 
 	char messageStatus;
 	char alarmStatus;
-	char transmission[3];
-	char height1[5];
-	char height2[5];
-	char height3[5];
-	char height4[5];
+	char transmission[4];
+	char height1[6];
+	char height2[6];
+	char height3[6];
+	char height4[6];
 	char flags[12];
 	stream.read(&messageStatus, 1);
 	stream.read(&alarmStatus, 1);
@@ -220,43 +242,104 @@ void CampbellMessage2::read(std::istream &stream)
 	stream.read(flags, 12);
 	stream.read(crlf, 2);
 
-	char scale[5];
-	char res[2];
-	char n[4];
-	char energy[3];
-	char laserTemperature[3];
-	char tiltAngle[2];
-	char background[4];
-	char pulseQuantity[4];
-	char sampleRate[2];
-	char sum[3];
+	height1[5] = '\0';
+	height2[5] = '\0';
+	height3[5] = '\0';
+	height4[5] = '\0';
+	transmission[3] = '\0';
+	m_height1 = std::numeric_limits<double>::quiet_NaN();
+	m_height2 = std::numeric_limits<double>::quiet_NaN();
+	m_height3 = std::numeric_limits<double>::quiet_NaN();
+	m_height4 = std::numeric_limits<double>::quiet_NaN();
+	m_visibility = std::numeric_limits<double>::quiet_NaN();
+	m_highestSignal = std::numeric_limits<double>::quiet_NaN();
+
+	if (messageStatus == '5')
+	{
+		m_visibility = std::atof(height1);
+		m_highestSignal = std::atof(height2);
+	}
+	else if(messageStatus < '5')
+	{
+		m_height1 = std::atof(height1);
+		if (messageStatus > '1')
+			m_height2 = std::atof(height2);
+		if (messageStatus > '2')
+			m_height3 = std::atof(height3);
+		if (messageStatus > '3')
+			m_height4 = std::atof(height4);
+	}
+	m_windowTransmission = std::atof(transmission);
+
+	char scale[6];
+	char res[3];
+	char n[5];
+	char energy[4];
+	char laserTemperature[4];
+	char tiltAngle[3];
+	char background[5];
+	char pulseQuantity[5];
+	char sampleRate[3];
+	char sum[4];
 	stream.read(scale, 5);
+	scale[5] = '\0';
 	stream.read(&space, 1);
 	stream.read(res, 2);
+	res[2] = '\0';
 	stream.read(&space, 1);
 	stream.read(n, 4);
+	n[4] = '\0';
 	stream.read(&space, 1);
 	stream.read(energy, 3);
+	energy[3] = '\0';
 	stream.read(&space, 1);
 	stream.read(laserTemperature, 3);
+	laserTemperature[3] = '\0';
 	stream.read(&space, 1);
 	stream.read(tiltAngle, 2);
+	tiltAngle[2] = '\0';
 	stream.read(&space, 1);
 	stream.read(background, 4);
+	background[4] = '\0';
 	stream.read(&space, 1);
 	stream.read(pulseQuantity, 4);
+	pulseQuantity[4] = '\0';
 	stream.read(&space, 1);
 	stream.read(sampleRate, 2);
+	sampleRate[2] = '\0';
 	stream.read(&space, 1);
 	stream.read(sum, 3);
+	sum[3] = '\0';
 	stream.read(crlf, 2);
+
+	m_scale = std::atof(scale)/100.0;
+	m_resolution = std::atof(res);
+	m_laserPulseEnergy = std::atof(energy);
+	m_laserTemperature = std::atof(laserTemperature);
+	m_tiltAngle = std::atof(tiltAngle);
+	m_background = std::atof(background);
+	m_pulseQuantity = std::atof(pulseQuantity)*1000;
+	m_sampleRate = std::atof(sampleRate)*1000000000.0;
+	m_sum = std::atof(sum);
+
+
 	
 	std::vector<char> data(10240);
 	stream.read(&data[0], 10240);
 	stream.read(crlf, 2);
 
+	size_t pos = stream.tellg();
+
 	char endOfTextCharacter;
 	char checksum[4];
 	stream.read(&endOfTextCharacter, 1);
 	stream.read(checksum, 4);
+
+	m_data.resize(2046); //last two points are always zero so ignore them and use 2046 rather than 2048
+	char* currentPoint = &data[0];
+	for (size_t i = 0; i < m_data.size(); ++i)
+	{
+		m_data[i] = hexTextToNumber(currentPoint)*m_scale/100000.0/1000;
+		currentPoint += 5;
+	}
 }

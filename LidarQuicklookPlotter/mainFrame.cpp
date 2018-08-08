@@ -7,6 +7,7 @@
 #include"TextCtrlProgressReporter.h"
 #include"FolderChangesLister.h"
 #include"Campbell.h"
+#include"Ceilometer.h"
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -102,6 +103,19 @@ void mainFrame::OnExit(wxCommandEvent& event)
 	Close();
 }
 
+sci::UtcTime getCeilometerTime(const std::string &timeDateString)
+{
+	sci::UtcTime result(
+		std::atoi(timeDateString.substr(0, 4).c_str()), //year
+		std::atoi(timeDateString.substr(5, 2).c_str()), //month
+		std::atoi(timeDateString.substr(8, 2).c_str()), //day
+		std::atoi(timeDateString.substr(11, 2).c_str()), //hour
+		std::atoi(timeDateString.substr(14, 2).c_str()), //minute
+		std::atof(timeDateString.substr(17, std::string::npos).c_str()) //second
+	);
+	return result;
+}
+
 void plotFile(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	//If this is a processed wind profile then we jsut send the file straiht off to the code to plot that
@@ -142,55 +156,104 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 
 		progressReporter << "Reading file " << inputFilename << "\n";
 
-		std::vector<CampbellMessage2> data;
+		std::vector<CampbellCeilometerProfile> data;
+		CampbellHeader firstHeader;
 		const size_t displayInterval = 120;
 		std::string firstBatchDate;
 		std::string timeDate;
 		while (!fin.eof())
 		{
+			bool badTimeDate = false;
 			timeDate = "";
 			char character;
 			fin.read(&character, 1);
-			size_t counter = 1;
-			while (character != ',' && counter < 50 && !fin.eof())
+			//size_t counter = 1;
+			while (character != ','  && !fin.eof())
 			{
 				timeDate = timeDate + character;
 				fin.read(&character, 1);
-				++counter;
 			}
-			if (counter == 50)
-			{
-				fin.close();
-				throw("Failed to find the comma after the timestamp in a ceilometer file. Reading aborted.");
-			}
+			//if (counter == 50)
+			//{
+			//	fin.close();
+			//	throw("Failed to find the comma after the timestamp in a ceilometer file. Reading aborted.");
+			//}
 			if (fin.eof())
 				break;
-
-			CampbellHeader header;
-			header.readHeader(fin);
-			if (header.getMessageType() == cmt_cs && header.getMessageNumber() == 2)
-			{
-				if (data.size() == 0)
-					progressReporter << "Found CS 002 messages: ";
-				if (data.size()%displayInterval == 0)
-					firstBatchDate = timeDate;
-				if (data.size() % displayInterval == displayInterval - 1)
-					progressReporter << firstBatchDate << "-" << timeDate << "(" << displayInterval << " profiles) ";
-				data.resize(data.size() + 1);
-				data.back().read(fin);
-				char cr;
-				fin.read(&cr, 1);
-			}
+			size_t firstDash = timeDate.find_first_of('-');
+			if (firstDash == std::string::npos || firstDash < 4)
+				badTimeDate = true;
 			else
 			{
-				progressReporter << "Found " << header.getMessageNumber() << " message " << timeDate << ". Halting Read\n";
-				break;
+				size_t timeDateStart = firstDash - 4;
+				timeDate = timeDate.substr(timeDateStart);
+				if (timeDate.length() < 19)
+					badTimeDate = true;
+				else if (timeDate[4] != '-')
+					badTimeDate = true;
+				else if (timeDate[7] != '-')
+					badTimeDate = true;
+				else if (timeDate[10] != 'T')
+					badTimeDate = true;
+				else if (timeDate[13] != ':')
+					badTimeDate = true;
+				else if (timeDate[16] != ':')
+					badTimeDate = true;
 			}
+
+			//unless we have a bad time/date we can read in the data
+			if (!badTimeDate)
+			{
+				//I have found one instance where time went backwards in the second entry in
+				//a file. I'm not really sure why, but the best thing to do in this case seems
+				//to be to discard the first entry.
+
+				//If we have more than one entry already then I'm not sure what to do. For now abort processing this file..
+				if (data.size() == 1 && data[0].getTime() > getCeilometerTime(timeDate))
+				{
+					data.pop_back();
+					progressReporter << "The second entry in the file has a timestamp earlier than the first. This may be due to a logging glitch. The first entry will be deleted.\n";
+				}
+				else if (data.size() > 1 && data[0].getTime() > getCeilometerTime(timeDate))
+				{
+					throw("Time jumps backwards in this file, it cannot be processed.");
+				}
+				CampbellHeader header;
+				header.readHeader(fin);
+				if (data.size() == 0)
+					firstHeader = header;
+				if (header.getMessageType() == cmt_cs && header.getMessageNumber() == 2)
+				{
+					if (data.size() == 0)
+						progressReporter << "Found CS 002 messages: ";
+					if (data.size() % displayInterval == 0)
+						firstBatchDate = timeDate;
+					if (data.size() % displayInterval == displayInterval - 1)
+						progressReporter << firstBatchDate << "-" << timeDate << "(" << displayInterval << " profiles) ";
+					CampbellMessage2 profile;
+					profile.read(fin);
+					data.push_back(CampbellCeilometerProfile(getCeilometerTime(timeDate), profile));
+				}
+				else
+				{
+					progressReporter << "Found " << header.getMessageNumber() << " message " << timeDate << ". Halting Read\n";
+					break;
+				}
+			}
+			else
+				progressReporter << "Found a profile with an incorrectly formatted time/date. This profile will be ignored.\n";
 		}
 		if (data.size() % displayInterval != displayInterval - 1)
 			progressReporter << firstBatchDate << "-" << timeDate << "(" << (data.size() % displayInterval)+1 << " profiles)\n";
 		progressReporter << "Completed reading file. " << data.size() << " profiles found\n";
 		fin.close();
+
+		if (data.size() > 0)
+		{
+			for (size_t i = 0; i < maxRanges.size(); ++i)
+				plotCeilometerProfiles(getCeilometerHeader(inputFilename, firstHeader, data[0]), data, outputFilename, maxRanges[i], progressReporter, parent);
+		}
+
 		return;
 	}
 
