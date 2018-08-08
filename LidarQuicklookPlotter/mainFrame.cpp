@@ -231,8 +231,11 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 					if (data.size() % displayInterval == displayInterval - 1)
 						progressReporter << firstBatchDate << "-" << timeDate << "(" << displayInterval << " profiles) ";
 					CampbellMessage2 profile;
-					profile.read(fin);
-					data.push_back(CampbellCeilometerProfile(getCeilometerTime(timeDate), profile));
+					profile.read(fin, header);
+					if (profile.getPassedChecksum())
+						data.push_back(CampbellCeilometerProfile(getCeilometerTime(timeDate), profile));
+					else
+						progressReporter << "Found a message at time " << timeDate << " which does not pass the checksum and is hence corrupt. This profile will be ignored.\n";
 				}
 				else
 				{

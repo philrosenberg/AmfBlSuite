@@ -42,6 +42,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 {
 	char commonHeader[8];
 	stream.read(commonHeader, 7);
+	m_bytes = std::vector<char>(commonHeader, commonHeader + 7);
 
 	//check the start header character
 	if(commonHeader[0] != m_startOfHeaderCharacter)
@@ -74,6 +75,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	{
 		char messageNumberText[4];
 		stream.read(messageNumberText, 3);
+		m_bytes.insert(m_bytes.end(), messageNumberText, messageNumberText + 3);
 		messageNumberText[3] = '\0';
 		if (messageNumberText[0] < '0' || messageNumberText[0] > '9'
 			|| messageNumberText[1] < '0' || messageNumberText[1] > '9'
@@ -93,6 +95,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 
 		char messageNumberText[3];
 		stream.read(messageNumberText, 2);
+		m_bytes.insert(m_bytes.end(), messageNumberText, messageNumberText + 2);
 		messageNumberText[2] = '\0';
 		if (messageNumberText[0] == '1')
 		{
@@ -151,6 +154,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	{
 		char shouldBeZero;
 		stream.read(&shouldBeZero, 1);
+		m_bytes.insert(m_bytes.end(), shouldBeZero);
 		char shouldBeOne = m_os[2];
 		m_os = m_os.substr(0, 2);
 		m_messageNumber = 0;
@@ -166,6 +170,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	//Check we end with the text start character and crlf
 	char headerEnd[3];
 	stream.read(headerEnd, 3);
+	m_bytes.insert(m_bytes.end(), headerEnd, headerEnd + 3);
 	if(headerEnd[0] != m_startOfTextCharacter)
 	{
 		std::ostringstream message;
@@ -213,8 +218,21 @@ CampbellMessage2::CampbellMessage2(char endOfTextCharacter)
 {
 }
 
-void CampbellMessage2::read(std::istream &stream)
+void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 {
+
+	//first read in the whole stream and tag it onto the header. We will use this
+	//for checksum calculation
+	std::vector<char> buffer = header.getBytes();
+	size_t messageStartByte = buffer.size();
+	buffer.resize(buffer.size()+10335);
+	istream.read(&buffer[messageStartByte], 10335);
+
+	//create a binary stream from the data that we will use to parse each of the values;
+	std::istringstream bufferStream(std::string(&buffer[messageStartByte], buffer.size()- messageStartByte));
+
+	//parse all the variables from the bufferStream
+
 	char crlf[2];
 	char space;
 
@@ -226,21 +244,21 @@ void CampbellMessage2::read(std::istream &stream)
 	char height3[6];
 	char height4[6];
 	char flags[12];
-	stream.read(&messageStatus, 1);
-	stream.read(&alarmStatus, 1);
-	stream.read(&space, 1);
-	stream.read(transmission, 3);
-	stream.read(&space, 1);
-	stream.read(height1, 5);
-	stream.read(&space, 1);
-	stream.read(height2, 5);
-	stream.read(&space, 1);
-	stream.read(height3, 5);
-	stream.read(&space, 1);
-	stream.read(height4, 5);
-	stream.read(&space, 1);
-	stream.read(flags, 12);
-	stream.read(crlf, 2);
+	bufferStream.read(&messageStatus, 1);
+	bufferStream.read(&alarmStatus, 1);
+	bufferStream.read(&space, 1);
+	bufferStream.read(transmission, 3);
+	bufferStream.read(&space, 1);
+	bufferStream.read(height1, 5);
+	bufferStream.read(&space, 1);
+	bufferStream.read(height2, 5);
+	bufferStream.read(&space, 1);
+	bufferStream.read(height3, 5);
+	bufferStream.read(&space, 1);
+	bufferStream.read(height4, 5);
+	bufferStream.read(&space, 1);
+	bufferStream.read(flags, 12);
+	bufferStream.read(crlf, 2);
 
 	height1[5] = '\0';
 	height2[5] = '\0';
@@ -281,36 +299,36 @@ void CampbellMessage2::read(std::istream &stream)
 	char pulseQuantity[5];
 	char sampleRate[3];
 	char sum[4];
-	stream.read(scale, 5);
+	bufferStream.read(scale, 5);
 	scale[5] = '\0';
-	stream.read(&space, 1);
-	stream.read(res, 2);
+	bufferStream.read(&space, 1);
+	bufferStream.read(res, 2);
 	res[2] = '\0';
-	stream.read(&space, 1);
-	stream.read(n, 4);
+	bufferStream.read(&space, 1);
+	bufferStream.read(n, 4);
 	n[4] = '\0';
-	stream.read(&space, 1);
-	stream.read(energy, 3);
+	bufferStream.read(&space, 1);
+	bufferStream.read(energy, 3);
 	energy[3] = '\0';
-	stream.read(&space, 1);
-	stream.read(laserTemperature, 3);
+	bufferStream.read(&space, 1);
+	bufferStream.read(laserTemperature, 3);
 	laserTemperature[3] = '\0';
-	stream.read(&space, 1);
-	stream.read(tiltAngle, 2);
+	bufferStream.read(&space, 1);
+	bufferStream.read(tiltAngle, 2);
 	tiltAngle[2] = '\0';
-	stream.read(&space, 1);
-	stream.read(background, 4);
+	bufferStream.read(&space, 1);
+	bufferStream.read(background, 4);
 	background[4] = '\0';
-	stream.read(&space, 1);
-	stream.read(pulseQuantity, 4);
+	bufferStream.read(&space, 1);
+	bufferStream.read(pulseQuantity, 4);
 	pulseQuantity[4] = '\0';
-	stream.read(&space, 1);
-	stream.read(sampleRate, 2);
+	bufferStream.read(&space, 1);
+	bufferStream.read(sampleRate, 2);
 	sampleRate[2] = '\0';
-	stream.read(&space, 1);
-	stream.read(sum, 3);
+	bufferStream.read(&space, 1);
+	bufferStream.read(sum, 3);
 	sum[3] = '\0';
-	stream.read(crlf, 2);
+	bufferStream.read(crlf, 2);
 
 	m_scale = std::atof(scale)/100.0;
 	m_resolution = std::atof(res);
@@ -325,15 +343,13 @@ void CampbellMessage2::read(std::istream &stream)
 
 	
 	std::vector<char> data(10240);
-	stream.read(&data[0], 10240);
-	stream.read(crlf, 2);
-
-	size_t pos = stream.tellg();
+	bufferStream.read(&data[0], 10240);
+	bufferStream.read(crlf, 2);
 
 	char endOfTextCharacter;
 	char checksum[4];
-	stream.read(&endOfTextCharacter, 1);
-	stream.read(checksum, 4);
+	bufferStream.read(&endOfTextCharacter, 1);
+	bufferStream.read(checksum, 4);
 
 	m_data.resize(2046); //last two points are always zero so ignore them and use 2046 rather than 2048
 	char* currentPoint = &data[0];
@@ -342,4 +358,23 @@ void CampbellMessage2::read(std::istream &stream)
 		m_data[i] = hexTextToNumber(currentPoint)*m_scale/100000.0/1000;
 		currentPoint += 5;
 	}
+
+	//we calculate the checksum based on all caharacters after the start of header
+	//character, up to and including the end of text character. So we exclude the
+	//1st character and the last 4 from the buffer.
+	unsigned int calculatedChecksum = generateChecksum(&buffer[1], buffer.size() - 5);
+	//now convert the read checksum into a number for easy comparison. We can use the
+	//same function as used for converting the profile data, but this accepts 5
+	//characters, so prepend a 0. Note we don't need to stress about 2s compliment 
+	//format and signed/unsigned values because the first byte is 0, so the sign bit
+	//will always be 0.
+	char checksumToConvert[5];
+	checksumToConvert[0] = '0';
+	checksumToConvert[1] = checksum[0];
+	checksumToConvert[2] = checksum[1];
+	checksumToConvert[3] = checksum[2];
+	checksumToConvert[4] = checksum[3];
+	unsigned int readChecksum = hexTextToNumber(checksumToConvert);
+
+	m_passedChecksum = readChecksum == calculatedChecksum;
 }
