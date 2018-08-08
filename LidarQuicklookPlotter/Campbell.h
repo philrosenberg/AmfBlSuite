@@ -24,7 +24,6 @@ public:
 	char getId() const { if (!m_initialised) throw("Attempted to get the ID for an uninitialised CampbellHeader object."); return m_id; }
 	bool isInitialised() const { return m_initialised; }
 	CampbellHeader(const CampbellHeader&) = default;
-	//inline CampbellHeader &operator=(const CampbellHeader &);
 private:
 	char m_startOfHeaderCharacter;
 	char m_startOfTextCharacter;
@@ -36,7 +35,6 @@ private:
 };
 
 
-//inline CampbellHeader &CampbellHeader::operator=(const CampbellHeader &) = default;
 
 class DefaultMessage
 {
