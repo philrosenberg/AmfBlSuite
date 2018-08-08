@@ -743,7 +743,7 @@ void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellC
 	if (profiles[0].getResolution()*data[0].size() - 1 > maxRange)
 	{
 		size_t pointsNeeded = std::min((size_t)std::ceil(maxRange / profiles[0].getResolution()), data[0].size());
-		for (size_t i = 0; i < profiles.size(); ++i)
+		for (size_t i = 0; i < data.size(); ++i)
 			data[i].resize(pointsNeeded);
 	}
 
