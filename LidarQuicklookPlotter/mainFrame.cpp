@@ -254,7 +254,13 @@ void plotFile(const std::string &inputFilename, const std::string &outputFilenam
 		if (data.size() > 0)
 		{
 			for (size_t i = 0; i < maxRanges.size(); ++i)
-				plotCeilometerProfiles(getCeilometerHeader(inputFilename, firstHeader, data[0]), data, outputFilename, maxRanges[i], progressReporter, parent);
+			{
+				std::ostringstream rangeLimitedfilename;
+				rangeLimitedfilename << outputFilename;
+				if (maxRanges[i] != std::numeric_limits<double>::max())
+					rangeLimitedfilename << "_maxRange_" << maxRanges[i];
+				plotCeilometerProfiles(getCeilometerHeader(inputFilename, firstHeader, data[0]), data, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
+			}
 		}
 
 		return;
