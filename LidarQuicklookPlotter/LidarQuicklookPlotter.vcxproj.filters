@@ -36,6 +36,9 @@
     <ClCompile Include="Campbell.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AmfNc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h">
@@ -66,6 +69,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Ceilometer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AmfNc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -165,6 +165,7 @@
     <ClCompile Include="HplProfile.cpp" />
     <ClCompile Include="mainFrame.cpp" />
     <ClCompile Include="Plotting.cpp" />
+    <ClCompile Include="AmfNc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h" />
@@ -177,6 +178,7 @@
     <ClInclude Include="mainFrame.h" />
     <ClInclude Include="Plotting.h" />
     <ClInclude Include="ProgressReporter.h" />
+    <ClInclude Include="AmfNc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
