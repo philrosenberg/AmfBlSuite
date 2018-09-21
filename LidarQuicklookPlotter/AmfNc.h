@@ -3,6 +3,7 @@
 #include<svector/sreadwrite.h>
 #include<string>
 #include<svector/time.h>
+#include<svector/sstring.h>
 
 struct HplHeader;
 class HplProfile;
@@ -14,48 +15,48 @@ class CampbellCeilometerProfile;
 
 struct InstrumentInfo
 {
-	std::string description;
-	std::string manufacturer;
-	std::string model;
-	std::string serial;
-	std::string operatingSoftware;
-	std::string operatingSoftwareVersion;
+	sci::string name;
+	sci::string description;
+	sci::string manufacturer;
+	sci::string model;
+	sci::string serial;
+	sci::string operatingSoftware;
+	sci::string operatingSoftwareVersion;
 };
 
 struct ProcessingSoftwareInfo
 {
-	std::string url;
-	std::string version;
+	sci::string url;
+	sci::string version;
 };
 
 struct PersonInfo
 {
-	std::wstring name;
-	std::wstring email;
-	std::wstring orcidUrl;
-	std::wstring institution;
+	sci::string name;
+	sci::string email;
+	sci::string orcidUrl;
+	sci::string institution;
 };
 
 struct CalibrationInfo
 {
 	sci::UtcTime sensitivityCalibrationDate;
 	sci::UtcTime certificationDate;
-	std::string certificateUrl;
+	sci::string certificateUrl;
 };
 
 enum FeatureType
 {
 	ft_timeSeriesPoint
 };
-const std::vector<std::string> g_featureTypeStrings{ "timeSeriesPoint" };
+const std::vector<sci::string> g_featureTypeStrings{ sU("timeSeriesPoint") };
 
 struct DataInfo
 {
-	std::string title;
 	double sampingInterval;
-	std::string samplingIntervalUnit;
+	sci::string samplingIntervalUnit;
 	double averagingPeriod;
-	std::string averagingPeriodUnit;
+	sci::string averagingPeriodUnit;
 	int processingLevel;
 	FeatureType featureType;
 	double minLatDecimalDegrees;//for point measurements set min and max the same or set one to nan
@@ -64,12 +65,15 @@ struct DataInfo
 	double maxLonDecimalDegrees;
 	sci::UtcTime startTime;
 	sci::UtcTime endTime;
-	std::string reasonForProcessing; // This string is put in the history. Add any special reason for processing if there is any e.g. Reprocessing due to x error or initial processing to be updated later for y reason
+	sci::string reasonForProcessing; // This string is put in the history. Add any special reason for processing if there is any e.g. Reprocessing due to x error or initial processing to be updated later for y reason
+	bool continuous; // set to true if the measurements are continuously made over a moderate period of false if it is a one-off (e.g. a sonde)
+	sci::string productName;
+	std::vector<sci::string> options;
 };
 
 struct ProjectInfo
 {
-	std::string name;
+	sci::string name;
 	PersonInfo principalInvestigatorInfo;
 };
 
@@ -78,7 +82,7 @@ enum PlatformType
 	pt_stationary,
 	pt_moving
 };
-const std::vector<std::string> g_platformTypeStrings{ "stationary_platform", "moving_platform" };
+const std::vector<sci::string> g_platformTypeStrings{ sU("stationary_platform"), sU("moving_platform") };
 
 enum DeploymentMode
 {
@@ -86,22 +90,21 @@ enum DeploymentMode
 	dm_land,
 	dm_sea
 };
-const std::vector<std::string> g_deploymentModeStrings{ "air", "sea", "land" };
+const std::vector<sci::string> g_deploymentModeStrings{ sU("air"), sU("sea"), sU("land") };
 
 struct PlatformInfo
 {
-	std::string name;
+	sci::string name;
 	PlatformType platformType;
 	DeploymentMode deploymentMode;
 	double altitudeMetres; //Use nan for varying altitude airborne
-	std::vector<std::string> locationKeywords;
+	std::vector<sci::string> locationKeywords;
 };
 
 class OutputAmfNcFile : public sci::OutputNcFile
 {
 public:
-#ifdef _WIN32
-	OutputAmfNcFile(const std::wstring &filename,
+	OutputAmfNcFile(const sci::string &filename,
 		const InstrumentInfo &instrumentInfo,
 		const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingsoftwareInfo,
@@ -109,10 +112,7 @@ public:
 		const DataInfo &dataInfo,
 		const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo,
-		const std::string &comment);
-#else
-	OutputAmfNcFile(const std::string &filename, const std::wstring &authorName, const std::string &authorEmail, const std::string &authorOrchid, const std::string authorInstitution);
-#endif
+		const sci::string &comment);
 private:
 };
-void writeCeilometerProfilesToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, std::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+void writeCeilometerProfilesToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent);
