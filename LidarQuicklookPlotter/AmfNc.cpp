@@ -90,8 +90,10 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const DataInfo &dataInfo,
 	const ProjectInfo &projectInfo,
 	const PlatformInfo &platformInfo,
-	const sci::string &comment)
-	:OutputNcFile()
+	const sci::string &comment,
+	const std::vector<sci::UtcTime> &times,
+	const std::vector<sci::NcDimension *> &nonTimeDimensions)
+	:OutputNcFile(), m_timeDimension(sU("time"), times.size())
 {
 	//construct the title for the dataset
 	//add the instument name
@@ -247,4 +249,37 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	versionString << sU("v") << prevVersion + 1;
 	write(sci::NcAttribute(sU("product_version"), versionString.str()));
 	write(sci::NcAttribute(sU("last_revised_date"), getFormattedDateTime(now)));
+
+	//Now add the time dimension
+	write(m_timeDimension);
+	//and any other dimensions
+	for (size_t i = 0; i < nonTimeDimensions.size(); ++i)
+		write(*nonTimeDimensions[i]);
+	//and the time variable
+	std::vector<double> secondsAfterEpoch(times.size());
+	sci::UtcTime epoch(1970, 1, 1, 0, 0, 0.0);
+	for (size_t i = 0; i < times.size(); ++i)
+		secondsAfterEpoch[i] = times[i] - epoch;
+	//this will end define mode!
+	write(AmfNcTimeVariable(*this, m_timeDimension), secondsAfterEpoch);
+	
+}
+
+OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,
+	const InstrumentInfo &instrumentInfo,
+	const PersonInfo &author,
+	const ProcessingSoftwareInfo &processingsoftwareInfo,
+	const CalibrationInfo &calibrationInfo,
+	const DataInfo &dataInfo,
+	const ProjectInfo &projectInfo,
+	const PlatformInfo &platformInfo,
+	const sci::string &comment,
+	const std::vector<sci::UtcTime> &times,
+	const std::vector<double> &latitudes,
+	const std::vector<double> &longitudes,
+	const std::vector<sci::NcDimension *> &nonTimeDimensions)
+	:OutputAmfNcFile(directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo, projectInfo, platformInfo, comment, times)
+{
+	write(AmfNcLatitudeVariable(*this, getTimeDimension()), latitudes);
+	write(AmfNcLongitudeVariable(*this, getTimeDimension()), longitudes);
 }

@@ -104,7 +104,7 @@ struct PlatformInfo
 class OutputAmfNcFile : public sci::OutputNcFile
 {
 public:
-	OutputAmfNcFile(const sci::string &filename,
+	OutputAmfNcFile(const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
 		const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingsoftwareInfo,
@@ -112,7 +112,76 @@ public:
 		const DataInfo &dataInfo,
 		const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo,
-		const sci::string &comment);
+		const sci::string &comment,
+		const std::vector<sci::UtcTime> &times,
+		const std::vector<sci::NcDimension *> &nonTimeDimensions= std::vector<sci::NcDimension *>(0));
+	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
 private:
+	sci::NcDimension m_timeDimension;
 };
-void writeCeilometerProfilesToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+
+template <class T>
+class AmfNcVariable : public sci::NcVariable<T>
+{
+public:
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &units)
+		:NcVariable<T>(name, ncFile, dimension)
+	{
+		setAttributes(longName, units);
+	}
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &units)
+		:NcVariable<T>(name, ncFile, dimensions)
+	{
+		setAttributes(longName, units);
+	}
+private:
+	void setAttributes(const sci::string &longName, const sci::string &units)
+	{
+		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
+		sci::NcAttribute unitsAttribute(sU("units"), units);
+		addAttribute(longNameAttribute);
+		addAttribute(unitsAttribute);
+	}
+};
+
+
+
+class AmfNcTimeVariable : public AmfNcVariable<double>
+{
+public:
+	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
+		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("seconds since 1970-01-01 00:00:00"))
+	{}
+};
+class AmfNcLongitudeVariable : public AmfNcVariable<double>
+{
+public:
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
+		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("degrees_north"))
+	{}
+};
+class AmfNcLatitudeVariable : public AmfNcVariable<double>
+{
+public:
+	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
+		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("degrees_east"))
+	{}
+};
+
+class OutputAmfSeaNcFile : public OutputAmfNcFile
+{
+public:
+	OutputAmfSeaNcFile(const sci::string &directory,
+		const InstrumentInfo &instrumentInfo,
+		const PersonInfo &author,
+		const ProcessingSoftwareInfo &processingsoftwareInfo,
+		const CalibrationInfo &calibrationInfo,
+		const DataInfo &dataInfo,
+		const ProjectInfo &projectInfo,
+		const PlatformInfo &platformInfo,
+		const sci::string &comment,
+		const std::vector<sci::UtcTime> &times,
+		const std::vector<double> &latitudes,
+		const std::vector<double> &longitudes,
+		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0));
+};
