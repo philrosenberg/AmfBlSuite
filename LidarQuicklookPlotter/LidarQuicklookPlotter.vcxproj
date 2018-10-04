@@ -160,6 +160,7 @@
   <ItemGroup>
     <ClCompile Include="app.cpp" />
     <ClCompile Include="Campbell.cpp" />
+    <ClCompile Include="ceilometer.cpp" />
     <ClCompile Include="FolderChangesLister.cpp" />
     <ClCompile Include="HplHeader.cpp" />
     <ClCompile Include="HplProfile.cpp" />
@@ -179,6 +180,7 @@
     <ClInclude Include="Plotting.h" />
     <ClInclude Include="ProgressReporter.h" />
     <ClInclude Include="AmfNc.h" />
+    <ClInclude Include="Units.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

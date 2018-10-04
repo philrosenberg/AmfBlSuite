@@ -200,7 +200,7 @@ void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &p
 	xs.back() = profiles.back().getTime().getUnixTime();
 
 	for (size_t i = 0; i < ys.size(); ++i)
-		ys[i] = i * header.rangeGateLength;
+		ys[i] = i * header.rangeGateLength.m_v;
 		//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
 		if (ys.size() > 533)
 			ys /= double(header.pointsPerGate);
@@ -260,7 +260,7 @@ void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &pro
 		angles[i] = (i - 0.5)*angleIntervalDeg;
 
 	for (size_t i = 0; i < ranges.size(); ++i)
-		ranges[i] = i * header.rangeGateLength;
+		ranges[i] = i * header.rangeGateLength.m_v;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
 	if (ranges.size() > 533)
 		ranges /= double(header.pointsPerGate);
@@ -391,7 +391,7 @@ void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> 
 
 	//get the ranges
 	for (size_t i = 0; i < ranges.size(); ++i)
-		ranges[i] = i * header.rangeGateLength;
+		ranges[i] = i * header.rangeGateLength.m_v;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
 	if (ranges.size() > 533)
 		ranges /= double(header.pointsPerGate);
@@ -504,7 +504,7 @@ void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> 
 
 	//get the ranges
 	for (size_t i = 0; i < ranges.size(); ++i)
-		ranges[i] = i * header.rangeGateLength;
+		ranges[i] = i * header.rangeGateLength.m_v;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
 	if (ranges.size() > 533)
 		ranges /= double(header.pointsPerGate);
@@ -626,7 +626,7 @@ void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfi
 
 	//get the ranges
 	for (size_t i = 0; i < ranges.size(); ++i)
-		ranges[i] = i * header.rangeGateLength;
+		ranges[i] = i * header.rangeGateLength.m_v;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
 	if(ranges.size() > 533)
 		ranges/= double(header.pointsPerGate);
@@ -718,7 +718,7 @@ void plotProcessedWindProfile(const std::vector<double> &height, const std::vect
 }
 
 
-void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, std::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, std::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window;
 	splot2d *plot;
@@ -731,18 +731,18 @@ void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellC
 	while (profiles.size() / timeAveragePeriod > 800)
 		timeAveragePeriod *= 2;
 
-	std::vector<std::vector<double>> data(profiles.size()/ timeAveragePeriod);
+	std::vector<std::vector<steradianPerMetre>> data(profiles.size()/ timeAveragePeriod);
 	for (size_t i = 0; i < data.size(); ++i)
 	{
-		data[i] = profiles[i*timeAveragePeriod].getBetas();
+		sci::convert(data[i], profiles[i*timeAveragePeriod].getBetas());
 		for (size_t j = 1; j < timeAveragePeriod; ++j)
 			data[i] += profiles[i*timeAveragePeriod + j].getBetas();
 	}
-	data /= (double)timeAveragePeriod;
+	data /= unitless((double)timeAveragePeriod);
 
-	if (profiles[0].getResolution()*data[0].size() - 1 > maxRange)
+	if (profiles[0].getResolution()*unitless(data[0].size() - 1) > maxRange)
 	{
-		size_t pointsNeeded = std::min((size_t)std::ceil(maxRange / profiles[0].getResolution()), data[0].size());
+		size_t pointsNeeded = std::min((size_t)std::ceil((maxRange / profiles[0].getResolution()).m_v), data[0].size());
 		for (size_t i = 0; i < data.size(); ++i)
 			data[i].resize(pointsNeeded);
 	}
@@ -753,11 +753,11 @@ void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellC
 	if (heightAveragePeriod > 1)
 	{
 		for (size_t i = 0; i < data.size(); ++i)
-			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod);
+			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod, sci::PhysicalDivide<steradianPerMetre::unit>);
 	}
 
-	std::vector<double> xs(data.size() + 1);
-	std::vector<double> ys(data[0].size() + 1);
+	std::vector<second> xs(data.size() + 1);
+	std::vector<metre> ys(data[0].size() + 1);
 
 	//calculating our heights assumes that the profiles have range gates of 0, 1, 2, 3, ... so check this;
 	bool gatesGood = true;
@@ -769,15 +769,15 @@ void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellC
 				throw("The plotting code currently assumes gates go 0, 1, 2, 3, ... but it found a profile where this was not the case.");
 	}
 
-	xs[0] = profiles[0].getTime().getUnixTime();
+	xs[0] = second(profiles[0].getTime().getUnixTime());
 	for (size_t i = 1; i < xs.size() - 1; ++i)
-		xs[i] = (profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / 2.0;
-	xs.back() = profiles.back().getTime().getUnixTime();
+		xs[i] = second((profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / 2.0);
+	xs.back() = second(profiles.back().getTime().getUnixTime());
 
 	for (size_t i = 0; i < ys.size(); ++i)
-		ys[i] = i * heightAveragePeriod*header.rangeGateLength;
+		ys[i] = unitless(i * heightAveragePeriod)*header.rangeGateLength;
 
-	std::shared_ptr<GridData> gridData(new GridData(xs, ys, data, g_lidarColourscale, true, true));
+	std::shared_ptr<GridData> gridData(new GridData(sci::physicalsToValues<second>(xs), sci::physicalsToValues<metre>(ys), sci::physicalsToValues<steradianPerMetre>(data), g_lidarColourscale, true, true));
 
 	plot->addData(gridData);
 
@@ -786,7 +786,7 @@ void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellC
 	plot->getyaxis()->settitle("Height (m)");
 
 	if (ys.back() > maxRange)
-		plot->setmaxy(maxRange);
+		plot->setmaxy(sci::physicalsToValues<metre>(maxRange));
 
 	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 }

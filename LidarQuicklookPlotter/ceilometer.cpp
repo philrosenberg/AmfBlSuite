@@ -20,13 +20,13 @@ void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProf
 
 	//create the data arrays
 	std::vector<sci::UtcTime> times(profiles.size());
-	std::vector<std::vector<double>> backscatter(profiles.size());
-	std::vector<double> cloudBase1(profiles.size());
-	std::vector<double> cloudBase2(profiles.size());
-	std::vector<double> cloudBase3(profiles.size());
-	std::vector<double> cloudBase4(profiles.size());
+	std::vector<std::vector<steradianPerKilometre>> backscatter(profiles.size());
+	std::vector<metre> cloudBase1(profiles.size());
+	std::vector<metre> cloudBase2(profiles.size());
+	std::vector<metre> cloudBase3(profiles.size());
+	std::vector<metre> cloudBase4(profiles.size());
 	std::vector<int32_t> gates;
-	double resolution;
+	metre resolution;
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{
 		times[i] = profiles[i].getTime();
@@ -68,18 +68,20 @@ void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProf
 	//add the data variables
 
 	//gates/heights
+	std::vector<unitless> gatesPhysical;
+	sci::convert(gatesPhysical, gates);
 	ceilometerFile.write(AmfNcVariable<int32_t>(sU("gate-number"), ceilometerFile, gateDimension, sU(""), sU("1")), gates);
-	ceilometerFile.write(AmfNcVariable<double>(sU("gate-lower-height"), ceilometerFile, gateDimension, sU(""), sU("m")), gates*resolution);
-	ceilometerFile.write(AmfNcVariable<double>(sU("gate-upper-height"), ceilometerFile, gateDimension, sU(""), sU("m")), (gates + 1)*resolution);
-	ceilometerFile.write(AmfNcVariable<double>(sU("gate-mid-height"), ceilometerFile, gateDimension, sU(""), sU("m")), (gates + 0.5)*resolution);
+	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-lower-height"), ceilometerFile, gateDimension, sU("")), AmfNcVariable<metre>::convertValues(gatesPhysical*resolution));
+	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-upper-height"), ceilometerFile, gateDimension, sU("")), AmfNcVariable<metre>::convertValues((gatesPhysical + unitless(1))*resolution));
+	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-mid-height"), ceilometerFile, gateDimension, sU("")), AmfNcVariable<metre>::convertValues((gatesPhysical + unitless(0.5))*resolution));
 	
 	//backscatter
 	std::vector<sci::NcDimension*> backscatterDimensions{ &ceilometerFile.getTimeDimension(), &gateDimension };
-	ceilometerFile.write(AmfNcVariable<double>(sU("aerosol-backscatter"), ceilometerFile, backscatterDimensions, sU("aerosol-backscatter"), sU("sr m-1")),backscatter);
+	ceilometerFile.write(AmfNcVariable<steradianPerMetre>(sU("aerosol-backscatter"), ceilometerFile, backscatterDimensions, sU("aerosol-backscatter")), AmfNcVariable<steradianPerMetre>::convertValues(backscatter));
 
 	//cloud bases
-	ceilometerFile.write(AmfNcVariable<double>(sU("cloud-base-1"), ceilometerFile, ceilometerFile.getTimeDimension(), sU(""), sU("m")), cloudBase1);
-	ceilometerFile.write(AmfNcVariable<double>(sU("cloud-base-2"), ceilometerFile, ceilometerFile.getTimeDimension(), sU(""), sU("m")), cloudBase2);
-	ceilometerFile.write(AmfNcVariable<double>(sU("cloud-base-3"), ceilometerFile, ceilometerFile.getTimeDimension(), sU(""), sU("m")), cloudBase3);
-	ceilometerFile.write(AmfNcVariable<double>(sU("cloud-base-4"), ceilometerFile, ceilometerFile.getTimeDimension(), sU(""), sU("m")), cloudBase4);
+	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-1"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase1));
+	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-2"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase2));
+	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-3"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase3));
+	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-4"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase4));
 }

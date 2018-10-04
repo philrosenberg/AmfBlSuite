@@ -4,6 +4,8 @@
 #include<string>
 #include<svector/time.h>
 #include<svector/sstring.h>
+#include<svector/Units.h>
+#include"Units.h"
 
 struct HplHeader;
 class HplProfile;
@@ -119,6 +121,11 @@ public:
 private:
 	sci::NcDimension m_timeDimension;
 };
+/*template<>
+void sci::OutputNcFile::write<metre>(const sci::NcVariable<metre> &variable, const std::vector<metre> &data)
+{
+	//static_assert(false, "Using this template");
+}*/
 
 template <class T>
 class AmfNcVariable : public sci::NcVariable<T>
@@ -144,6 +151,51 @@ private:
 	}
 };
 
+//create a partial specialization for any AmfNcVariable based on a sci::Physical value
+template <class T>
+class AmfNcVariable<sci::Physical<T>> : public sci::NcVariable<double>
+{
+public:
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName)
+		:NcVariable<double>(name, ncFile, dimension)
+	{
+		setAttributes(longName);
+	}
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName)
+		:NcVariable<double>(name, ncFile, dimensions)
+	{
+		setAttributes(longName);
+	}
+	template <class U>
+	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<T>(physicals))
+	{
+		return sci::physicalsToValues<sci::Physical<T>>(physicals);
+	}
+
+private:
+	void setAttributes(const sci::string &longName)
+	{
+		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
+		sci::NcAttribute unitsAttribute(sU("units"), sci::getUnitString<T>());
+		addAttribute(longNameAttribute);
+		addAttribute(unitsAttribute);
+	}
+};
+
+template <class T, class U>
+class AmfNcVariable<sci::Physical2<T, U>> : public AmfNcVariable<sci::Physical<sci::EncodedUnit<sci::Physical2<T, U>::basePowers, sci::Physical2<T, U>::exponent>>>
+{
+public:
+	typedef AmfNcVariable<sci::Physical<sci::EncodedUnit<sci::Physical2<T, U>::basePowers, sci::Physical2<T, U>::exponent>>> baseType;
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName)
+		:baseType(name, ncFile, dimension, longName)
+	{
+	}
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName)
+		:baseType(name, ncFile, dimensions, longName)
+	{
+	}
+};
 
 
 class AmfNcTimeVariable : public AmfNcVariable<double>

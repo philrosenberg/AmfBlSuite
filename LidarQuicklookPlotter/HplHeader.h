@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <svector\time.h>
+#include "Units.h"
 
 enum ScanType
 {
@@ -20,7 +21,7 @@ struct HplHeader
 	std::string filename;
 	unsigned int systemId;
 	size_t nGates;
-	double rangeGateLength;
+	metre rangeGateLength;
 	size_t pointsPerGate;
 	size_t pulsesPerRay;
 	size_t nRays;

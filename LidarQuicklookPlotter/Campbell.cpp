@@ -1,8 +1,10 @@
+#define _USE_MATH_DEFINES //This ensures we get values for math constants when we include cmath
 #include"Campbell.h"
 #include<stdint.h>
 #include<vector>
 #include<string>
 #include<sstream>
+#include<cmath>
 
 
 // ----------------------------------------------------
@@ -218,6 +220,33 @@ CampbellMessage2::CampbellMessage2(char endOfTextCharacter)
 {
 }
 
+campbellAlarmStatus getAlarmStatus(char text)
+{
+	if (text == '0')
+		return cas_ok;
+	if (text == 'W')
+		return cas_warning;
+	if (text == 'A')
+		return cas_alarm;
+
+	//If we haven't returned by this point we have an invalid character
+	throw("Received an invalid character when determining the ceilometer alarm status.");
+}
+
+ceilometerMessageStatus getMessageStatus(char text)
+{
+	//because the status character uses consecutive characters for the
+	//first 7 messages and because we use the same order in the enumeration
+	//we can use this shortcut to avoid loads of if statements
+	if (text >= '0' && text <= '6')
+		return (ceilometerMessageStatus)(cms_noSignificantBackscatter + (text - '0'));
+	if (text == '/')
+		return cms_rawDataMissingOrSuspect;
+
+	//If we haven't returned by this point we have an invalid character
+	throw("Received an invalid character when determining the ceilometer message status.");
+}
+
 void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 {
 
@@ -265,29 +294,31 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	height3[5] = '\0';
 	height4[5] = '\0';
 	transmission[3] = '\0';
-	m_height1 = std::numeric_limits<double>::quiet_NaN();
-	m_height2 = std::numeric_limits<double>::quiet_NaN();
-	m_height3 = std::numeric_limits<double>::quiet_NaN();
-	m_height4 = std::numeric_limits<double>::quiet_NaN();
-	m_visibility = std::numeric_limits<double>::quiet_NaN();
+	m_height1 = metre(std::numeric_limits<double>::quiet_NaN());
+	m_height2 = metre(std::numeric_limits<double>::quiet_NaN());
+	m_height3 = metre(std::numeric_limits<double>::quiet_NaN());
+	m_height4 = metre(std::numeric_limits<double>::quiet_NaN());
+	m_visibility = metre(std::numeric_limits<double>::quiet_NaN());
 	m_highestSignal = std::numeric_limits<double>::quiet_NaN();
 
 	if (messageStatus == '5')
 	{
-		m_visibility = std::atof(height1);
+		m_visibility = metre(std::atof(height1));
 		m_highestSignal = std::atof(height2);
 	}
 	else if(messageStatus < '5')
 	{
-		m_height1 = std::atof(height1);
+		m_height1 = metre(std::atof(height1));
 		if (messageStatus > '1')
-			m_height2 = std::atof(height2);
+			m_height2 = metre(std::atof(height2));
 		if (messageStatus > '2')
-			m_height3 = std::atof(height3);
+			m_height3 = metre(std::atof(height3));
 		if (messageStatus > '3')
-			m_height4 = std::atof(height4);
+			m_height4 = metre(std::atof(height4));
 	}
-	m_windowTransmission = std::atof(transmission);
+	m_windowTransmission = percent(std::atof(transmission));
+	m_alarmStatus = getAlarmStatus(alarmStatus);
+	m_messageStatus = getMessageStatus(messageStatus);
 
 	char scale[6];
 	char res[3];
@@ -330,14 +361,14 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	sum[3] = '\0';
 	bufferStream.read(crlf, 2);
 
-	m_scale = std::atof(scale)/100.0;
-	m_resolution = std::atof(res);
-	m_laserPulseEnergy = std::atof(energy);
-	m_laserTemperature = std::atof(laserTemperature);
-	m_tiltAngle = std::atof(tiltAngle);
-	m_background = std::atof(background);
-	m_pulseQuantity = std::atof(pulseQuantity)*1000;
-	m_sampleRate = std::atof(sampleRate)*1000000000.0;
+	m_scale = percent(std::atof(scale));
+	m_resolution = metre(std::atof(res));
+	m_laserPulseEnergy = percent(std::atof(energy));
+	m_laserTemperature = kelvin(std::atof(laserTemperature)+273.15);
+	m_tiltAngle = radian(std::atof(tiltAngle)/360.0*2.0*M_PI);
+	m_background = millivolt(std::atof(background));
+	m_pulseQuantity = std::atoi(pulseQuantity)*1000;
+	m_sampleRate = megahertz(std::atof(sampleRate));
 	m_sum = std::atof(sum);
 
 
@@ -355,7 +386,7 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	char* currentPoint = &data[0];
 	for (size_t i = 0; i < m_data.size(); ++i)
 	{
-		m_data[i] = hexTextToNumber(currentPoint)*m_scale/100000.0/1000;
+		m_data[i] = steradianPerKilometre(hexTextToNumber(currentPoint))*m_scale / unitless(100000.0);
 		currentPoint += 5;
 	}
 

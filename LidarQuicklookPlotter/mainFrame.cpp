@@ -1,4 +1,4 @@
-#include "mainFrame.h"
+﻿#include "mainFrame.h"
 #include "HplHeader.h"
 #include "HplProfile.h"
 #include "Plotting.h"
@@ -8,6 +8,7 @@
 #include"FolderChangesLister.h"
 #include"Campbell.h"
 #include"Ceilometer.h"
+#include"AmfNc.h"
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -32,6 +33,24 @@ END_EVENT_TABLE()
 mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inputDirectory, const wxString &outputDirectory, bool runImmediately)
 	: wxFrame(frame, -1, title)
 {
+	InstrumentInfo instrumentInfo = { sU("saturn_v"), sU("Rocket"), sU("NASA"), sU("Saturn"), sU("V"), sU("Amstrad"), sU("1512") };
+	PersonInfo author = { sU("Neil"), sU("armstrong@nans.org"), sU("armsrong.orchid.org"), sU("NASA") };
+	ProcessingSoftwareInfo processingsoftwareInfo = { sU("http://mycode.git"), sU("1001") };
+	CalibrationInfo calibrationInfo = { sci::UtcTime::now(), sci::UtcTime::now(), sU("someurl.org")};
+	DataInfo dataInfo = { 10.0, sU("s"), 5.0, sU("s"), 0, ft_timeSeriesPoint, 0.0, 0.0, 0, 360, sci::UtcTime::now(), sci::UtcTime::now(), sU("Another go"), true, sU("Moon data"), {} };
+	ProjectInfo projectInfo{ sU("Apolo"), {sU("Nixon"), sU("nixon@thewhitehouse.org"), sU("none"), sU("US government")} };
+	PlatformInfo platformInfo{ sU("Saturn"), pt_moving, dm_air, 1.0e6, {sU("Moon"), sU("Cape Canavral")} };
+	sci::string comment = sU("Fingers crossed");
+	/*try
+	{
+		OutputAmfNcFile test(sU(""), instrumentInfo, author, processingsoftwareInfo,
+			calibrationInfo, dataInfo, projectInfo, platformInfo, comment);
+	}
+	catch (sci::err err)
+	{
+		wxMessageBox(err.getErrorMessage());
+	}*/
+
 	wxMenuBar* mbar = new wxMenuBar();
 	wxMenu* fileMenu = new wxMenu(wxT(""));
 	fileMenu->Append(ID_FILE_EXIT, wxT("E&xit\tAlt+F4"), wxT("Exit the application"));

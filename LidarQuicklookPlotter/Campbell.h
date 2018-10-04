@@ -3,12 +3,32 @@
 #include<iostream>
 #include<string>
 #include<vector>
+#include"Units.h"
 
 enum campbellMessageType
 {
 	cmt_cs,
 	cmt_cl,
 	cmt_ct
+};
+
+enum campbellAlarmStatus
+{
+	cas_ok,
+	cas_warning,
+	cas_alarm
+};
+
+enum ceilometerMessageStatus
+{
+	cms_noSignificantBackscatter,
+	cms_oneCloudBase,
+	cms_twoCloudBases,
+	cms_threeCloudBases,
+	cms_fourCloudBases,
+	cms_fullObscurationNoCloudBase,
+	cms_someObscurationTransparent,
+	cms_rawDataMissingOrSuspect
 };
 
 class CampbellHeader
@@ -50,34 +70,43 @@ class CampbellMessage2
 public:
 	CampbellMessage2(char endOfTextCharacter = '\3');
 	void read(std::istream &stream, const CampbellHeader &header);
-	const std::vector<double> &getData() const { return m_data; }
-	std::vector<double> getHeights() const { return std::vector<double>{m_height1, m_height2, m_height3, m_height4, }; }
-	double getHeight1() const { return m_height1; }
-	double getHeight2() const { return m_height2; }
-	double getHeight3() const { return m_height3; }
-	double getHeight4() const { return m_height4; }
-	double getResolution() const { return m_resolution; }
-	double getPulseQuantity() const { return m_pulseQuantity; }
-	double getSampleRate() const { return m_sampleRate; }
+	const std::vector<steradianPerKilometre> &getData() const { return m_data; }
+	std::vector<metre> getHeights() const { return std::vector<metre>{m_height1, m_height2, m_height3, m_height4, }; }
+	metre getHeight1() const { return m_height1; }
+	metre getHeight2() const { return m_height2; }
+	metre getHeight3() const { return m_height3; }
+	metre getHeight4() const { return m_height4; }
+	metre getVisibility() const { return m_visibility; }
+	double getHighestSignal() const { return m_highestSignal;  }
+	percent getWindowTransmission() const { return m_windowTransmission; }
+	metre getResolution() const { return m_resolution; }
+	percent getLaserPulseEnergy() const { return m_laserPulseEnergy; }
+	kelvin getLaserTemperature() const { return m_laserTemperature; }
+	radian getTiltAngle() const { return m_tiltAngle; }
+	millivolt getBackground() const { return m_background; }
+	size_t getPulseQuantity() const { return m_pulseQuantity; }
+	hertz getSampleRate() const { return m_sampleRate; }
 	const bool getPassedChecksum() const { return m_passedChecksum;  }
 private:
 	char m_endOfTextCharacter;
-	std::vector<double> m_data;
-	double m_height1;
-	double m_height2;
-	double m_height3;
-	double m_height4;
-	double m_visibility;
+	std::vector<steradianPerKilometre> m_data;
+	metre m_height1;
+	metre m_height2;
+	metre m_height3;
+	metre m_height4;
+	metre m_visibility;
 	double m_highestSignal;
-	double m_windowTransmission;
-	double m_scale;
-	double m_resolution;
-	double m_laserPulseEnergy;
-	double m_laserTemperature;
-	double m_tiltAngle;
-	double m_background;
-	double m_pulseQuantity;
-	double m_sampleRate;
+	percent m_windowTransmission;
+	percent m_scale;
+	metre m_resolution;
+	percent m_laserPulseEnergy;
+	kelvin m_laserTemperature;
+	radian m_tiltAngle;
+	millivolt m_background;
+	size_t m_pulseQuantity;
+	megahertz m_sampleRate;
 	double m_sum;
 	bool m_passedChecksum;
+	campbellAlarmStatus m_alarmStatus;
+	ceilometerMessageStatus m_messageStatus;
 };
