@@ -87,6 +87,8 @@ public:
 	size_t getPulseQuantity() const { return m_pulseQuantity; }
 	hertz getSampleRate() const { return m_sampleRate; }
 	const bool getPassedChecksum() const { return m_passedChecksum;  }
+	campbellAlarmStatus getAlarmStatus() const { return m_alarmStatus; }
+	ceilometerMessageStatus getMessageStatus() const { return m_messageStatus; }
 private:
 	char m_endOfTextCharacter;
 	std::vector<steradianPerKilometre> m_data;

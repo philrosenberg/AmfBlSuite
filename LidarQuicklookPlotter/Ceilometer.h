@@ -30,6 +30,8 @@ public:
 	millivolt getBackground() const { return m_profile.getBackground(); }
 	size_t getPulseQuantity() const { return m_profile.getPulseQuantity(); }
 	hertz getSampleRate() const { return m_profile.getSampleRate(); }
+	char getProfileFlag() const;
+	std::vector<char> getGateFlags() const;
 private:
 	CampbellMessage2 m_profile;
 	sci::UtcTime m_time;

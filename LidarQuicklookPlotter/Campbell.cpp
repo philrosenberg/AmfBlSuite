@@ -220,7 +220,7 @@ CampbellMessage2::CampbellMessage2(char endOfTextCharacter)
 {
 }
 
-campbellAlarmStatus getAlarmStatus(char text)
+campbellAlarmStatus parseAlarmStatus(char text)
 {
 	if (text == '0')
 		return cas_ok;
@@ -233,7 +233,7 @@ campbellAlarmStatus getAlarmStatus(char text)
 	throw("Received an invalid character when determining the ceilometer alarm status.");
 }
 
-ceilometerMessageStatus getMessageStatus(char text)
+ceilometerMessageStatus parseMessageStatus(char text)
 {
 	//because the status character uses consecutive characters for the
 	//first 7 messages and because we use the same order in the enumeration
@@ -317,8 +317,8 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 			m_height4 = metre(std::atof(height4));
 	}
 	m_windowTransmission = percent(std::atof(transmission));
-	m_alarmStatus = getAlarmStatus(alarmStatus);
-	m_messageStatus = getMessageStatus(messageStatus);
+	m_alarmStatus = parseAlarmStatus(alarmStatus);
+	m_messageStatus = parseMessageStatus(messageStatus);
 
 	char scale[6];
 	char res[3];
