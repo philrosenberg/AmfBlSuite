@@ -30,6 +30,25 @@ EVT_TIMER(ID_CHECK_DATA_TIMER, mainFrame::OnCheckDataTimer)
 EVT_TIMER(ID_INSTANT_CHECK_DATA_TIMER, mainFrame::OnCheckDataTimer)
 END_EVENT_TABLE()
 
+class ProcessFlagger
+{
+public:
+	ProcessFlagger(bool *flag, bool setValue = true, bool unsetValue = false)
+		:m_flag(flag), m_setValue(setValue), m_unsetValue(unsetValue)
+	{
+		*flag = setValue;
+	}
+	~ProcessFlagger()
+	{
+		*m_flag = m_unsetValue;
+	}
+private:
+	bool * const m_flag;
+	const bool m_setValue;
+	const bool m_unsetValue;
+
+};
+
 mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inputDirectory, const wxString &outputDirectory, bool runImmediately)
 	: wxFrame(frame, -1, title)
 {
@@ -434,7 +453,15 @@ void mainFrame::plot()
 {
 	if (m_plotting)
 		return;
-	m_plotting = true;
+	//this sets the plotting flag true. It will be automatically set
+	//back to false on exit of this function when plottingFlagger
+	//goes out of scope and is destroyed - even if this is due to an
+	//unhandled exception.
+	//We do this because we may yeild during this function to allow
+	//user interaction and screen updates which may allow this function
+	//to get called again when we are not ready for it.
+	ProcessFlagger plottingFlagger(&m_plotting);
+
 	//There must be no code that can throw without being caught until m_plotting is set back to false
 	try
 	{
@@ -495,7 +522,6 @@ void mainFrame::plot()
 		m_logText->SetDefaultStyle(originalStyle);
 	}
 
-	m_plotting = false;
 	if (m_progressReporter->shouldStop())
 		m_logText->AppendText("Stopped\n\n");
 }
