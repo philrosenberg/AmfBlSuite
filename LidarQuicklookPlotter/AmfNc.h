@@ -176,24 +176,47 @@ private:
 	void setAttributes(const sci::string &longName)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
-		sci::NcAttribute unitsAttribute(sU("units"), sci::getUnitString<T>());
+		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getUnitString());
 		addAttribute(longNameAttribute);
 		addAttribute(unitsAttribute);
 	}
 };
 
 template <class T, class U>
-class AmfNcVariable<sci::Physical2<T, U>> : public AmfNcVariable<sci::Physical<sci::EncodedUnit<sci::Physical2<T, U>::basePowers, sci::Physical2<T, U>::exponent>>>
+class AmfNcVariable<sci::Physical2<T, U>> : public sci::NcVariable<double>
 {
 public:
 	typedef AmfNcVariable<sci::Physical<sci::EncodedUnit<sci::Physical2<T, U>::basePowers, sci::Physical2<T, U>::exponent>>> baseType;
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName)
-		:baseType(name, ncFile, dimension, longName)
+		:NcVariable<double>(name, ncFile, dimension)
 	{
+		setAttributes(longName);
 	}
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName)
-		:baseType(name, ncFile, dimensions, longName)
+		:NcVariable<double>(name, ncFile, dimensions)
 	{
+		setAttributes(longName);
+	}
+	template <class U>
+	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<T>(physicals))
+	{
+		return sci::physicalsToValues<sci::Physical2<T,U>>(physicals);
+	}
+	template <class U>
+	static auto convertValues(const std::vector<std::vector<U>> &physicals) -> std::vector<decltype(convertValues(physicals[0]))>
+	{
+		std::vector<decltype(convertValues(physicals[0]))> result(physicals.size());
+		for (size_t i = 0; i < physicals.size(); ++i)
+			result[i] = convertValues(physicals[i]);
+		return result;
+	}
+private:
+	void setAttributes(const sci::string &longName)
+	{
+		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
+		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical2<T,U>::getUnitString());
+		addAttribute(longNameAttribute);
+		addAttribute(unitsAttribute);
 	}
 };
 

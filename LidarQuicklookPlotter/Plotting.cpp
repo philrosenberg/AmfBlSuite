@@ -14,71 +14,114 @@ void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> 
 void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double viewAzimuth, size_t nSegmentsMin, double maxRange, splot2d *plot);
 void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, ProgressReporter& progressReporter, wxWindow *parent);
 
-//this class cleans up wxWindows on destruction in order to ensure they
-//get destroyed even if an exception is thrown.
-class WindowCleaner
+
+
+
+WindowCleaner::WindowCleaner(wxWindow *window)
+	: m_window(window)
+{}
+WindowCleaner::~WindowCleaner()
 {
-public:
-	WindowCleaner(wxWindow *window) : m_window(window) {}
-	~WindowCleaner() { m_window->Destroy(); }
-private:
-	wxWindow *m_window;
-};
+	m_window->Destroy();
+}
 
-class CubehelixColourscale : public splotcolourscale
+
+void InstrumentPlotter::readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
-public:
-	CubehelixColourscale(const std::vector<double> &values, double startHue, double hueRotation, double startBrightness, double endBrightness, double saturation, double gamma, bool logarithmic, bool autostretch)
-		: splotcolourscale(values,
-			logarithmic ? CubehelixColourscale::getCubehelixColours(sci::log10(values), startHue, hueRotation, startBrightness, endBrightness, saturation, gamma) : CubehelixColourscale::getCubehelixColours(values, startHue, hueRotation, startBrightness, endBrightness, saturation, gamma),
-			logarithmic, autostretch)
+	//If this is a processed wind profile then we jsut send the file straiht off to the code to plot that
+	if (inputFilename.find("Processed_Wind_Profile") != std::string::npos)
 	{
+		std::fstream fin;
+		fin.open(inputFilename.c_str(), std::ios::in);
+		if (!fin.is_open())
+			throw("Could not open file");
+		size_t nPoints;
+		fin >> nPoints;
+		std::vector<double> height(nPoints);
+		std::vector<double> degrees(nPoints);
+		std::vector<double> speed(nPoints);
 
-	}
-	CubehelixColourscale(double minValue, double maxValue, size_t nPoints, double startHue, double hueRotation, double startBrightness, double endBrightness, double saturation, double gamma, bool logarithmic, bool autostretch)
-		: splotcolourscale( logarithmic ? sci::pow(10.0, sci::indexvector<double>(nPoints+1) / (double)nPoints*(std::log10(maxValue) - std::log10(minValue)) + std::log10(minValue)) : sci::indexvector<double>(nPoints + 1) / (double)nPoints*(maxValue - minValue) + minValue,
-			logarithmic ? CubehelixColourscale::getCubehelixColours(sci::indexvector<double>(nPoints + 1) / (double)nPoints*(std::log10(maxValue) - std::log10(minValue)) + std::log10(minValue), startHue, hueRotation, startBrightness, endBrightness, saturation, gamma) : CubehelixColourscale::getCubehelixColours(sci::indexvector<double>(nPoints + 1) / (double)nPoints*(maxValue - minValue) + minValue, startHue, hueRotation, startBrightness, endBrightness, saturation, gamma),
-			logarithmic, autostretch)
-	{
-
-	}
-	static std::vector<rgbcolour> getCubehelixColours(const std::vector<double> &values, double startHue, double hueRotation, double startBrightness, double endBrightness, double saturation, double gamma)
-	{
-		//make the hue consistent with the start parameter used in D. A. Green 2011
-		startHue -= std::floor(startHue / 360.0)*360.0;
-		startHue /= 120;
-		startHue += 1;
-
-		//create a vector to hold the colours
-		std::vector<rgbcolour> colours(values.size());
-
-		//calculate each colour
-		double valuesRange = values.back() - values.front();
-		double brightnessRange = endBrightness - startBrightness;
-		for (size_t i = 0; i < colours.size(); ++i)
+		for (size_t i = 0; i < nPoints; ++i)
 		{
-			double brightness = startBrightness + (values[i]-values[0]) / valuesRange*brightnessRange;
-			double angle = M_2PI*(startHue / 3.0 + 1.0 + hueRotation / 360.0*brightness);
-			double gammaBrightness = std::pow(brightness, gamma);
-			double amplitude = saturation*gammaBrightness*(1 - gammaBrightness) / 2.0;
-			double red = gammaBrightness + amplitude*(-0.14861*std::cos(angle) + 1.78277*std::sin(angle));
-			double green = gammaBrightness + amplitude*(-0.29227*std::cos(angle) - 0.90649*std::sin(angle));
-			double blue = gammaBrightness + amplitude*(1.97294*std::cos(angle));
-			colours[i] = rgbcolour(red, green, blue);
+			fin >> height[i] >> degrees[i] >> speed[i];
 		}
-		//std::fstream fout;
-		//fout.open("colourscale", std::ios::out);
-		//for (size_t i = 0; i < colours.size(); ++i)
-		//	fout << values[i] << "," << colours[i].r() << "," << colours[i].g() << "," << colours[i].b() << "\n";
-		//fout.close();
-		return colours;
+		fin.close();
+
+		for (size_t i = 0; i < maxRanges.size(); ++i)
+		{
+			std::ostringstream rangeLimitedfilename;
+			rangeLimitedfilename << outputFilename;
+			if (maxRanges[i] != std::numeric_limits<double>::max())
+				rangeLimitedfilename << "_maxRange_" << maxRanges[i];
+			plotProcessedWindProfile(height, degrees, speed, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
+		}
+		return;
 	}
-};
 
 
-//const splotcolourscale g_lidarColourscale(std::vector<double>{1e-8, 1e-3}, std::vector<rgbcolour>{rgbcolour(1.0, 0.0, 0.0), rgbcolour(0.0, 0.0, 1.0)}, true, false);
-//const CubehelixColourscale g_lidarColourscale(sci::pow(10.0, sci::indexvector<double>(101) / 100.0*5.0 - 8.0), 0, -540.0, 0.0, 1.0, 1.0, 1.0, true, false);
-const CubehelixColourscale g_lidarColourscale(1e-8, 1e-3, 101, 180., 540.0, 1.0, 0.0, 1.0, 1.0 , true, false);
+	std::fstream fin;
+	HplHeader hplHeader;
+	std::vector<HplProfile> profiles;
+	try
+	{
+		fin.open(inputFilename.c_str(), std::ios::in);
+		if (!fin.is_open())
+			throw("Could not open file");
+
+		progressReporter << "Reading file.\n";
+		fin >> hplHeader;
+
+		bool readingOkay = true;
+		while (readingOkay)
+		{
+			profiles.resize(profiles.size() + 1);
+			readingOkay = profiles.back().readFromStream(fin, hplHeader);
+			if (!readingOkay) //we hit the end of the file while reading this profile
+				profiles.resize(profiles.size() - 1);
+			if (readingOkay)
+			{
+				if (profiles.size() == 1)
+					progressReporter << "Read profile 1";
+				else if (profiles.size() <= 50)
+					progressReporter << ", " << profiles.size();
+				else if (profiles.size() % 10 == 0)
+					progressReporter << ", " << profiles.size() - 9 << "-" << profiles.size();
+			}
+			if (progressReporter.shouldStop())
+				break;
+		}
+		if (progressReporter.shouldStop())
+		{
+			progressReporter << "\n";
+			fin.close();
+			return;
+
+		}
+		progressReporter << ", done.\n";
+
+
+		for (size_t i = 0; i < maxRanges.size(); ++i)
+		{
+			std::ostringstream rangeLimitedfilename;
+			rangeLimitedfilename << outputFilename;
+			if (maxRanges[i] != std::numeric_limits<double>::max())
+				rangeLimitedfilename << "_maxRange_" << maxRanges[i];
+			plotProfiles(hplHeader, profiles, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
+		}
+	}
+	catch (char *err)
+	{
+		wxMessageBox(err);
+	}
+	catch (std::string err)
+	{
+		wxMessageBox(err);
+	}
+
+	fin.close();
+}
+
+
 
 
 void plotProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent)
@@ -718,75 +761,3 @@ void plotProcessedWindProfile(const std::vector<double> &height, const std::vect
 }
 
 
-void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, std::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
-{
-	splotframe *window;
-	splot2d *plot;
-	setupCanvas(&window, &plot, "", parent, header);
-	WindowCleaner cleaner(window);
-
-	//We will do some averaging with the data - there is no point plotting thousands of profiles
-	//on a plot that is ~800 pixels across.
-	size_t timeAveragePeriod = 1;
-	while (profiles.size() / timeAveragePeriod > 800)
-		timeAveragePeriod *= 2;
-
-	std::vector<std::vector<steradianPerMetre>> data(profiles.size()/ timeAveragePeriod);
-	for (size_t i = 0; i < data.size(); ++i)
-	{
-		sci::convert(data[i], profiles[i*timeAveragePeriod].getBetas());
-		for (size_t j = 1; j < timeAveragePeriod; ++j)
-			data[i] += profiles[i*timeAveragePeriod + j].getBetas();
-	}
-	data /= unitless((double)timeAveragePeriod);
-
-	if (profiles[0].getResolution()*unitless(data[0].size() - 1) > maxRange)
-	{
-		size_t pointsNeeded = std::min((size_t)std::ceil((maxRange / profiles[0].getResolution()).m_v), data[0].size());
-		for (size_t i = 0; i < data.size(); ++i)
-			data[i].resize(pointsNeeded);
-	}
-
-	size_t heightAveragePeriod = 1;
-	while (data[0].size() / heightAveragePeriod > 800)
-		heightAveragePeriod *= 2;
-	if (heightAveragePeriod > 1)
-	{
-		for (size_t i = 0; i < data.size(); ++i)
-			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod, sci::PhysicalDivide<steradianPerMetre::unit>);
-	}
-
-	std::vector<second> xs(data.size() + 1);
-	std::vector<metre> ys(data[0].size() + 1);
-
-	//calculating our heights assumes that the profiles have range gates of 0, 1, 2, 3, ... so check this;
-	bool gatesGood = true;
-	for (size_t i = 0; i < profiles.size(); ++i)
-	{
-		std::vector<size_t> gates = profiles[i].getGates();
-		for (size_t j = 0; j < gates.size(); ++j)
-			if (gates[j] != j)
-				throw("The plotting code currently assumes gates go 0, 1, 2, 3, ... but it found a profile where this was not the case.");
-	}
-
-	xs[0] = second(profiles[0].getTime().getUnixTime());
-	for (size_t i = 1; i < xs.size() - 1; ++i)
-		xs[i] = second((profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / 2.0);
-	xs.back() = second(profiles.back().getTime().getUnixTime());
-
-	for (size_t i = 0; i < ys.size(); ++i)
-		ys[i] = unitless(i * heightAveragePeriod)*header.rangeGateLength;
-
-	std::shared_ptr<GridData> gridData(new GridData(sci::physicalsToValues<second>(xs), sci::physicalsToValues<metre>(ys), sci::physicalsToValues<steradianPerMetre>(data), g_lidarColourscale, true, true));
-
-	plot->addData(gridData);
-
-	plot->getxaxis()->settitle("Time");
-	plot->getxaxis()->settimeformat("%H:%M:%S");
-	plot->getyaxis()->settitle("Height (m)");
-
-	if (ys.back() > maxRange)
-		plot->setmaxy(sci::physicalsToValues<metre>(maxRange));
-
-	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
-}

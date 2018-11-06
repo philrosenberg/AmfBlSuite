@@ -10,6 +10,12 @@
 #include"TextCtrlProgressReporter.h"
 #include<memory>
 
+//predeclaration of the class that records status of files when looking for new ones.
+//we need to predeclare it because we have a reference to it in the method declarations
+//below.
+class ExistedFolderChangesLister;
+class InstrumentPlotter;
+
 class mainFrame : public wxFrame
 {
 public:
@@ -45,8 +51,10 @@ private:
 
 	void start();
 	void stop();
-	void plot();
-	void plot(const std::string &filter);
+	void process();
+	void process(const std::string &filter, InstrumentPlotter &plotter);
+	void readDataAndPlot(std::vector<std::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentPlotter &plotter);
+	std::vector<std::string> checkForNewFiles(const std::string &filter, const ExistedFolderChangesLister &changesLister);
 
 	DECLARE_EVENT_TABLE();
 };

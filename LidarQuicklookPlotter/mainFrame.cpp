@@ -141,233 +141,11 @@ void mainFrame::OnExit(wxCommandEvent& event)
 	Close();
 }
 
-sci::UtcTime getCeilometerTime(const std::string &timeDateString)
-{
-	sci::UtcTime result(
-		std::atoi(timeDateString.substr(0, 4).c_str()), //year
-		std::atoi(timeDateString.substr(5, 2).c_str()), //month
-		std::atoi(timeDateString.substr(8, 2).c_str()), //day
-		std::atoi(timeDateString.substr(11, 2).c_str()), //hour
-		std::atoi(timeDateString.substr(14, 2).c_str()), //minute
-		std::atof(timeDateString.substr(17, std::string::npos).c_str()) //second
-	);
-	return result;
-}
-
-void plotFile(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
-{
-	//If this is a processed wind profile then we jsut send the file straiht off to the code to plot that
-	if (inputFilename.find("Processed_Wind_Profile") != std::string::npos)
-	{
-		std::fstream fin;
-		fin.open(inputFilename.c_str(), std::ios::in);
-		if (!fin.is_open())
-			throw("Could not open file");
-		size_t nPoints;
-		fin >> nPoints;
-		std::vector<double> height(nPoints);
-		std::vector<double> degrees(nPoints);
-		std::vector<double> speed(nPoints);
-
-		for (size_t i = 0; i < nPoints; ++i)
-		{
-			fin >> height[i] >> degrees[i] >> speed[i];
-		}
-		fin.close();
-
-		for (size_t i = 0; i < maxRanges.size(); ++i)
-		{
-			std::ostringstream rangeLimitedfilename;
-			rangeLimitedfilename << outputFilename;
-			if (maxRanges[i] != std::numeric_limits<double>::max())
-				rangeLimitedfilename << "_maxRange_" << maxRanges[i];
-			plotProcessedWindProfile(height, degrees, speed, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
-		}
-		return;
-	}
-	if (inputFilename.find("_ceilometer.csv") != std::string::npos)
-	{
-		std::fstream fin;
-		fin.open(inputFilename.c_str(), std::ios::in | std::ios::binary);
-		if (!fin.is_open())
-			throw("Could not open file");
-
-		progressReporter << "Reading file " << inputFilename << "\n";
-
-		std::vector<CampbellCeilometerProfile> data;
-		CampbellHeader firstHeader;
-		const size_t displayInterval = 120;
-		std::string firstBatchDate;
-		std::string timeDate;
-		while (!fin.eof())
-		{
-			bool badTimeDate = false;
-			timeDate = "";
-			char character;
-			fin.read(&character, 1);
-			//size_t counter = 1;
-			while (character != ','  && !fin.eof())
-			{
-				timeDate = timeDate + character;
-				fin.read(&character, 1);
-			}
-			//if (counter == 50)
-			//{
-			//	fin.close();
-			//	throw("Failed to find the comma after the timestamp in a ceilometer file. Reading aborted.");
-			//}
-			if (fin.eof())
-				break;
-			size_t firstDash = timeDate.find_first_of('-');
-			if (firstDash == std::string::npos || firstDash < 4)
-				badTimeDate = true;
-			else
-			{
-				size_t timeDateStart = firstDash - 4;
-				timeDate = timeDate.substr(timeDateStart);
-				if (timeDate.length() < 19)
-					badTimeDate = true;
-				else if (timeDate[4] != '-')
-					badTimeDate = true;
-				else if (timeDate[7] != '-')
-					badTimeDate = true;
-				else if (timeDate[10] != 'T')
-					badTimeDate = true;
-				else if (timeDate[13] != ':')
-					badTimeDate = true;
-				else if (timeDate[16] != ':')
-					badTimeDate = true;
-			}
-
-			//unless we have a bad time/date we can read in the data
-			if (!badTimeDate)
-			{
-				//I have found one instance where time went backwards in the second entry in
-				//a file. I'm not really sure why, but the best thing to do in this case seems
-				//to be to discard the first entry.
-
-				//If we have more than one entry already then I'm not sure what to do. For now abort processing this file..
-				if (data.size() == 1 && data[0].getTime() > getCeilometerTime(timeDate))
-				{
-					data.pop_back();
-					progressReporter << "The second entry in the file has a timestamp earlier than the first. This may be due to a logging glitch. The first entry will be deleted.\n";
-				}
-				else if (data.size() > 1 && data[0].getTime() > getCeilometerTime(timeDate))
-				{
-					throw("Time jumps backwards in this file, it cannot be processed.");
-				}
-				CampbellHeader header;
-				header.readHeader(fin);
-				if (data.size() == 0)
-					firstHeader = header;
-				if (header.getMessageType() == cmt_cs && header.getMessageNumber() == 2)
-				{
-					if (data.size() == 0)
-						progressReporter << "Found CS 002 messages: ";
-					if (data.size() % displayInterval == 0)
-						firstBatchDate = timeDate;
-					if (data.size() % displayInterval == displayInterval - 1)
-						progressReporter << firstBatchDate << "-" << timeDate << "(" << displayInterval << " profiles) ";
-					CampbellMessage2 profile;
-					profile.read(fin, header);
-					if (profile.getPassedChecksum())
-						data.push_back(CampbellCeilometerProfile(getCeilometerTime(timeDate), profile));
-					else
-						progressReporter << "Found a message at time " << timeDate << " which does not pass the checksum and is hence corrupt. This profile will be ignored.\n";
-				}
-				else
-				{
-					progressReporter << "Found " << header.getMessageNumber() << " message " << timeDate << ". Halting Read\n";
-					break;
-				}
-			}
-			else
-				progressReporter << "Found a profile with an incorrectly formatted time/date. This profile will be ignored.\n";
-		}
-		if (data.size() % displayInterval != displayInterval - 1)
-			progressReporter << firstBatchDate << "-" << timeDate << "(" << (data.size() % displayInterval)+1 << " profiles)\n";
-		progressReporter << "Completed reading file. " << data.size() << " profiles found\n";
-		fin.close();
-
-		if (data.size() > 0)
-		{
-			for (size_t i = 0; i < maxRanges.size(); ++i)
-			{
-				std::ostringstream rangeLimitedfilename;
-				rangeLimitedfilename << outputFilename;
-				if (maxRanges[i] != std::numeric_limits<double>::max())
-					rangeLimitedfilename << "_maxRange_" << maxRanges[i];
-				plotCeilometerProfiles(getCeilometerHeader(inputFilename, firstHeader, data[0]), data, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
-			}
-		}
-
-		return;
-	}
-
-	std::fstream fin;
-	HplHeader hplHeader;
-	std::vector<HplProfile> profiles;
-	try
-	{
-		fin.open(inputFilename.c_str(), std::ios::in);
-		if (!fin.is_open())
-			throw("Could not open file");
-
-		progressReporter << "Reading file.\n";
-		fin >> hplHeader;
-
-		bool readingOkay = true;
-		while (readingOkay)
-		{
-			profiles.resize(profiles.size() + 1);
-			readingOkay = profiles.back().readFromStream(fin, hplHeader);
-			if (!readingOkay) //we hit the end of the file while reading this profile
-				profiles.resize(profiles.size() - 1);
-			if (readingOkay)
-			{
-				if (profiles.size() == 1)
-					progressReporter << "Read profile 1";
-				else if (profiles.size() <= 50)
-					progressReporter << ", " << profiles.size();
-				else if ( profiles.size() % 10 == 0)
-					progressReporter << ", " << profiles.size() - 9 << "-" << profiles.size();
-			}
-			if (progressReporter.shouldStop())
-				break;
-		}
-		if (progressReporter.shouldStop())
-		{
-			progressReporter << "\n";
-			fin.close();
-			return;
-
-		}
-		progressReporter << ", done.\n";
-
-
-		for (size_t i = 0; i < maxRanges.size(); ++i)
-		{
-			std::ostringstream rangeLimitedfilename;
-			rangeLimitedfilename << outputFilename;
-			if (maxRanges[i] != std::numeric_limits<double>::max())
-				rangeLimitedfilename << "_maxRange_" << maxRanges[i];
-			plotProfiles(hplHeader, profiles, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
-		}
-	}
-	catch (char *err)
-	{
-		wxMessageBox(err);
-	}
-	catch (std::string err)
-	{
-		wxMessageBox(err);
-	}
-
-	fin.close();
-}
-
 void mainFrame::OnRun(wxCommandEvent& event)
 {
+	sci::string ampUnit = sci::Amp<>::getUnitString();
+	sci::string ampSqUnit = sci::Amp<2>::getUnitString();
+	sci::string milliAmpSqUnit = sci::Amp<2, -3>::getUnitString(sU("#u"), sU("#d"));
 	start();
 }
 
@@ -436,7 +214,7 @@ void mainFrame::OnCheckDataTimer(wxTimerEvent& event)
 {
 	if (m_plotting)
 		return;
-	plot();
+	process();
 }
 
 std::vector<std::string> getDirectoryListing(const std::string &directory, const std::string &filespec)
@@ -449,7 +227,7 @@ std::vector<std::string> getDirectoryListing(const std::string &directory, const
 	return result;
 }
 
-void mainFrame::plot()
+void mainFrame::process()
 {
 	if (m_plotting)
 		return;
@@ -462,24 +240,31 @@ void mainFrame::plot()
 	//to get called again when we are not ready for it.
 	ProcessFlagger plottingFlagger(&m_plotting);
 
-	//There must be no code that can throw without being caught until m_plotting is set back to false
+	process("*_ceilometer.csv", CeilometerProcessor());
+	process("*Processed_Wind_Profile_??_????????_??????.hpl", InstrumentPlotter());
+	process("*Stare_??_????????_??.hpl", InstrumentPlotter());
+	process("*VAD_??_????????_??????.hpl", InstrumentPlotter());
+	process("*User*.hpl", InstrumentPlotter());
+	//Tell the user we are done for now
+	if (!m_progressReporter->shouldStop())
+		(*m_progressReporter) << "Generated plots for all files found. Waiting approx 10 mins to check again.\n\n";
+
+	if (m_progressReporter->shouldStop())
+		m_logText->AppendText("Stopped\n\n");
+}
+
+void mainFrame::process(const std::string &filter, InstrumentPlotter &plotter)
+{
+	ExistedFolderChangesLister changesLister(m_inputDirectory, m_outputDirectory + "previouslyPlottedFiles.txt");
+
 	try
 	{
-		//run the plot routines for the different type of profiles
 		if (!m_progressReporter->shouldStop())
-		plot("*_ceilometer.csv");
-		if (!m_progressReporter->shouldStop())
-			plot("*Processed_Wind_Profile_??_????????_??????.hpl");
-		if(!m_progressReporter->shouldStop())
-			plot("*Stare_??_????????_??.hpl");
-		if (!m_progressReporter->shouldStop())
-			plot("*VAD_??_????????_??????.hpl");
-		if (!m_progressReporter->shouldStop())
-			plot("*User*.hpl");
-
-		//Tell the user we are done for now
-		if (!m_progressReporter->shouldStop())
-			(*m_progressReporter) << "Generated plots for all files found. Waiting approx 10 mins to check again.\n\n";
+		{
+			readDataAndPlot(checkForNewFiles(filter, changesLister), changesLister, plotter);
+			if (!m_progressReporter->shouldStop())
+				(*m_progressReporter) << "Generated plots for all files matching filter " << filter << "\n";
+		}
 	}
 	catch (sci::err err)
 	{
@@ -521,16 +306,13 @@ void mainFrame::plot()
 		stream << "Error: Unknown\n";
 		m_logText->SetDefaultStyle(originalStyle);
 	}
-
-	if (m_progressReporter->shouldStop())
-		m_logText->AppendText("Stopped\n\n");
 }
 
-//Plot just a specific file type - the last file found alphabetically
+//Check for new files - the last file found alphabetically
 //is assumed to be the last file chronologically (assuming you have a
 //sensible naming structure) and it is assumed that this file may be
-//incomplete, so will be replotted next time just in case.
-void mainFrame::plot(const std::string &filter)
+//incomplete, so will be reported next time just in case.
+std::vector<std::string> mainFrame::checkForNewFiles(const std::string &filter, const ExistedFolderChangesLister &changesLister)
 {
 	//ensure that the input and output directories end with a slash or are empty
 	if (m_inputDirectory.length() > 0 && m_inputDirectory.back()!= '/' && m_inputDirectory.back()!= '\\')
@@ -560,7 +342,6 @@ void mainFrame::plot(const std::string &filter)
 
 
 	//check for new files
-	ExistedFolderChangesLister changesLister(m_inputDirectory, m_outputDirectory + "previouslyPlottedFiles.txt");
 	std::vector<std::string> filesToPlot = changesLister.getChanges(filter);
 
 
@@ -571,87 +352,82 @@ void mainFrame::plot(const std::string &filter)
 		(*m_progressReporter) << "Found the following new files to plot matching the filter " << filter << " :\n";
 		for(size_t i=0; i<filesToPlot.size(); ++i)
 			(*m_progressReporter) << "\t" << filesToPlot[i] << "\n";
+	}
 
+	return filesToPlot;
+}
 
-		std::string lastFileToPlot = filesToPlot.back();
+void mainFrame::readDataAndPlot(std::vector<std::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentPlotter &plotter)
+{
+	std::string lastFileToPlot = filesToPlot.back();
 
-		for (size_t i = 0; i < filesToPlot.size(); ++i)
+	for (size_t i = 0; i < filesToPlot.size(); ++i)
+	{
+		(*m_progressReporter) << "Processing " << filesToPlot[i] << "\n";
+		std::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), std::string::npos);
+		try
 		{
-			(*m_progressReporter) << "Processing " << filesToPlot[i] << "\n";
-			std::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), std::string::npos);
-			try
-			{
-				plotFile(filesToPlot[i], outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
-				
-				if (m_progressReporter->shouldStop())
-				{
-					(*m_progressReporter) << "Operation halted at user request.\n";
-					break;
-				}
-				
-				//remember which files have been plotted
-				if (filesToPlot[i] != lastFileToPlot)
-				{
-					changesLister.updateSnapshotFile(filesToPlot[i]);
-				}
-			}
-			catch (sci::err err)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (char *errMessage)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (std::string errMessage)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (wxString errMessage)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (...)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: Unknown\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
+			plotter.readDataAndPlot(filesToPlot[i], outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
 
 			if (m_progressReporter->shouldStop())
 			{
 				(*m_progressReporter) << "Operation halted at user request.\n";
 				break;
 			}
+
+			//remember which files have been plotted
+			if (filesToPlot[i] != lastFileToPlot)
+			{
+				changesLister.updateSnapshotFile(filesToPlot[i]);
+			}
+		}
+		catch (sci::err err)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: " << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+		catch (char *errMessage)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: " << errMessage << "\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+		catch (std::string errMessage)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: " << errMessage << "\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+		catch (wxString errMessage)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: " << errMessage << "\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+		catch (...)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: Unknown\n";
+			m_logText->SetDefaultStyle(originalStyle);
 		}
 
-		//plotFile("../../../data/co/2013/201301/20130124/Stare_05_20130124_16.hpl", "testStare.png", this);
-		//plotFile("../../../data/co/2013/201301/20130124/Wind_Profile_05_20130124_162124.hpl", "testWindProfile.png", this);
-		//plotFile("VAD_18_20180712_090610.hpl", "moccha_clutter_1000.png", 1000, this);
-		//plotFile("D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\201807\\20180711\\Stare_18_20180711_20.hpl", "moccha_test_stare_cubehelix.png", 1000, this);
-		//plotFile("D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\201807\\20180711\\VAD_18_20180711_081948.hpl", "moccha_test_vad_cubehelix.png", 10000, this);
+		if (m_progressReporter->shouldStop())
+		{
+			(*m_progressReporter) << "Operation halted at user request.\n";
+			break;
+		}
 	}
-	if(!m_progressReporter->shouldStop())
-		(*m_progressReporter) << "Generated plots for all files matching filter " << filter << "\n";
-	
 }
 
 void mainFrame::OnAbout(wxCommandEvent& event)
