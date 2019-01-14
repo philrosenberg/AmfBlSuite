@@ -143,9 +143,9 @@ void mainFrame::OnExit(wxCommandEvent& event)
 
 void mainFrame::OnRun(wxCommandEvent& event)
 {
-	sci::string ampUnit = sci::Amp<>::getUnitString();
-	sci::string ampSqUnit = sci::Amp<2>::getUnitString();
-	sci::string milliAmpSqUnit = sci::Amp<2, -3>::getUnitString(sU("#u"), sU("#d"));
+	//sci::string ampUnit = sci::Amp<>::getShortRepresentation();
+	//sci::string ampSqUnit = sci::Amp<2>::getShortRepresentation();
+	//sci::string milliAmpSqUnit = sci::Amp<2, -3>::getShortRepresentation(sU("#u"), sU("#d"));
 	start();
 }
 
