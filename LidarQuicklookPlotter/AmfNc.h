@@ -176,7 +176,7 @@ private:
 	void setAttributes(const sci::string &longName)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
-		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getUnitString());
+		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getShortUnitString());
 		addAttribute(longNameAttribute);
 		addAttribute(unitsAttribute);
 	}
