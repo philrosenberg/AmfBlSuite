@@ -1,5 +1,6 @@
 #include "FolderChangesLister.h"
 #include<fstream>
+#include<algorithm>
 
 void FolderChangesLister::clearSnapshotFile()
 {

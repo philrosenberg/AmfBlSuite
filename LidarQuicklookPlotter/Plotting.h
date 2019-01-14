@@ -3,6 +3,7 @@
 #include<vector>
 #include"Units.h"
 #include<svector/splot.h>
+#include<svector/svector.h>
 
 struct HplHeader;
 class HplProfile;
