@@ -11,5 +11,5 @@ typedef sci::Physical<sci::Hertz<1,6>> megahertz;
 typedef sci::Physical<sci::Unitless<>> unitless;
 typedef sci::Physical<sci::Unitless<-2>> percent;
 typedef sci::Physical<sci::Volt<1,-3>> millivolt;
-typedef sci::Physical2<sci::Steradian<>, sci::Metre<-1>> steradianPerMetre;
-typedef sci::Physical2<sci::Steradian<>, sci::Metre<-1, 3>> steradianPerKilometre;
+typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<>, sci::Metre<>>> steradianPerMetre;
+typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<>, sci::Metre<1, 3>>> steradianPerKilometre;
