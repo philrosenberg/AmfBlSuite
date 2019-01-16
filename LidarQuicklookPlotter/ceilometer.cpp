@@ -33,6 +33,9 @@ void CeilometerProcessor::writeToNc(const sci::string &directory, const PersonIn
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
 {
+	if (!hasData())
+		throw(sU("Attempted to write ceilometer data to netcdf when it has not been read"));
+
 	writeToNc(m_firstHeaderHpl, m_data, directory, author, processingSoftwareInfo, projectInfo, platformInfo, comment);
 }
 
@@ -182,7 +185,6 @@ sci::UtcTime getCeilometerTime(const sci::string &timeDateString)
 }
 
 void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent)
-//void CeilometerProcessor::readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	m_hasData = false;
 	m_data.clear();
@@ -305,18 +307,20 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 
 void CeilometerProcessor::plotData(const sci::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
-	if (hasData())
+	if (!hasData())
+		throw(sU("Attempted to plot Ceilometer data when it has not been read"));
+
+	
+	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{
-		for (size_t i = 0; i < maxRanges.size(); ++i)
-		{
-			sci::ostringstream rangeLimitedfilename;
-			rangeLimitedfilename << outputFilename;
-			if (maxRanges[i] != std::numeric_limits<double>::max())
-				rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
-			plotCeilometerProfiles(m_firstHeaderHpl, m_data, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
-		}
+		sci::ostringstream rangeLimitedfilename;
+		rangeLimitedfilename << outputFilename;
+		if (maxRanges[i] != std::numeric_limits<double>::max())
+			rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
+		plotCeilometerProfiles(m_firstHeaderHpl, m_data, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
 	}
 }
+
 void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window;
