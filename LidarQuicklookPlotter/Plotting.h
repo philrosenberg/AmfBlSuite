@@ -83,7 +83,7 @@ public:
 	}
 };
 
-class InstrumentPlotter
+class InstrumentProcessor
 {
 public:
 	//virtual void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);

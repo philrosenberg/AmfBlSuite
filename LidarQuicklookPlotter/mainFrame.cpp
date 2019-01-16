@@ -243,10 +243,10 @@ void mainFrame::process()
 	ProcessFlagger plottingFlagger(&m_plotting);
 
 	process(sU("*_ceilometer.csv"), CeilometerProcessor());
-	process(sU("*Processed_Wind_Profile_??_????????_??????.hpl"), InstrumentPlotter());
-	process(sU("*Stare_??_????????_??.hpl"), InstrumentPlotter());
-	process(sU("*VAD_??_????????_??????.hpl"), InstrumentPlotter());
-	process(sU("*User*.hpl"), InstrumentPlotter());
+	process(sU("*Processed_Wind_Profile_??_????????_??????.hpl"), InstrumentProcessor());
+	process(sU("*Stare_??_????????_??.hpl"), InstrumentProcessor());
+	process(sU("*VAD_??_????????_??????.hpl"), InstrumentProcessor());
+	process(sU("*User*.hpl"), InstrumentProcessor());
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())
 		(*m_progressReporter) << "Generated plots for all files found. Waiting approx 10 mins to check again.\n\n";
@@ -255,7 +255,7 @@ void mainFrame::process()
 		m_logText->AppendText("Stopped\n\n");
 }
 
-void mainFrame::process(const sci::string &filter, InstrumentPlotter &plotter)
+void mainFrame::process(const sci::string &filter, InstrumentProcessor &processor)
 {
 	ExistedFolderChangesLister changesLister(m_inputDirectory, m_outputDirectory + sU("previouslyPlottedFiles.txt"));
 
@@ -263,7 +263,7 @@ void mainFrame::process(const sci::string &filter, InstrumentPlotter &plotter)
 	{
 		if (!m_progressReporter->shouldStop())
 		{
-			readDataAndPlot(checkForNewFiles(filter, changesLister), changesLister, plotter);
+			readDataAndPlot(checkForNewFiles(filter, changesLister), changesLister, processor);
 			if (!m_progressReporter->shouldStop())
 				(*m_progressReporter) << "Generated plots for all files matching filter " << filter << "\n";
 		}
@@ -367,7 +367,7 @@ std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, 
 	return filesToPlot;
 }
 
-void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentPlotter &plotter)
+void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentProcessor &processor)
 {
 	sci::string lastFileToPlot = filesToPlot.back();
 
@@ -377,7 +377,7 @@ void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const Exi
 		sci::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), sci::string::npos);
 		try
 		{
-			plotter.readData(filesToPlot[i], *m_progressReporter, this);
+			processor.readData(filesToPlot[i], *m_progressReporter, this);
 
 			if (m_progressReporter->shouldStop())
 			{
@@ -385,8 +385,8 @@ void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const Exi
 				break;
 			}
 
-			if (plotter.hasData())
-				plotter.plotData(outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
+			if (processor.hasData())
+				processor.plotData(outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
 
 			if (m_progressReporter->shouldStop())
 			{

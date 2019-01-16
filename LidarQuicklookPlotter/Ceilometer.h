@@ -61,7 +61,7 @@ inline HplHeader createCeilometerHeader(const sci::string &filename, const Campb
 class ProgressReporter;
 class wxWindow;
 
-class CeilometerProcessor : public InstrumentPlotter
+class CeilometerProcessor : public InstrumentProcessor
 {
 public:
 	CeilometerProcessor::CeilometerProcessor()

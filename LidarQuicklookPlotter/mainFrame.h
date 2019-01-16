@@ -13,7 +13,7 @@
 //we need to predeclare it because we have a reference to it in the method declarations
 //below.
 class ExistedFolderChangesLister;
-class InstrumentPlotter;
+class InstrumentProcessor;
 
 class mainFrame : public wxFrame
 {
@@ -51,8 +51,8 @@ private:
 	void start();
 	void stop();
 	void process();
-	void process(const sci::string &filter, InstrumentPlotter &plotter);
-	void readDataAndPlot(std::vector<sci::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentPlotter &plotter);
+	void process(const sci::string &filter, InstrumentProcessor &processor);
+	void readDataAndPlot(std::vector<sci::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentProcessor &processor);
 	std::vector<sci::string> checkForNewFiles(const sci::string &filter, const ExistedFolderChangesLister &changesLister);
 
 	DECLARE_EVENT_TABLE();
