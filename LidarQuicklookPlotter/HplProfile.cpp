@@ -11,8 +11,8 @@ bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 	}
 
 	unsigned int hour = (unsigned int)std::floor(decimalHour);
-	unsigned int minute = std::floor((decimalHour - hour)*60.0);
-	unsigned int second = ((decimalHour - hour)*60.0 - minute) * 60;
+	unsigned int minute = (int)std::floor((decimalHour - hour)*60.0);
+	unsigned int second = (int)((decimalHour - hour)*60.0 - minute) * 60;
 	m_time = header.startTime;
 	m_time.setTime(hour, minute, second);
 

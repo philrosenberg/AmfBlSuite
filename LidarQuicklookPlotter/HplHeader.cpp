@@ -80,7 +80,7 @@ void readHeaderVariable(std::istream &stream, sci::UtcTime &variable)
 
 	std::istringstream stringStream;
 	stringStream.str(tempString);
-	size_t date;
+	int date;
 	int year;
 	unsigned int month;
 	unsigned int dayOfMonth;
