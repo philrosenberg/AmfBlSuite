@@ -16,5 +16,6 @@ ipch
 **.opensdf
 **.VC.db
 **.vc.vc.opendb
+**.vs
 
 LidarQuicklookPlotter/*.png
