@@ -2,42 +2,43 @@
 #include<string>
 #include<vector>
 #include<wx/dir.h>
+#include<svector/sstring.h>
 
 class FolderChangesLister
 {
 public:
-	FolderChangesLister(const std::string &directory, const std::string snapshotFile)
+	FolderChangesLister(const sci::string &directory, const sci::string snapshotFile)
 	{
 		setDirectory(directory);
 		setSnapshotFile(snapshotFile);
 	}
-	void setDirectory(const std::string &directory) { m_directory = directory; }
-	void setSnapshotFile(const std::string &snapshotFile) { m_snapshotFile = snapshotFile; }
-	const std::string &getDirectory() const { return m_directory; }
-	const std::string &getSnapshotFile() const { return m_snapshotFile; }
-	virtual std::vector<std::string> getChanges(const std::string &filespec) const = 0;
-	virtual void updateSnapshotFile( const std::string &changedFile) const = 0;
+	void setDirectory(const sci::string &directory) { m_directory = directory; }
+	void setSnapshotFile(const sci::string &snapshotFile) { m_snapshotFile = snapshotFile; }
+	const sci::string &getDirectory() const { return m_directory; }
+	const sci::string &getSnapshotFile() const { return m_snapshotFile; }
+	virtual std::vector<sci::string> getChanges(const sci::string &filespec) const = 0;
+	virtual void updateSnapshotFile( const sci::string &changedFile) const = 0;
 	virtual void clearSnapshotFile();
-	std::vector<std::string> listFolderContents(const std::string &filespec) const
+	std::vector<sci::string> listFolderContents(const sci::string &filespec) const
 	{
 		wxArrayString files;
-		wxDir::GetAllFiles(m_directory, &files, filespec);
-		std::vector<std::string> result(files.size());
+		wxDir::GetAllFiles(sci::nativeUnicode(m_directory), &files, sci::nativeUnicode(filespec));
+		std::vector<sci::string> result(files.size());
 		for (size_t i = 0; i < files.size(); ++i)
-			result[i] = std::string(files[i]);
+			result[i] = sci::fromWxString(files[i]);
 		return result;
 	}
 private:
-	std::string m_directory;
-	std::string m_snapshotFile;
+	sci::string m_directory;
+	sci::string m_snapshotFile;
 };
 
 class ExistedFolderChangesLister : public FolderChangesLister
 {
 public:
-	ExistedFolderChangesLister(const std::string &directory, const std::string snapshotFile)
+	ExistedFolderChangesLister(const sci::string &directory, const sci::string snapshotFile)
 		:FolderChangesLister(directory, snapshotFile)
 	{}
-	std::vector<std::string> getChanges(const std::string &filespec) const override;
-	void updateSnapshotFile(const std::string &changedFile) const override;
+	std::vector<sci::string> getChanges(const sci::string &filespec) const override;
+	void updateSnapshotFile(const sci::string &changedFile) const override;
 };

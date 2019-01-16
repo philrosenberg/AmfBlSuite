@@ -9,6 +9,8 @@
 #include"Campbell.h"
 #include"Ceilometer.h"
 #include"AmfNc.h"
+#include<svector/serr.h>
+#include<svector/time.h>
 
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
@@ -101,8 +103,8 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 
 	m_plotting = false;
 
-	m_inputDirectory = inputDirectory;
-	m_outputDirectory = outputDirectory;
+	m_inputDirectory = sci::fromWxString(inputDirectory);
+	m_outputDirectory = sci::fromWxString(outputDirectory);
 
 	m_progressReporter.reset(new TextCtrlProgressReporter(m_logText, true, this));
 	m_progressReporter->setShouldStop(true);
@@ -161,7 +163,7 @@ void mainFrame::OnSelectInputDir(wxCommandEvent& event)
 		wxMessageBox("Please stop processing before attempting to change a directory.");
 		return;
 	}
-	std::string dir = wxDirSelector("Select the input directory to search for data files.",m_inputDirectory, wxDD_DIR_MUST_EXIST|wxDD_CHANGE_DIR);
+	sci::string dir = sci::fromWxString(wxDirSelector("Select the input directory to search for data files.",sci::nativeUnicode(m_inputDirectory), wxDD_DIR_MUST_EXIST|wxDD_CHANGE_DIR));
 	if (dir.length() == 0)
 		return;
 	m_inputDirectory = dir;
@@ -175,7 +177,7 @@ void mainFrame::OnSelectOutputDir(wxCommandEvent& event)
 		wxMessageBox("Please stop processing before attempting to change a directory.");
 		return;
 	}
-	std::string dir = wxDirSelector("Select the output directory to store plots.", m_outputDirectory, wxDD_DIR_MUST_EXIST | wxDD_CHANGE_DIR);
+	sci::string dir = sci::fromWxString(wxDirSelector("Select the output directory to store plots.", sci::nativeUnicode(m_outputDirectory), wxDD_DIR_MUST_EXIST | wxDD_CHANGE_DIR));
 	if (dir.length() == 0)
 		return;
 	m_outputDirectory = dir;
@@ -240,11 +242,11 @@ void mainFrame::process()
 	//to get called again when we are not ready for it.
 	ProcessFlagger plottingFlagger(&m_plotting);
 
-	process("*_ceilometer.csv", CeilometerProcessor());
-	process("*Processed_Wind_Profile_??_????????_??????.hpl", InstrumentPlotter());
-	process("*Stare_??_????????_??.hpl", InstrumentPlotter());
-	process("*VAD_??_????????_??????.hpl", InstrumentPlotter());
-	process("*User*.hpl", InstrumentPlotter());
+	process(sU("*_ceilometer.csv"), CeilometerProcessor());
+	process(sU("*Processed_Wind_Profile_??_????????_??????.hpl"), InstrumentPlotter());
+	process(sU("*Stare_??_????????_??.hpl"), InstrumentPlotter());
+	process(sU("*VAD_??_????????_??????.hpl"), InstrumentPlotter());
+	process(sU("*User*.hpl"), InstrumentPlotter());
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())
 		(*m_progressReporter) << "Generated plots for all files found. Waiting approx 10 mins to check again.\n\n";
@@ -253,9 +255,9 @@ void mainFrame::process()
 		m_logText->AppendText("Stopped\n\n");
 }
 
-void mainFrame::process(const std::string &filter, InstrumentPlotter &plotter)
+void mainFrame::process(const sci::string &filter, InstrumentPlotter &plotter)
 {
-	ExistedFolderChangesLister changesLister(m_inputDirectory, m_outputDirectory + "previouslyPlottedFiles.txt");
+	ExistedFolderChangesLister changesLister(m_inputDirectory, m_outputDirectory + sU("previouslyPlottedFiles.txt"));
 
 	try
 	{
@@ -298,6 +300,14 @@ void mainFrame::process(const std::string &filter, InstrumentPlotter &plotter)
 		stream << "Error: " << errMessage << "\n";
 		m_logText->SetDefaultStyle(originalStyle);
 	}
+	catch (sci::string errMessage)
+	{
+		wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+		m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+		std::ostream stream(m_logText);
+		stream << sU("Error: ") << sci::nativeUnicode(errMessage) << sU("\n");
+		m_logText->SetDefaultStyle(originalStyle);
+	}
 	catch (...)
 	{
 		wxTextAttr originalStyle = m_logText->GetDefaultStyle();
@@ -312,66 +322,75 @@ void mainFrame::process(const std::string &filter, InstrumentPlotter &plotter)
 //is assumed to be the last file chronologically (assuming you have a
 //sensible naming structure) and it is assumed that this file may be
 //incomplete, so will be reported next time just in case.
-std::vector<std::string> mainFrame::checkForNewFiles(const std::string &filter, const ExistedFolderChangesLister &changesLister)
+std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, const ExistedFolderChangesLister &changesLister)
 {
 	//ensure that the input and output directories end with a slash or are empty
-	if (m_inputDirectory.length() > 0 && m_inputDirectory.back()!= '/' && m_inputDirectory.back()!= '\\')
-		m_inputDirectory = m_inputDirectory+"/";
-	if (m_outputDirectory.length() > 0 && m_outputDirectory.back() != '/' && m_outputDirectory.back() != '\\')
-		m_outputDirectory = m_outputDirectory + "/";
+	if (m_inputDirectory.length() > 0 && m_inputDirectory.back()!= sU('/') && m_inputDirectory.back()!= sU('\\'))
+		m_inputDirectory = m_inputDirectory+sU("/");
+	if (m_outputDirectory.length() > 0 && m_outputDirectory.back() != sU('/') && m_outputDirectory.back() != sU('\\'))
+		m_outputDirectory = m_outputDirectory + sU("/");
 
 	std::vector<std::string> plottedFiles;
 	(*m_progressReporter) << "Looking for data files to plot.\n";
 	//check the output directory exists
-	if (!wxDirExists(m_outputDirectory))
-		wxFileName::Mkdir(m_outputDirectory, 770, wxPATH_MKDIR_FULL);
-	if (!wxDirExists(m_outputDirectory))
+	if (!wxDirExists(sci::nativeUnicode(m_outputDirectory)))
+		wxFileName::Mkdir(sci::nativeUnicode(m_outputDirectory), 770, wxPATH_MKDIR_FULL);
+	if (!wxDirExists(sci::nativeUnicode(m_outputDirectory)))
 	{
-		std::ostringstream message;
-		message << "The output directory " << m_outputDirectory << " does not exist and could not be created.";
+		sci::ostringstream message;
+		message << sU("The output directory ") << m_outputDirectory << sU(" does not exist and could not be created.");
 		throw(message.str());
 	}
 
 	//check the input directory exists
-	if(!wxDirExists(m_inputDirectory))
+	if(!wxDirExists(sci::nativeUnicode(m_inputDirectory)))
 	{
-		std::ostringstream message;
-		message << "The input directory " << m_inputDirectory << " does not exist.";
+		sci::ostringstream message;
+		message << sU("The input directory ") << m_inputDirectory << sU(" does not exist.");
 		throw(message.str());
 	}
 
 
 	//check for new files
-	std::vector<std::string> filesToPlot = changesLister.getChanges(filter);
+	std::vector<sci::string> filesToPlot = changesLister.getChanges(filter);
 
 
 	if (filesToPlot.size() == 0)
-		(*m_progressReporter) << "Found no new files to plot.\n";
+		(*m_progressReporter) << sU("Found no new files to plot.\n");
 	else
 	{
-		(*m_progressReporter) << "Found the following new files to plot matching the filter " << filter << " :\n";
+		(*m_progressReporter) << sU("Found the following new files to plot matching the filter ") << filter << sU(" :\n");
 		for(size_t i=0; i<filesToPlot.size(); ++i)
-			(*m_progressReporter) << "\t" << filesToPlot[i] << "\n";
+			(*m_progressReporter) << sU("\t") << filesToPlot[i] << sU("\n");
 	}
 
 	return filesToPlot;
 }
 
-void mainFrame::readDataAndPlot(std::vector<std::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentPlotter &plotter)
+void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentPlotter &plotter)
 {
-	std::string lastFileToPlot = filesToPlot.back();
+	sci::string lastFileToPlot = filesToPlot.back();
 
 	for (size_t i = 0; i < filesToPlot.size(); ++i)
 	{
-		(*m_progressReporter) << "Processing " << filesToPlot[i] << "\n";
-		std::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), std::string::npos);
+		(*m_progressReporter) << sU("Processing ") << filesToPlot[i] << sU("\n");
+		sci::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), sci::string::npos);
 		try
 		{
-			plotter.readDataAndPlot(filesToPlot[i], outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
+			plotter.readData(filesToPlot[i], *m_progressReporter, this);
 
 			if (m_progressReporter->shouldStop())
 			{
-				(*m_progressReporter) << "Operation halted at user request.\n";
+				(*m_progressReporter) << sU("Operation halted at user request.\n");
+				break;
+			}
+
+			if (plotter.hasData())
+				plotter.plotData(outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
+
+			if (m_progressReporter->shouldStop())
+			{
+				(*m_progressReporter) << sU("Operation halted at user request.\n");
 				break;
 			}
 

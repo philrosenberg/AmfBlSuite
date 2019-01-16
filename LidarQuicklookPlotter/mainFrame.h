@@ -42,8 +42,8 @@ private:
 	wxTimer *m_checkForNewDataTimer;
 	wxTimer *m_instantCheckTimer;
 
-	std::string m_inputDirectory;
-	std::string m_outputDirectory;
+	sci::string m_inputDirectory;
+	sci::string m_outputDirectory;
 
 	bool m_plotting;
 	std::unique_ptr<TextCtrlProgressReporter> m_progressReporter;
@@ -51,9 +51,9 @@ private:
 	void start();
 	void stop();
 	void process();
-	void process(const std::string &filter, InstrumentPlotter &plotter);
-	void readDataAndPlot(std::vector<std::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentPlotter &plotter);
-	std::vector<std::string> checkForNewFiles(const std::string &filter, const ExistedFolderChangesLister &changesLister);
+	void process(const sci::string &filter, InstrumentPlotter &plotter);
+	void readDataAndPlot(std::vector<sci::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentPlotter &plotter);
+	std::vector<sci::string> checkForNewFiles(const sci::string &filter, const ExistedFolderChangesLister &changesLister);
 
 	DECLARE_EVENT_TABLE();
 };

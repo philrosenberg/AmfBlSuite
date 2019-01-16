@@ -28,6 +28,14 @@ std::vector<char> CampbellCeilometerProfile::getGateFlags() const
 	return result;
 }
 
+
+void CeilometerProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
+	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
+{
+	writeToNc(m_firstHeaderHpl, m_data, directory, author, processingSoftwareInfo, projectInfo, platformInfo, comment);
+}
+
 void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string directory,
 	const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const PlatformInfo &platformInfo, const sci::string &comment)
@@ -160,46 +168,49 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 
 
 
-sci::UtcTime getCeilometerTime(const std::string &timeDateString)
+sci::UtcTime getCeilometerTime(const sci::string &timeDateString)
 {
 	sci::UtcTime result(
-		std::atoi(timeDateString.substr(0, 4).c_str()), //year
-		std::atoi(timeDateString.substr(5, 2).c_str()), //month
-		std::atoi(timeDateString.substr(8, 2).c_str()), //day
-		std::atoi(timeDateString.substr(11, 2).c_str()), //hour
-		std::atoi(timeDateString.substr(14, 2).c_str()), //minute
-		std::atof(timeDateString.substr(17, std::string::npos).c_str()) //second
+		std::atoi(sci::utf16ToUtf8(timeDateString.substr(0, 4)).c_str()), //year
+		std::atoi(sci::utf16ToUtf8(timeDateString.substr(5, 2)).c_str()), //month
+		std::atoi(sci::utf16ToUtf8(timeDateString.substr(8, 2)).c_str()), //day
+		std::atoi(sci::utf16ToUtf8(timeDateString.substr(11, 2)).c_str()), //hour
+		std::atoi(sci::utf16ToUtf8(timeDateString.substr(14, 2)).c_str()), //minute
+		std::atof(sci::utf16ToUtf8(timeDateString.substr(17, std::string::npos)).c_str()) //second
 	);
 	return result;
 }
 
-
-void CeilometerProcessor::readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent)
+//void CeilometerProcessor::readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
-	if (inputFilename.find("_ceilometer.csv") != std::string::npos)
+	m_hasData = false;
+	m_data.clear();
+	m_inputFilename = inputFilename;
+
+	if (inputFilename.find(sU("_ceilometer.csv")) != std::string::npos)
 	{
 		std::fstream fin;
-		fin.open(inputFilename.c_str(), std::ios::in | std::ios::binary);
+		fin.open(sci::nativeUnicode(inputFilename), std::ios::in | std::ios::binary);
 		if (!fin.is_open())
 			throw("Could not open file");
 
 		progressReporter << "Reading file " << inputFilename << "\n";
 
-		std::vector<CampbellCeilometerProfile> data;
-		CampbellHeader firstHeader;
+		
 		const size_t displayInterval = 120;
-		std::string firstBatchDate;
-		std::string timeDate;
+		sci::string firstBatchDate;
+		sci::string timeDate;
 		while (!fin.eof())
 		{
 			bool badTimeDate = false;
-			timeDate = "";
+			timeDate = sU("");
 			char character;
 			fin.read(&character, 1);
 			//size_t counter = 1;
 			while (character != ',' && !fin.eof())
 			{
-				timeDate = timeDate + character;
+				timeDate = timeDate + sci::utf8ToUtf16(std::string(&character, (&character) + 1));
 				fin.read(&character, 1);
 			}
 			//if (counter == 50)
@@ -238,31 +249,34 @@ void CeilometerProcessor::readDataAndPlot(const std::string &inputFilename, cons
 				//to be to discard the first entry.
 
 				//If we have more than one entry already then I'm not sure what to do. For now abort processing this file..
-				if (data.size() == 1 && data[0].getTime() > getCeilometerTime(timeDate))
+				if (m_data.size() == 1 && m_data[0].getTime() > getCeilometerTime(timeDate))
 				{
-					data.pop_back();
+					m_data.pop_back();
 					progressReporter << "The second entry in the file has a timestamp earlier than the first. This may be due to a logging glitch. The first entry will be deleted.\n";
 				}
-				else if (data.size() > 1 && data[0].getTime() > getCeilometerTime(timeDate))
+				else if (m_data.size() > 1 && m_data[0].getTime() > getCeilometerTime(timeDate))
 				{
 					throw("Time jumps backwards in this file, it cannot be processed.");
 				}
 				CampbellHeader header;
 				header.readHeader(fin);
-				if (data.size() == 0)
-					firstHeader = header;
+				if (m_data.size() == 0)
+				{
+					m_firstHeaderCampbell = header;
+					m_firstHeaderHpl = createCeilometerHeader(m_inputFilename, header, m_data[0]);
+				}
 				if (header.getMessageType() == cmt_cs && header.getMessageNumber() == 2)
 				{
-					if (data.size() == 0)
+					if (m_data.size() == 0)
 						progressReporter << "Found CS 002 messages: ";
-					if (data.size() % displayInterval == 0)
+					if (m_data.size() % displayInterval == 0)
 						firstBatchDate = timeDate;
-					if (data.size() % displayInterval == displayInterval - 1)
+					if (m_data.size() % displayInterval == displayInterval - 1)
 						progressReporter << firstBatchDate << "-" << timeDate << "(" << displayInterval << " profiles) ";
 					CampbellMessage2 profile;
 					profile.read(fin, header);
 					if (profile.getPassedChecksum())
-						data.push_back(CampbellCeilometerProfile(getCeilometerTime(timeDate), profile));
+						m_data.push_back(CampbellCeilometerProfile(getCeilometerTime(timeDate), profile));
 					else
 						progressReporter << "Found a message at time " << timeDate << " which does not pass the checksum and is hence corrupt. This profile will be ignored.\n";
 				}
@@ -275,32 +289,39 @@ void CeilometerProcessor::readDataAndPlot(const std::string &inputFilename, cons
 			else
 				progressReporter << "Found a profile with an incorrectly formatted time/date. This profile will be ignored.\n";
 		}
-		if (data.size() % displayInterval != displayInterval - 1)
-			progressReporter << firstBatchDate << "-" << timeDate << "(" << (data.size() % displayInterval) + 1 << " profiles)\n";
-		progressReporter << "Completed reading file. " << data.size() << " profiles found\n";
+		if (m_data.size() % displayInterval != displayInterval - 1)
+			progressReporter << firstBatchDate << "-" << timeDate << "(" << (m_data.size() % displayInterval) + 1 << " profiles)\n";
+		progressReporter << "Completed reading file. " << m_data.size() << " profiles found\n";
 		fin.close();
 
-		if (data.size() > 0)
+		if (m_data.size() > 0)
 		{
-			for (size_t i = 0; i < maxRanges.size(); ++i)
-			{
-				std::ostringstream rangeLimitedfilename;
-				rangeLimitedfilename << outputFilename;
-				if (maxRanges[i] != std::numeric_limits<double>::max())
-					rangeLimitedfilename << "_maxRange_" << maxRanges[i];
-				plotCeilometerProfiles(getCeilometerHeader(inputFilename, firstHeader, data[0]), data, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
-			}
+			m_hasData = true;
 		}
 
 		return;
 	}
 }
 
-void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, std::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void CeilometerProcessor::plotData(const sci::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+{
+	if (hasData())
+	{
+		for (size_t i = 0; i < maxRanges.size(); ++i)
+		{
+			sci::ostringstream rangeLimitedfilename;
+			rangeLimitedfilename << outputFilename;
+			if (maxRanges[i] != std::numeric_limits<double>::max())
+				rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
+			plotCeilometerProfiles(m_firstHeaderHpl, m_data, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
+		}
+	}
+}
+void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window;
 	splot2d *plot;
-	setupCanvas(&window, &plot, "", parent, header);
+	setupCanvas(&window, &plot, sU(""), parent, header);
 	WindowCleaner cleaner(window);
 
 	//We will do some averaging with the data - there is no point plotting thousands of profiles

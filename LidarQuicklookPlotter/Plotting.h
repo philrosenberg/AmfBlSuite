@@ -4,6 +4,8 @@
 #include"Units.h"
 #include<svector/splot.h>
 #include<svector/svector.h>
+#include<svector/sstring.h>
+#include"AmfNc.h"
 
 struct HplHeader;
 class HplProfile;
@@ -17,8 +19,8 @@ void plotProcessedWindProfile(const std::vector<double> &height, const std::vect
 
 
 //these are classes/functions that get used by instrument specific plotting routines
-void setupCanvas(splotframe **window, splot2d **plot, const std::string &extraDescriptor, wxWindow *parent, const HplHeader &header);
-void createDirectoryAndWritePlot(splotframe *plotCanvas, std::string filename, size_t width, size_t height, ProgressReporter &progressReporter);
+void setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent, const HplHeader &header);
+void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, size_t width, size_t height, ProgressReporter &progressReporter);
 
 //this class cleans up wxWindows on destruction in order to ensure they
 //get destroyed even if an exception is thrown.
@@ -84,7 +86,13 @@ public:
 class InstrumentPlotter
 {
 public:
-	virtual void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
+	//virtual void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
+	virtual void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent);
+	virtual void plotData(const sci::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
+	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
+		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter);
+	virtual bool hasData() const;
 };
 
 //const splotcolourscale g_lidarColourscale(std::vector<double>{1e-8, 1e-3}, std::vector<rgbcolour>{rgbcolour(1.0, 0.0, 0.0), rgbcolour(0.0, 0.0, 1.0)}, true, false);

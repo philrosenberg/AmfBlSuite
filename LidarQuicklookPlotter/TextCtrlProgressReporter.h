@@ -12,9 +12,9 @@ public:
 		m_windowToRemainEnabledOnYield = windowToRemainEnabledOnYield;
 		m_shouldStop = false;
 	}
-	void reportProgress(const std::string &progress) override
+	void reportProgress(const sci::string &progress) override
 	{
-		m_textControl->AppendText(progress);
+		m_textControl->AppendText(sci::nativeUnicode(progress));
 		if (m_yieldOnReport)
 			wxSafeYield(m_windowToRemainEnabledOnYield);
 	}

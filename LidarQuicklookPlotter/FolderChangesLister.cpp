@@ -5,35 +5,35 @@
 void FolderChangesLister::clearSnapshotFile()
 {
 	std::fstream fin;
-	fin.open(m_snapshotFile, std::ios::out);
+	fin.open(sci::nativeUnicode(m_snapshotFile), std::ios::out);
 	if (!fin.is_open())
-		throw("Could not clear the snapshot file " + m_snapshotFile + ".");
+		throw(sU("Could not clear the snapshot file ") + m_snapshotFile + sU("."));
 	fin.close();
 }
 
-std::vector<std::string> ExistedFolderChangesLister::getChanges(const std::string &filespec) const
+std::vector<sci::string> ExistedFolderChangesLister::getChanges(const sci::string &filespec) const
 {
-	std::vector<std::string> previouslyExistingFiles;
+	std::vector<sci::string> previouslyExistingFiles;
 	std::fstream fin;
-	fin.open(getSnapshotFile().c_str(), std::ios::in);
-	std::string filename;
+	fin.open(sci::nativeUnicode(getSnapshotFile()), std::ios::in);
+	std::string filename; //utf8
 	std::getline(fin, filename);
 	while (filename.length() > 0)
 	{
-		previouslyExistingFiles.push_back(filename);
+		previouslyExistingFiles.push_back(sci::fromUtf8(filename));
 		std::getline(fin, filename);
 	}
 	fin.close();
 
 	//Find all the files in the input directory that match the filespec
-	std::vector<std::string> allFiles = listFolderContents(filespec);
+	std::vector<sci::string> allFiles = listFolderContents(filespec);
 
 	//Sort the files in alphabetical order
 	if (allFiles.size() > 0)
 		std::sort(allFiles.begin(), allFiles.end());
 
 	//find the new files
-	std::vector<std::string> newFiles;
+	std::vector<sci::string> newFiles;
 	newFiles.reserve(allFiles.size());
 
 	for (size_t i = 0; i < allFiles.size(); ++i)
@@ -54,10 +54,10 @@ std::vector<std::string> ExistedFolderChangesLister::getChanges(const std::strin
 	return newFiles;
 }
 
-void ExistedFolderChangesLister::updateSnapshotFile(const std::string &changedFile) const
+void ExistedFolderChangesLister::updateSnapshotFile(const sci::string &changedFile) const
 {
 	std::fstream fout;
-	fout.open(getSnapshotFile().c_str(), std::ios::app);
-	fout << changedFile << "\n";
+	fout.open(sci::nativeUnicode(getSnapshotFile()), std::ios::app);
+	fout << sci::toUtf8(changedFile) << "\n";
 	fout.close();
 }

@@ -40,7 +40,7 @@ private:
 };
 
 
-inline HplHeader getCeilometerHeader(const std::string &filename, const CampbellHeader &firstHeader, const CampbellCeilometerProfile &firstProfile)
+inline HplHeader createCeilometerHeader(const sci::string &filename, const CampbellHeader &firstHeader, const CampbellCeilometerProfile &firstProfile)
 {
 	HplHeader result;
 	result.dopplerResolution = std::numeric_limits<double>::quiet_NaN();
@@ -64,6 +64,9 @@ class wxWindow;
 class CeilometerProcessor : public InstrumentPlotter
 {
 public:
+	CeilometerProcessor::CeilometerProcessor()
+		:m_hasData(false)
+	{}
 	static void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
 		sci::string directory, const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo,
 		const ProjectInfo &projectInfo, const PlatformInfo &platformInfo, const sci::string &comment);
@@ -72,5 +75,18 @@ public:
 		const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
 
 	static void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
-		std::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+		sci::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+
+	virtual void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
+		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
+	virtual bool hasData() const override { return m_hasData; }
+private:
+	std::vector<CampbellCeilometerProfile> m_data;
+	CampbellHeader m_firstHeaderCampbell;
+	HplHeader m_firstHeaderHpl;
+	bool m_hasData;
+	sci::string m_inputFilename;
 };

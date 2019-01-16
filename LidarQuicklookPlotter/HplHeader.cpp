@@ -51,7 +51,19 @@ void readHeaderVariable(std::istream &stream, sci::Physical<T> &variable)
 template <class T>
 void readHeaderVariable(std::istream &stream, T &variable)
 {
+	//I know this file uses only ascii so I can just use a std::istring
 	stream >> variable;
+}
+
+template <>
+void readHeaderVariable<sci::string>(std::istream &stream, sci::string &variable)
+{
+	//I know this file uses only ascii so I can just use a std::istring
+	//However we have requested read into a unicode string so we need
+	//to read into a std::string and convert
+	std::string temp;
+	stream >> temp;
+	variable = sci::utf8ToUtf16(temp);
 }
 
 template <>

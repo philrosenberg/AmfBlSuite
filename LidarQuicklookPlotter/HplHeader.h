@@ -18,7 +18,7 @@ enum ScanType
 
 struct HplHeader
 {
-	std::string filename;
+	sci::string filename;
 	unsigned int systemId;
 	size_t nGates;
 	metre rangeGateLength;
