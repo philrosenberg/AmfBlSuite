@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Lidar">
+      <UniqueIdentifier>{8cf15c3b-aac8-45ae-b925-126d98109d99}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="app.cpp">
@@ -42,8 +45,11 @@
     <ClCompile Include="ceilometer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Lidar.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="LidarStareProcessor.cpp">
+      <Filter>Source Files\Lidar</Filter>
+    </ClCompile>
+    <ClCompile Include="LidarWindProfileProcessor.cpp">
+      <Filter>Source Files\Lidar</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

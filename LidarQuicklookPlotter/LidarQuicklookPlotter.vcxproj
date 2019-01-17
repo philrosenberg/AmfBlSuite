@@ -164,7 +164,8 @@
     <ClCompile Include="FolderChangesLister.cpp" />
     <ClCompile Include="HplHeader.cpp" />
     <ClCompile Include="HplProfile.cpp" />
-    <ClCompile Include="Lidar.cpp" />
+    <ClCompile Include="LidarStareProcessor.cpp" />
+    <ClCompile Include="LidarWindProfileProcessor.cpp" />
     <ClCompile Include="mainFrame.cpp" />
     <ClCompile Include="Plotting.cpp" />
     <ClCompile Include="AmfNc.cpp" />
