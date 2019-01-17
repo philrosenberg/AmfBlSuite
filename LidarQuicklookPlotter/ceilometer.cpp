@@ -305,7 +305,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 	}
 }
 
-void CeilometerProcessor::plotData(const sci::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void CeilometerProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	if (!hasData())
 		throw(sU("Attempted to plot Ceilometer data when it has not been read"));
@@ -315,8 +315,11 @@ void CeilometerProcessor::plotData(const sci::string &outputFilename, const std:
 	{
 		sci::ostringstream rangeLimitedfilename;
 		rangeLimitedfilename << outputFilename;
-		if (maxRanges[i] != std::numeric_limits<double>::max())
-			rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
+		if (maxRanges[i].value<metre>() != std::numeric_limits<double>::max())
+		{
+			rangeLimitedfilename << sU("_maxRange_");
+			rangeLimitedfilename << maxRanges[i];
+		}
 		plotCeilometerProfiles(m_firstHeaderHpl, m_data, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
 	}
 }
@@ -345,7 +348,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 
 	if (profiles[0].getResolution()*unitless(data[0].size() - 1) > maxRange)
 	{
-		size_t pointsNeeded = std::min((size_t)std::ceil((maxRange / profiles[0].getResolution()).m_v), data[0].size());
+		size_t pointsNeeded = std::min((size_t)std::ceil((maxRange / profiles[0].getResolution()).value<unitless>()), data[0].size());
 		for (size_t i = 0; i < data.size(); ++i)
 			data[i].resize(pointsNeeded);
 	}

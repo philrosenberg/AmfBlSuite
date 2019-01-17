@@ -78,7 +78,7 @@ public:
 		sci::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 
 	virtual void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent) override;
-	virtual void plotData(const sci::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;

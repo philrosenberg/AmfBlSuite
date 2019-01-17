@@ -28,37 +28,6 @@ WindowCleaner::~WindowCleaner()
 
 /*void InstrumentPlotter::readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
-	//If this is a processed wind profile then we jsut send the file straiht off to the code to plot that
-	if (inputFilename.find("Processed_Wind_Profile") != std::string::npos)
-	{
-		std::fstream fin;
-		fin.open(inputFilename.c_str(), std::ios::in);
-		if (!fin.is_open())
-			throw("Could not open file");
-		size_t nPoints;
-		fin >> nPoints;
-		std::vector<double> height(nPoints);
-		std::vector<double> degrees(nPoints);
-		std::vector<double> speed(nPoints);
-
-		for (size_t i = 0; i < nPoints; ++i)
-		{
-			fin >> height[i] >> degrees[i] >> speed[i];
-		}
-		fin.close();
-
-		for (size_t i = 0; i < maxRanges.size(); ++i)
-		{
-			std::ostringstream rangeLimitedfilename;
-			rangeLimitedfilename << outputFilename;
-			if (maxRanges[i] != std::numeric_limits<double>::max())
-				rangeLimitedfilename << "_maxRange_" << maxRanges[i];
-			plotProcessedWindProfile(height, degrees, speed, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
-		}
-		return;
-	}
-
-
 	std::fstream fin;
 	HplHeader hplHeader;
 	std::vector<HplProfile> profiles;

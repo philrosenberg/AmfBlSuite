@@ -13,3 +13,4 @@ typedef sci::Physical<sci::Unitless<-2>> percent;
 typedef sci::Physical<sci::Volt<1,-3>> millivolt;
 typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<>, sci::Metre<>>> steradianPerMetre;
 typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<>, sci::Metre<1, 3>>> steradianPerKilometre;
+typedef sci::Physical < sci::DividedEncodedUnit<sci::Metre<>, sci::Second<>>> metrePerSecond;
