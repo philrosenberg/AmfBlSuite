@@ -2,6 +2,7 @@
 #include<svector\time.h>
 #include<vector>
 #include<iostream>
+#include"Units.h"
 
 struct HplHeader;
 
@@ -9,21 +10,27 @@ class HplProfile
 {
 public:
 	bool readFromStream(std::istream &stream, const HplHeader &header);
-	sci::UtcTime getTime() const { return m_time; }
-	double getAzimuthDegrees() const { return m_azimuthDeg; }
-	double getElevationDegrees() const { return m_elevationDeg; }
+	template<class T>
+	T getTime() const { static_assert(false "HplProfile::getTime<T> can only be called with T=sci::UtcTime or T=second."); }
+	template<>
+	sci::UtcTime getTime<sci::UtcTime>() const { return m_time; }
+	template<>
+	second getTime<second>() const { return second(m_time.getUnixTime()); }
+	radian getAzimuth() const { return m_azimuth; }
+	radian getElevation() const { return m_elevation; }
 	std::vector<size_t> getGates() const { return m_gates; }
-	std::vector<double> getDopplerVelocities() const { return m_dopplerVelocities; }
-	std::vector<double> getIntensities() const { return m_intensities; }
-	std::vector<double> getBetas() const { return m_betas; }
+	std::vector<metrePerSecond> getDopplerVelocities() const { return m_dopplerVelocities; }
+	std::vector<unitless> getIntensities() const { return m_intensities; }
+	std::vector<perSteradianPerMetre> getBetas() const { return m_betas; }
+	size_t nGates() const { return m_gates.size(); }
 private:
 	sci::UtcTime m_time;
-	double m_azimuthDeg;
-	double m_elevationDeg;
-	double m_pitch;
-	double m_roll;
+	radian m_azimuth;
+	radian m_elevation;
+	radian m_pitch;
+	radian m_roll;
 	std::vector<size_t> m_gates;
-	std::vector<double> m_dopplerVelocities;
-	std::vector<double> m_intensities;
-	std::vector<double> m_betas;
+	std::vector<metrePerSecond> m_dopplerVelocities;
+	std::vector<unitless> m_intensities;
+	std::vector<perSteradianPerMetre> m_betas;
 };

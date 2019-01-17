@@ -387,9 +387,9 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 
 	plot->addData(gridData);
 
-	plot->getxaxis()->settitle("Time");
+	plot->getxaxis()->settitle(sU("Time"));
 	plot->getxaxis()->settimeformat("%H:%M:%S");
-	plot->getyaxis()->settitle("Height (m)");
+	plot->getyaxis()->settitle(sU("Height (m)"));
 
 	if (ys.back() > maxRange)
 		plot->setmaxy(sci::physicalsToValues<metre>(maxRange));

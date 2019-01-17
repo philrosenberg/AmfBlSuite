@@ -1,10 +1,20 @@
+#define _USE_MATH_DEFINES
 #include"HplProfile.h"
 #include"HplHeader.h"
+#include<cmath>
 
 bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 {
 	double decimalHour;
-	stream >> decimalHour >> m_azimuthDeg >> m_elevationDeg >> m_pitch >> m_roll;
+	double azimuthDeg;
+	double elevationDeg;
+	double pitchDeg;
+	double rollDeg;
+	stream >> decimalHour >> azimuthDeg >> elevationDeg >> pitchDeg >> rollDeg;
+	m_azimuth = radian(azimuthDeg*M_PI / 180.0);
+	m_elevation = radian(elevationDeg*M_PI / 180.0);
+	m_pitch = radian(pitchDeg*M_PI / 180.0);
+	m_roll = radian(rollDeg*M_PI / 180.0);
 	if (stream.eof())
 	{
 		return false;
