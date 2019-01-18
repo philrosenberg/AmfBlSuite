@@ -3,10 +3,12 @@
 #include<fstream>
 #include"Units.h"
 #include<cmath>
-#include"Plotting.h"
-#include<svector\splot.h>
+#include"HplHeader.h"
+#include"HplProfile.h"
+#include"ProgressReporter.h"
+#include<svector/sstring.h>
 
-void LidarStareProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarUserProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{

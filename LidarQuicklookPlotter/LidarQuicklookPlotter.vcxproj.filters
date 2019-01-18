@@ -52,7 +52,16 @@
       <Filter>Source Files\Lidar</Filter>
     </ClCompile>
     <ClCompile Include="Lidar.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Lidar</Filter>
+    </ClCompile>
+    <ClCompile Include="LidarVadProcessor.cpp">
+      <Filter>Source Files\Lidar</Filter>
+    </ClCompile>
+    <ClCompile Include="LidarRhiProcessor.cpp">
+      <Filter>Source Files\Lidar</Filter>
+    </ClCompile>
+    <ClCompile Include="LidarUserProcessor.cpp">
+      <Filter>Source Files\Lidar</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
