@@ -76,11 +76,16 @@ class LidarVadProcessor : public LidarBackscatterDopplerProcessor
 	LidarVadProcessor(size_t nSegmentsMin = 10) : m_nSegmentsMin(nSegmentsMin) {}
 public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	void plotDataPlan(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+	void plotDataCone(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+	void plotDataCone(radian viewAzimuth, metre maxRange, splot2d * plot);
+	void plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
 private:
 	size_t m_nSegmentsMin;
+	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries);
 };
 
 class LidarUserProcessor : public LidarBackscatterDopplerProcessor
