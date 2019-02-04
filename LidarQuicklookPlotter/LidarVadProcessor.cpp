@@ -7,6 +7,7 @@
 #include"HplProfile.h"
 #include"ProgressReporter.h"
 #include<svector/sstring.h>
+#include"ProgressReporter.h"
 
 class VadPlanTransformer : public splotTransformer
 {
@@ -224,9 +225,10 @@ void LidarVadProcessor::plotDataCone(radian viewAzimuth, metre maxRange, splot2d
 void LidarVadProcessor::plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window = new splotframe(parent, true);
+	splot2d *plot;
+	setupCanvas(&window, &plot, sU(""), parent);
 	WindowCleaner cleaner(window);
 	window->SetClientSize(1000, 2000);
-	splot2d *plot;
 
 	//sort the data into ascending azimuth
 	std::vector<std::vector<perSteradianPerMetre>> sortedBetas;
@@ -276,4 +278,42 @@ void LidarVadProcessor::getDataSortedByAzimuth(std::vector<std::vector<perSterad
 	}
 
 	azimuthBoundaries.back() = azimuthBoundaries[0] + radian(M_PI * 2);
+}
+
+void LidarVadProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
+	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
+{
+	/*CalibrationInfo calibrationInfo;
+	calibrationInfo.certificationDate = sci::UtcTime(0, 1, 1, 0, 0, 0.0);
+	calibrationInfo.certificateUrl = sU("Not available");
+	calibrationInfo.calibrationDescription = sU("Calibrated to manufacturers standard:: 0 to 19 ms-1");
+	DataInfo dataInfo;
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		dataInfo.averagingPeriod += (m_profiles[i].m_VadProcessor.getTimesSeconds().back() - m_profiles[i].m_VadProcessor.getTimesSeconds()[0]).value<second>();
+	}
+	dataInfo.averagingPeriod /= double(m_profiles.size());
+	dataInfo.averagingPeriodUnit = sU("s");
+	dataInfo.continuous = true;
+	dataInfo.startTime = getTimesUtcTime()[0];
+	dataInfo.endTime = dataInfo.startTime; //start and end time are the same
+	dataInfo.featureType = ft_timeSeriesPoint;
+	dataInfo.maxLatDecimalDegrees = sci::max<double>(platformInfo.latitudes);
+	dataInfo.minLatDecimalDegrees = sci::min<double>(platformInfo.latitudes);
+	dataInfo.maxLonDecimalDegrees = sci::max<double>(platformInfo.longitudes);
+	dataInfo.minLonDecimalDegrees = sci::min<double>(platformInfo.longitudes);
+
+	//get the time for each wind profile retrieval
+	//Note that each retrieval is multiple measurements so we use the
+	//time of the first measurement
+	std::vector<sci::UtcTime> times(m_profiles.size());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		times[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
+	}
+
+
+	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, calibrationInfo, dataInfo,
+		projectInfo, platformInfo, comment, times);*/
 }

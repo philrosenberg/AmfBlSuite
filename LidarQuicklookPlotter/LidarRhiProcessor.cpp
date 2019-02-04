@@ -7,6 +7,7 @@
 #include"HplProfile.h"
 #include"ProgressReporter.h"
 #include<svector/sstring.h>
+#include"ProgressReporter.h"
 
 class RhiTransformer : public splotTransformer
 {
@@ -46,7 +47,7 @@ void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::v
 		plot->addData(gridData);
 
 		plot->getxaxis()->settitle(sU("Time"));
-		plot->getxaxis()->settimeformat("%H:%M:%S");
+		plot->getxaxis()->settimeformat(sU("%H:%M:%S"));
 		plot->getyaxis()->settitle(sU("Height ") + gridData->getYAxisUnits());
 
 		if (getGateBoundariesForPlotting().back() > maxRanges[i])

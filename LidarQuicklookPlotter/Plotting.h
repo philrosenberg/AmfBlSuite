@@ -14,12 +14,9 @@ class ProgressReporter;
 class CampbellMessage2;
 class CampbellCeilometerProfile;
 
-void plotProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, std::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent);
-void plotProcessedWindProfile(const std::vector<double> &height, const std::vector<double> &degrees, const std::vector<double> &speed, const std::string &filename, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
 
 
 //these are classes/functions that get used by instrument specific plotting routines
-void setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent, const HplHeader &header);
 void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, size_t width, size_t height, ProgressReporter &progressReporter);
 
 //this class cleans up wxWindows on destruction in order to ensure they
@@ -87,12 +84,12 @@ class InstrumentProcessor
 {
 public:
 	//virtual void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
-	virtual void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent);
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
+	virtual void readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent) = 0;
+	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) = 0;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter);
-	virtual bool hasData() const;
+		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) = 0;
+	virtual bool hasData() const = 0;
 };
 
 //const splotcolourscale g_lidarColourscale(std::vector<double>{1e-8, 1e-3}, std::vector<rgbcolour>{rgbcolour(1.0, 0.0, 0.0), rgbcolour(0.0, 0.0, 1.0)}, true, false);

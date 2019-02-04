@@ -36,7 +36,7 @@ void CeilometerProcessor::writeToNc(const sci::string &directory, const PersonIn
 	if (!hasData())
 		throw(sU("Attempted to write ceilometer data to netcdf when it has not been read"));
 
-	writeToNc(m_firstHeaderHpl, m_data, directory, author, processingSoftwareInfo, projectInfo, platformInfo, comment);
+	writeToNc(m_firstHeaderHpl, m_allData, directory, author, processingSoftwareInfo, projectInfo, platformInfo, comment);
 }
 
 void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string directory,
@@ -184,11 +184,21 @@ sci::UtcTime getCeilometerTime(const sci::string &timeDateString)
 	return result;
 }
 
-void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent)
+void CeilometerProcessor::readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent)
 {
-	m_hasData = false;
-	m_data.clear();
-	m_inputFilename = inputFilename;
+	for (size_t i = 0; i < inputFilenames.size(); ++i)
+	{
+		readData(inputFilenames[i], progressReporter, parent, i == 0);
+	}
+}
+void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clearPrevious)
+{
+	if (clearPrevious)
+	{
+		m_hasData = false;
+		m_allData.clear();
+		m_inputFilenames.clear();
+	}
 
 	if (inputFilename.find(sU("_ceilometer.csv")) != std::string::npos)
 	{
@@ -197,12 +207,13 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 		if (!fin.is_open())
 			throw("Could not open file");
 
-		progressReporter << "Reading file " << inputFilename << "\n";
+		progressReporter << sU("Reading file ") << inputFilename << sU("\n");
 
 		
 		const size_t displayInterval = 120;
 		sci::string firstBatchDate;
 		sci::string timeDate;
+		size_t nRead = 0;
 		while (!fin.eof())
 		{
 			bool badTimeDate = false;
@@ -251,54 +262,57 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 				//to be to discard the first entry.
 
 				//If we have more than one entry already then I'm not sure what to do. For now abort processing this file..
-				if (m_data.size() == 1 && m_data[0].getTime() > getCeilometerTime(timeDate))
+				if (nRead == 1 && m_allData.back().getTime() > getCeilometerTime(timeDate))
 				{
-					m_data.pop_back();
-					progressReporter << "The second entry in the file has a timestamp earlier than the first. This may be due to a logging glitch. The first entry will be deleted.\n";
+					m_allData.pop_back();
+					progressReporter << sU("The second entry in the file has a timestamp earlier than the first. This may be due to a logging glitch. The first entry will be deleted.\n");
 				}
-				else if (m_data.size() > 1 && m_data[0].getTime() > getCeilometerTime(timeDate))
+				else if (nRead > 1 && m_allData.back().getTime() > getCeilometerTime(timeDate))
 				{
 					throw("Time jumps backwards in this file, it cannot be processed.");
 				}
 				CampbellHeader header;
 				header.readHeader(fin);
-				if (m_data.size() == 0)
+				if (m_allData.size() == 0)
 				{
 					m_firstHeaderCampbell = header;
-					m_firstHeaderHpl = createCeilometerHeader(m_inputFilename, header, m_data[0]);
+					m_firstHeaderHpl = createCeilometerHeader(inputFilename, header, m_allData[0]);
 				}
 				if (header.getMessageType() == cmt_cs && header.getMessageNumber() == 2)
 				{
-					if (m_data.size() == 0)
-						progressReporter << "Found CS 002 messages: ";
-					if (m_data.size() % displayInterval == 0)
+					if (m_allData.size() == 0)
+						progressReporter << sU("Found CS 002 messages: ");
+					if (m_allData.size() % displayInterval == 0)
 						firstBatchDate = timeDate;
-					if (m_data.size() % displayInterval == displayInterval - 1)
-						progressReporter << firstBatchDate << "-" << timeDate << "(" << displayInterval << " profiles) ";
+					if (m_allData.size() % displayInterval == displayInterval - 1)
+						progressReporter << firstBatchDate << sU("-") << timeDate << sU("(") << displayInterval << sU(" profiles) ");
 					CampbellMessage2 profile;
 					profile.read(fin, header);
 					if (profile.getPassedChecksum())
-						m_data.push_back(CampbellCeilometerProfile(getCeilometerTime(timeDate), profile));
+						m_allData.push_back(CampbellCeilometerProfile(getCeilometerTime(timeDate), profile));
 					else
-						progressReporter << "Found a message at time " << timeDate << " which does not pass the checksum and is hence corrupt. This profile will be ignored.\n";
+						progressReporter << sU("Found a message at time ") << timeDate << sU(" which does not pass the checksum and is hence corrupt. This profile will be ignored.\n");
 				}
 				else
 				{
-					progressReporter << "Found " << header.getMessageNumber() << " message " << timeDate << ". Halting Read\n";
+					progressReporter << sU("Found ") << header.getMessageNumber() << sU(" message ") << timeDate << sU(". Halting Read\n");
 					break;
 				}
 			}
 			else
-				progressReporter << "Found a profile with an incorrectly formatted time/date. This profile will be ignored.\n";
+				progressReporter << sU("Found a profile with an incorrectly formatted time/date. This profile will be ignored.\n");
+
+			++nRead;
 		}
-		if (m_data.size() % displayInterval != displayInterval - 1)
-			progressReporter << firstBatchDate << "-" << timeDate << "(" << (m_data.size() % displayInterval) + 1 << " profiles)\n";
-		progressReporter << "Completed reading file. " << m_data.size() << " profiles found\n";
+		if (m_allData.size() % displayInterval != displayInterval - 1)
+			progressReporter << firstBatchDate << sU("-") << timeDate << sU("(") << (m_allData.size() % displayInterval) + 1 << sU(" profiles)\n");
+		progressReporter << sU("Completed reading file. ") << m_allData.size() << sU(" profiles found\n");
 		fin.close();
 
-		if (m_data.size() > 0)
+		if (m_allData.size() > 0)
 		{
 			m_hasData = true;
+			m_inputFilenames.push_back(inputFilename);
 		}
 
 		return;
@@ -320,7 +334,7 @@ void CeilometerProcessor::plotData(const sci::string &outputFilename, const std:
 			rangeLimitedfilename << sU("_maxRange_");
 			rangeLimitedfilename << maxRanges[i];
 		}
-		plotCeilometerProfiles(m_firstHeaderHpl, m_data, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
+		plotCeilometerProfiles(m_firstHeaderHpl, m_allData, rangeLimitedfilename.str(), maxRanges[i], progressReporter, parent);
 	}
 }
 
@@ -388,7 +402,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	plot->addData(gridData);
 
 	plot->getxaxis()->settitle(sU("Time"));
-	plot->getxaxis()->settimeformat("%H:%M:%S");
+	plot->getxaxis()->settimeformat(sU("%H:%M:%S"));
 	plot->getyaxis()->settitle(sU("Height (m)"));
 
 	if (ys.back() > maxRange)

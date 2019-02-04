@@ -7,6 +7,7 @@
 #include"Units.h"
 #include"AmfNc.h"
 #include"Plotting.h"
+#include"Lidar.h"
 
 class CampbellCeilometerProfile
 {
@@ -61,7 +62,7 @@ inline HplHeader createCeilometerHeader(const sci::string &filename, const Campb
 class ProgressReporter;
 class wxWindow;
 
-class CeilometerProcessor : public InstrumentProcessor
+class CeilometerProcessor : public PlotableLidar
 {
 public:
 	CeilometerProcessor::CeilometerProcessor()
@@ -74,19 +75,20 @@ public:
 	void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename,
 		const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
 
-	static void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
+	void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
 		sci::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 
-	virtual void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clearPrevious);
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
 	virtual bool hasData() const override { return m_hasData; }
 private:
-	std::vector<CampbellCeilometerProfile> m_data;
+	std::vector<CampbellCeilometerProfile> m_allData;
 	CampbellHeader m_firstHeaderCampbell;
 	HplHeader m_firstHeaderHpl;
 	bool m_hasData;
-	sci::string m_inputFilename;
+	std::vector<sci::string> m_inputFilenames;
 };

@@ -5,6 +5,7 @@
 #include<cmath>
 #include"Plotting.h"
 #include<svector\splot.h>
+#include"ProgressReporter.h"
 
 void LidarStareProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
@@ -20,11 +21,11 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 		setupCanvas(&window, &plot, sU(""), parent);
 		WindowCleaner cleaner(window);
 
-		std::shared_ptr<PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>(getTimes(), getGateBoundariesForPlotting(), getBetas(), g_lidarColourscale, true, true));
+		std::shared_ptr<PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>(getTimesSeconds(), getGateBoundariesForPlotting(), getBetas(), g_lidarColourscale, true, true));
 		plot->addData(gridData);
 
 		plot->getxaxis()->settitle(sU("Time"));
-		plot->getxaxis()->settimeformat("%H:%M:%S");
+		plot->getxaxis()->settimeformat(sU("%H:%M:%S"));
 		plot->getyaxis()->settitle(sU("Height ") + gridData->getYAxisUnits());
 
 		if (getGateBoundariesForPlotting().back() > maxRanges[i])

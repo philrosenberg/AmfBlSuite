@@ -9,8 +9,9 @@ bool MyApp::OnInit()
 	wxString outputDirectory;
 #ifdef _DEBUG
 	//inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\";
-	inputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\ceilometer_backup_ds1\\";
-	outputDirectory = "D:\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\quicklooks\\";
+	inputDirectory = "C:\\Users\\pdros\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\201807\\20180711\\";
+	outputDirectory = "C:\\Users\\pdros\\OneDrive\\Documents\\Work\\Leeds\\MOCCHA\\Mob data\\nctest\\doppler_lidar_backup_ds1\\Data\\Proc\\2018\\201807\\20180711\\";
+	outputDirectory.utf8_str();
 #endif
 	if (argc == 3)
 	{

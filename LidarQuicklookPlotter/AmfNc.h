@@ -42,9 +42,9 @@ struct PersonInfo
 
 struct CalibrationInfo
 {
-	sci::UtcTime sensitivityCalibrationDate;
+	sci::string calibrationDescription; //range, what was done, etc
 	sci::UtcTime certificationDate;
-	sci::string certificateUrl;
+	sci::string certificateUrl; //link to a cal certificate or cal file
 };
 
 enum FeatureType
@@ -101,6 +101,8 @@ struct PlatformInfo
 	DeploymentMode deploymentMode;
 	double altitudeMetres; //Use nan for varying altitude airborne
 	std::vector<sci::string> locationKeywords;
+	std::vector<double> latitudes; //would have just one element for a static platform
+	std::vector<double>longitudes; //would have just one element for a static platform
 };
 
 class OutputAmfNcFile : public sci::OutputNcFile

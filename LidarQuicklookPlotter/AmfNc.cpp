@@ -187,7 +187,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("institution"), author.institution));
 	write(sci::NcAttribute(sU("processing_software_url"), processingsoftwareInfo.url));
 	write(sci::NcAttribute(sU("processing_software_version"), processingsoftwareInfo.version));
-	write(sci::NcAttribute(sU("calibration_sensitivity"), getFormattedDateTime(calibrationInfo.sensitivityCalibrationDate)));
+	write(sci::NcAttribute(sU("calibration_sensitivity"), calibrationInfo.calibrationDescription));
 	write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate)));
 	write(sci::NcAttribute(sU("calibration_certification_url"), calibrationInfo.certificateUrl));
 	sci::stringstream samplingIntervalString;
@@ -252,6 +252,12 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 
 	//Now add the time dimension
 	write(m_timeDimension);
+	//we also need to add a lat and lon dimension, although we don't actually use them
+	//this helps indexing
+	sci::NcDimension longitudeDimension(sU("longitude"), 1);
+	sci::NcDimension latitudeDimension(sU("latitude"), 1);
+	write(longitudeDimension);
+	write(latitudeDimension);
 	//and any other dimensions
 	for (size_t i = 0; i < nonTimeDimensions.size(); ++i)
 		write(*nonTimeDimensions[i]);

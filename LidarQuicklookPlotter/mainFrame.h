@@ -12,7 +12,7 @@
 //predeclaration of the class that records status of files when looking for new ones.
 //we need to predeclare it because we have a reference to it in the method declarations
 //below.
-class ExistedFolderChangesLister;
+class FolderChangesLister;
 class InstrumentProcessor;
 
 class mainFrame : public wxFrame
@@ -52,8 +52,8 @@ private:
 	void stop();
 	void process();
 	void process(const sci::string &filter, InstrumentProcessor &processor);
-	void readDataAndPlot(std::vector<sci::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentProcessor &processor);
-	std::vector<sci::string> checkForNewFiles(const sci::string &filter, const ExistedFolderChangesLister &changesLister);
+	void readDataAndPlot(std::vector<sci::string> &filesToPlot, const FolderChangesLister &changesLister, InstrumentProcessor &processor);
+	std::vector<sci::string> checkForNewFiles(const sci::string &filter, const FolderChangesLister &changesLister);
 
 	DECLARE_EVENT_TABLE();
 };

@@ -57,7 +57,7 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 	InstrumentInfo instrumentInfo = { sU("saturn_v"), sU("Rocket"), sU("NASA"), sU("Saturn"), sU("V"), sU("Amstrad"), sU("1512") };
 	PersonInfo author = { sU("Neil"), sU("armstrong@nans.org"), sU("armsrong.orchid.org"), sU("NASA") };
 	ProcessingSoftwareInfo processingsoftwareInfo = { sU("http://mycode.git"), sU("1001") };
-	CalibrationInfo calibrationInfo = { sci::UtcTime::now(), sci::UtcTime::now(), sU("someurl.org")};
+	CalibrationInfo calibrationInfo = { sU("Calibrated by nasa for a big range."), sci::UtcTime::now(), sU("someurl.org")};
 	DataInfo dataInfo = { 10.0, sU("s"), 5.0, sU("s"), 0, ft_timeSeriesPoint, 0.0, 0.0, 0, 360, sci::UtcTime::now(), sci::UtcTime::now(), sU("Another go"), true, sU("Moon data"), {} };
 	ProjectInfo projectInfo{ sU("Apolo"), {sU("Nixon"), sU("nixon@thewhitehouse.org"), sU("none"), sU("US government")} };
 	PlatformInfo platformInfo{ sU("Saturn"), pt_moving, dm_air, 1.0e6, {sU("Moon"), sU("Cape Canavral")} };
@@ -167,7 +167,7 @@ void mainFrame::OnSelectInputDir(wxCommandEvent& event)
 	if (dir.length() == 0)
 		return;
 	m_inputDirectory = dir;
-	(*m_progressReporter) << "Input directory changed to " << m_inputDirectory << "\n";
+	(*m_progressReporter) << sU("Input directory changed to ") << m_inputDirectory << sU("\n");
 }
 
 void mainFrame::OnSelectOutputDir(wxCommandEvent& event)
@@ -181,13 +181,13 @@ void mainFrame::OnSelectOutputDir(wxCommandEvent& event)
 	if (dir.length() == 0)
 		return;
 	m_outputDirectory = dir;
-	(*m_progressReporter) << "Output directory changed to " << m_outputDirectory << "\n";
+	(*m_progressReporter) << sU("Output directory changed to ") << m_outputDirectory << sU("\n");
 }
 
 void mainFrame::start()
 {
 	if (!m_progressReporter->shouldStop())
-		return;
+		return; //the processing is already in a running state - just return
 	if (m_progressReporter->shouldStop() && m_plotting)
 	{
 		//The user has requested to stop but before the stop has happened they requested to start again
@@ -242,14 +242,23 @@ void mainFrame::process()
 	//to get called again when we are not ready for it.
 	ProcessFlagger plottingFlagger(&m_plotting);
 
+	InstrumentInfo leedsHaloInfo;
+	leedsHaloInfo.description = sU("NCAS Doppler Aerosol Lidar unit 1");
+	leedsHaloInfo.manufacturer = sU("HALO Photonics");
+	leedsHaloInfo.model = sU("StreamLine");
+	leedsHaloInfo.name = sU("NCAS Doppler Aerosol Lidar unit 1");
+	leedsHaloInfo.operatingSoftware = sU("StreamLine");
+	leedsHaloInfo.operatingSoftwareVersion = sU("v9");
+	leedsHaloInfo.serial = sU("1210-18");
+
 	process(sU("*_ceilometer.csv"), CeilometerProcessor());
-	process(sU("*Processed_Wind_Profile_??_????????_??????.hpl"), InstrumentProcessor());
-	process(sU("*Stare_??_????????_??.hpl"), InstrumentProcessor());
-	process(sU("*VAD_??_????????_??????.hpl"), InstrumentProcessor());
-	process(sU("*User*.hpl"), InstrumentProcessor());
+	process(sU("*Processed_Wind_Profile_??_????????_??????.hpl"), LidarWindProfileProcessor(leedsHaloInfo));
+	//process(sU("*Stare_??_????????_??.hpl"), LidarStareProcessor());
+	//process(sU("*VAD_??_????????_??????.hpl"), LidarVadProcessor());
+	//process(sU("*User*.hpl"), LidarUserProcessor());
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())
-		(*m_progressReporter) << "Generated plots for all files found. Waiting approx 10 mins to check again.\n\n";
+		(*m_progressReporter) << sU("Generated plots for all files found. Waiting approx 10 mins to check again.\n\n");
 
 	if (m_progressReporter->shouldStop())
 		m_logText->AppendText("Stopped\n\n");
@@ -257,7 +266,11 @@ void mainFrame::process()
 
 void mainFrame::process(const sci::string &filter, InstrumentProcessor &processor)
 {
-	ExistedFolderChangesLister changesLister(m_inputDirectory, m_outputDirectory + sU("previouslyPlottedFiles.txt"));
+	//This class lists changes that have occured since the last time its method
+	//updateSnapshotFile() was called. This class in particular assumes that when
+	//it performs a search of previously existing files, the last one alphabetically
+	//will have changed, but the rest will not.
+	AlphabeticallyLastCouldHaveChangedChangesLister changesLister(m_inputDirectory, m_outputDirectory + sU("previouslyPlottedFiles.txt"));
 
 	try
 	{
@@ -265,7 +278,7 @@ void mainFrame::process(const sci::string &filter, InstrumentProcessor &processo
 		{
 			readDataAndPlot(checkForNewFiles(filter, changesLister), changesLister, processor);
 			if (!m_progressReporter->shouldStop())
-				(*m_progressReporter) << "Generated plots for all files matching filter " << filter << "\n";
+				(*m_progressReporter) << sU("Generated plots for all files matching filter ") << filter << sU("\n");
 		}
 	}
 	catch (sci::err err)
@@ -322,7 +335,7 @@ void mainFrame::process(const sci::string &filter, InstrumentProcessor &processo
 //is assumed to be the last file chronologically (assuming you have a
 //sensible naming structure) and it is assumed that this file may be
 //incomplete, so will be reported next time just in case.
-std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, const ExistedFolderChangesLister &changesLister)
+std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, const FolderChangesLister &changesLister)
 {
 	//ensure that the input and output directories end with a slash or are empty
 	if (m_inputDirectory.length() > 0 && m_inputDirectory.back()!= sU('/') && m_inputDirectory.back()!= sU('\\'))
@@ -331,7 +344,7 @@ std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, 
 		m_outputDirectory = m_outputDirectory + sU("/");
 
 	std::vector<std::string> plottedFiles;
-	(*m_progressReporter) << "Looking for data files to plot.\n";
+	(*m_progressReporter) << sU("Looking for data files to plot.\n");
 	//check the output directory exists
 	if (!wxDirExists(sci::nativeUnicode(m_outputDirectory)))
 		wxFileName::Mkdir(sci::nativeUnicode(m_outputDirectory), 770, wxPATH_MKDIR_FULL);
@@ -367,17 +380,17 @@ std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, 
 	return filesToPlot;
 }
 
-void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const ExistedFolderChangesLister &changesLister, InstrumentProcessor &processor)
+void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const FolderChangesLister &changesLister, InstrumentProcessor &processor)
 {
-	sci::string lastFileToPlot = filesToPlot.back();
-
 	for (size_t i = 0; i < filesToPlot.size(); ++i)
 	{
 		(*m_progressReporter) << sU("Processing ") << filesToPlot[i] << sU("\n");
 		sci::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), sci::string::npos);
 		try
 		{
-			processor.readData(filesToPlot[i], *m_progressReporter, this);
+			//readData takes an array of files that will all be processed and plotted together
+			//and put in a single netcdf. To process just one file we make an array with just one filename
+			processor.readData({ filesToPlot[i] }, *m_progressReporter, this);
 
 			if (m_progressReporter->shouldStop())
 			{
@@ -395,10 +408,7 @@ void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const Exi
 			}
 
 			//remember which files have been plotted
-			if (filesToPlot[i] != lastFileToPlot)
-			{
-				changesLister.updateSnapshotFile(filesToPlot[i]);
-			}
+			changesLister.updateSnapshotFile(filesToPlot[i]);
 		}
 		catch (sci::err err)
 		{
@@ -443,7 +453,7 @@ void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const Exi
 
 		if (m_progressReporter->shouldStop())
 		{
-			(*m_progressReporter) << "Operation halted at user request.\n";
+			(*m_progressReporter) << sU("Operation halted at user request.\n");
 			break;
 		}
 	}

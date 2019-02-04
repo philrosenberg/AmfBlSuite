@@ -7,14 +7,6 @@
 #include"ProgressReporter.h"
 #include"Ceilometer.h"
 
-void plotStareProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, sci::string filename, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
-void plotVadPlanProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, sci::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
-void plotVadUnrolledProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, sci::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
-void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, sci::string filename, size_t nSegmentsMin, double maxRange, ProgressReporter& progressReporter, wxWindow *parent);
-void plotVadConeProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, sci::string filename, double viewAzimuth, size_t nSegmentsMin, double maxRange, splot2d *plot);
-void plotRhiProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, sci::string filename, ProgressReporter& progressReporter, wxWindow *parent);
-
-
 
 
 WindowCleaner::WindowCleaner(wxWindow *window)
@@ -26,19 +18,6 @@ WindowCleaner::~WindowCleaner()
 }
 
 
-void plotProfiles(const HplHeader &header, const std::vector<HplProfile> &profiles, sci::string filename, double maxRange, ProgressReporter &progressReporter, wxWindow *parent)
-{
-	if (header.scanType == st_rhi)
-		plotRhiProfiles(header, profiles, filename, progressReporter, parent);
-	else if (header.scanType == st_vad || header.scanType == st_wind)
-	{
-		plotVadPlanProfiles(header, profiles, filename, 24, maxRange, progressReporter, parent);
-		plotVadConeProfiles(header, profiles, filename + sci::string(sU("cone.png")), 1, maxRange, progressReporter, parent);
-		plotVadUnrolledProfiles(header, profiles, filename + sci::string(sU("unrolled.png")), 1, maxRange, progressReporter, parent);
-	}
-	else //stare or user
-		plotStareProfiles(header, profiles, filename, maxRange, progressReporter, parent);
-}
 
 sci::string getScanTypeString (const HplHeader &header)
 {
@@ -62,23 +41,6 @@ sci::string getScanTypeString (const HplHeader &header)
 	return sU("Unknown Scan Type");
 }
 
-void setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent, const HplHeader &header)
-{
-	*window = new splotframe(parent, true);
-	(*window)->SetClientSize(1000, 1000);
-
-	sci::ostringstream plotTitle;
-	plotTitle << sU("Lidar Backscatter (m#u-1#d sr#u-1#d)") << extraDescriptor << sU("\n") << header.filename;
-	*plot = (*window)->addplot(0.1, 0.1, 0.75, 0.75, false, false, plotTitle.str(), 20.0, 3.0);
-	(*plot)->getxaxis()->settitlesize(15);
-	(*plot)->getyaxis()->settitledistance(4.5);
-	(*plot)->getyaxis()->settitlesize(15);
-	(*plot)->getxaxis()->setlabelsize(15);
-	(*plot)->getyaxis()->setlabelsize(15);
-
-	splotlegend *legend = (*window)->addlegend(0.86, 0.25, 0.13, 0.65, wxColour(0, 0, 0), 0.0);
-	legend->addentry("", g_lidarColourscale, false, false, 0.05, 0.3, 15, "", 0, 0.05, wxColour(0, 0, 0), 128, false, 150, false);
-}
 
 void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, size_t width, size_t height, ProgressReporter &progressReporter)
 {
