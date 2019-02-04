@@ -5,7 +5,7 @@
 #include"Plotting.h"
 
 
-char CampbellCeilometerProfile::getProfileFlag() const
+uint8_t CampbellCeilometerProfile::getProfileFlag() const
 {
 	if (m_profile.getMessageStatus() == cms_rawDataMissingOrSuspect)
 		return 5;
@@ -17,14 +17,14 @@ char CampbellCeilometerProfile::getProfileFlag() const
 		return 2;
 	return 1;
 }
-std::vector<char> CampbellCeilometerProfile::getGateFlags() const
+std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 {
 	//Depending upon how the ceilometer is set up it can replace data
 	//that it believes is below the signal to noise threshold with 0.
 	//Also data below 1e-7 sr m-1 is probably noise too so flag it
 
-	std::vector<char> result(getBetas().size(), 1);
-	sci::assign(result, getBetas() < steradianPerMetre(1e-7), char(2));
+	std::vector<uint8_t> result(getBetas().size(), 1);
+	sci::assign(result, getBetas() < steradianPerMetre(1e-7), uint8_t(2));
 	return result;
 }
 
@@ -71,12 +71,13 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	std::vector<int32_t> gates;
 	//flags - one flag for each profile and one flage for each
 	//each gate in each profile
-	std::vector<char> profileFlag(profiles.size());
-	std::vector<std::vector<char>> gateFlags(profiles.size());
+	std::vector<uint8_t> profileFlag(profiles.size());
+	std::vector<std::vector<uint8_t>> gateFlags(profiles.size());
 	//the vertical resolution of the profiles - we check this is the same for each profile
 	metre resolution;
 	//Some other housekeeping information
-	std::vector<size_t> pulseQuantities(profiles.size());
+	sci::assertThrow(profiles.size() < std::numeric_limits<long>::max(), sci::err(sci::SERR_USER, 0, "Profile is too long to fit in a netcdf"));
+	std::vector<int32_t> pulseQuantities(profiles.size());
 	std::vector<megahertz> sampleRates(profiles.size());
 	std::vector<percent> windowTransmissions(profiles.size());
 	std::vector<percent> laserEnergies(profiles.size());
@@ -113,7 +114,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 		gateFlags[i] = profiles[i].getGateFlags();
 
 		//assign the housekeeping data
-		pulseQuantities[i] = profiles[i].getPulseQuantity();
+		pulseQuantities[i] = (int32_t)profiles[i].getPulseQuantity();
 		sampleRates[i] = profiles[i].getSampleRate();
 		windowTransmissions[i] = profiles[i].getWindowTransmission();
 		laserEnergies[i] = profiles[i].getLaserPulseEnergy();
@@ -156,17 +157,17 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-4"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase4));
 
 	//flags
-	ceilometerFile.write(sci::NcVariable<char>(sU("profile-flag"), ceilometerFile, ceilometerFile.getTimeDimension()),profileFlag);
-	ceilometerFile.write(sci::NcVariable<char>(sU("gate-flag"), ceilometerFile, backscatterDimensions),gateFlags);
+	ceilometerFile.write(sci::NcVariable<uint8_t>(sU("profile-flag"), ceilometerFile, ceilometerFile.getTimeDimension()),profileFlag);
+	ceilometerFile.write(sci::NcVariable<uint8_t>(sU("gate-flag"), ceilometerFile, backscatterDimensions),gateFlags);
 
 	//housekeeping
-	ceilometerFile.write(sci::NcVariable<size_t>(sU("pulse-quantity"), ceilometerFile, ceilometerFile.getTimeDimension()), pulseQuantities);
-	ceilometerFile.write(sci::NcVariable<megahertz>(sU("sample-rate"), ceilometerFile, ceilometerFile.getTimeDimension()), sampleRates);
-	ceilometerFile.write(sci::NcVariable<percent>(sU("window-transmission"), ceilometerFile, ceilometerFile.getTimeDimension()), windowTransmissions);
-	ceilometerFile.write(sci::NcVariable<percent>(sU("laser-energy"), ceilometerFile, ceilometerFile.getTimeDimension()), laserEnergies);
-	ceilometerFile.write(sci::NcVariable<kelvin>(sU("laser-temperature"), ceilometerFile, ceilometerFile.getTimeDimension()), laserTemperatures);
-	ceilometerFile.write(sci::NcVariable<radian>(sU("tilt-angle"), ceilometerFile, ceilometerFile.getTimeDimension()), tiltAngles);
-	ceilometerFile.write(sci::NcVariable<millivolt>(sU("background"), ceilometerFile, ceilometerFile.getTimeDimension()), backgrounds);
+	ceilometerFile.write(sci::NcVariable<int32_t>(sU("pulse-quantity"), ceilometerFile, ceilometerFile.getTimeDimension()), pulseQuantities);
+	ceilometerFile.write(AmfNcVariable<megahertz>(sU("sample-rate"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<megahertz>::convertValues(sampleRates));
+	ceilometerFile.write(AmfNcVariable<percent>(sU("window-transmission"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<percent>::convertValues(windowTransmissions));
+	ceilometerFile.write(AmfNcVariable<percent>(sU("laser-energy"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<percent>::convertValues(laserEnergies));
+	ceilometerFile.write(AmfNcVariable<kelvin>(sU("laser-temperature"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<kelvin>::convertValues(laserTemperatures));
+	ceilometerFile.write(AmfNcVariable<radian>(sU("tilt-angle"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<radian>::convertValues(tiltAngles));
+	ceilometerFile.write(AmfNcVariable<millivolt>(sU("background"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<millivolt>::convertValues(backgrounds));
 }
 
 

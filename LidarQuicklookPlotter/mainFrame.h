@@ -8,6 +8,7 @@
 #include<svector/sstring.h>
 #include"TextCtrlProgressReporter.h"
 #include<memory>
+#include"AmfNc.h"
 
 //predeclaration of the class that records status of files when looking for new ones.
 //we need to predeclare it because we have a reference to it in the method declarations
@@ -48,11 +49,19 @@ private:
 	bool m_plotting;
 	std::unique_ptr<TextCtrlProgressReporter> m_progressReporter;
 
+	PersonInfo m_author;
+	ProcessingSoftwareInfo m_processingSoftwareInfo;
+	ProjectInfo m_projectInfo;
+	PlatformInfo m_platformInfo;
+	sci::string m_comment;
+
 	void start();
 	void stop();
 	void process();
 	void process(const sci::string &filter, InstrumentProcessor &processor);
-	void readDataAndPlot(std::vector<sci::string> &filesToPlot, const FolderChangesLister &changesLister, InstrumentProcessor &processor);
+	void readDataThenPlotThenNc(std::vector<sci::string> &filesToPlot, const FolderChangesLister &changesLister,
+		const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+		const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor);
 	std::vector<sci::string> checkForNewFiles(const sci::string &filter, const FolderChangesLister &changesLister);
 
 	DECLARE_EVENT_TABLE();

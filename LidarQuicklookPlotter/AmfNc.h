@@ -101,8 +101,8 @@ struct PlatformInfo
 	DeploymentMode deploymentMode;
 	double altitudeMetres; //Use nan for varying altitude airborne
 	std::vector<sci::string> locationKeywords;
-	std::vector<double> latitudes; //would have just one element for a static platform
-	std::vector<double>longitudes; //would have just one element for a static platform
+	std::vector<radian> latitudes; //would have just one element for a static platform
+	std::vector<radian>longitudes; //would have just one element for a static platform
 };
 
 class OutputAmfNcFile : public sci::OutputNcFile

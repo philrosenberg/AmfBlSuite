@@ -190,10 +190,10 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	dataInfo.startTime = m_profiles[0].m_VadProcessor.getTimesUtcTime()[0];
 	dataInfo.endTime = m_profiles.back().m_VadProcessor.getTimesUtcTime()[0];
 	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.maxLatDecimalDegrees = sci::max<double>(platformInfo.latitudes);
-	dataInfo.minLatDecimalDegrees = sci::min<double>(platformInfo.latitudes);
-	dataInfo.maxLonDecimalDegrees = sci::max<double>(platformInfo.longitudes);
-	dataInfo.minLonDecimalDegrees = sci::min<double>(platformInfo.longitudes);
+	dataInfo.maxLatDecimalDegrees = sci::max<radian>(platformInfo.latitudes).value<radian>()/M_PI*180.0;
+	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>() / M_PI * 180.0;
+	dataInfo.maxLonDecimalDegrees = sci::max<radian>(platformInfo.longitudes).value<radian>() / M_PI * 180.0;
+	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>() / M_PI * 180.0;
 
 	//get the time for each wind profile retrieval
 	//Note that each retrieval is multiple measurements so we use the

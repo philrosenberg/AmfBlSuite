@@ -54,6 +54,30 @@ private:
 mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inputDirectory, const wxString &outputDirectory, bool runImmediately)
 	: wxFrame(frame, -1, title)
 {
+	m_author.name = sU("Phil Rosenberg");
+	m_author.email = sU("p.d.rosenberg@leeds.ac.uk");
+	m_author.institution = sU("NCAS, University of Leeds");
+	m_author.orcidUrl = sU("https://orcid.org/0000-0002-6920-0559");
+
+	m_processingSoftwareInfo.url = sU("https://github.com/philrosenberg/AmfBlSuite.git");
+	m_processingSoftwareInfo.version = sU("beta");
+
+	m_projectInfo.name = sU("MOCCHA");
+	m_projectInfo.principalInvestigatorInfo.name = sU("Ian Brooks");
+	m_projectInfo.principalInvestigatorInfo.email = sU("i.m.brooks@leeds.ac.uk");
+	m_projectInfo.principalInvestigatorInfo.institution = sU("University of Leeds");
+	m_projectInfo.principalInvestigatorInfo.orcidUrl = sU("https://orcid.org/0000-0002-5051-1322");
+
+	m_platformInfo.altitudeMetres = 0;
+	m_platformInfo.deploymentMode = dm_land;
+	m_platformInfo.latitudes = std::vector<radian>(1, radian(0.0));
+	m_platformInfo.longitudes = std::vector<radian>(1, radian(0.0));
+	m_platformInfo.locationKeywords = { sU("Dummy") };
+	m_platformInfo.name = sU("Neverland");
+	m_platformInfo.platformType = pt_stationary;
+
+	m_comment = sU("This is a test file. It should not be used for scientific work.");
+
 	InstrumentInfo instrumentInfo = { sU("saturn_v"), sU("Rocket"), sU("NASA"), sU("Saturn"), sU("V"), sU("Amstrad"), sU("1512") };
 	PersonInfo author = { sU("Neil"), sU("armstrong@nans.org"), sU("armsrong.orchid.org"), sU("NASA") };
 	ProcessingSoftwareInfo processingsoftwareInfo = { sU("http://mycode.git"), sU("1001") };
@@ -276,7 +300,7 @@ void mainFrame::process(const sci::string &filter, InstrumentProcessor &processo
 	{
 		if (!m_progressReporter->shouldStop())
 		{
-			readDataAndPlot(checkForNewFiles(filter, changesLister), changesLister, processor);
+			readDataThenPlotThenNc(checkForNewFiles(filter, changesLister), changesLister, m_author, m_processingSoftwareInfo, m_projectInfo, m_platformInfo, m_comment, processor);
 			if (!m_progressReporter->shouldStop())
 				(*m_progressReporter) << sU("Generated plots for all files matching filter ") << filter << sU("\n");
 		}
@@ -380,7 +404,9 @@ std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, 
 	return filesToPlot;
 }
 
-void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const FolderChangesLister &changesLister, InstrumentProcessor &processor)
+void mainFrame::readDataThenPlotThenNc(std::vector<sci::string> &filesToPlot, const FolderChangesLister &changesLister,
+	const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+	const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor)
 {
 	for (size_t i = 0; i < filesToPlot.size(); ++i)
 	{
@@ -399,16 +425,20 @@ void mainFrame::readDataAndPlot(std::vector<sci::string> &filesToPlot, const Fol
 			}
 
 			if (processor.hasData())
+			{
 				processor.plotData(outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
 
-			if (m_progressReporter->shouldStop())
-			{
-				(*m_progressReporter) << sU("Operation halted at user request.\n");
-				break;
-			}
+				if (m_progressReporter->shouldStop())
+				{
+					(*m_progressReporter) << sU("Operation halted at user request.\n");
+					break;
+				}
 
-			//remember which files have been plotted
-			changesLister.updateSnapshotFile(filesToPlot[i]);
+				processor.writeToNc(m_outputDirectory, author, processingSoftwareInfo, projectInfo, platformInfo, comment, *m_progressReporter);
+
+				//remember which files have been plotted
+				changesLister.updateSnapshotFile(filesToPlot[i]);
+			}
 		}
 		catch (sci::err err)
 		{
