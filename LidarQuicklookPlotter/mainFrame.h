@@ -58,11 +58,11 @@ private:
 	void start();
 	void stop();
 	void process();
-	void process(const sci::string &filter, InstrumentProcessor &processor);
-	void readDataThenPlotThenNc(std::vector<sci::string> &filesToPlot, const FolderChangesLister &changesLister,
+	void process(InstrumentProcessor &processor);
+	void readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 		const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor);
-	std::vector<sci::string> checkForNewFiles(const sci::string &filter, const FolderChangesLister &changesLister);
+	void checkDirectoryStructue();
 
 	DECLARE_EVENT_TABLE();
 };

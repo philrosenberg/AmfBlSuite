@@ -57,5 +57,6 @@ public:
 		:ExistedFolderChangesLister(directory, snapshotFile)
 	{}
 	std::vector<sci::string> getChanges(const sci::string &filespec) const override;
+	void updateSnapshotFile(const sci::string &changedFile) const override;
 	virtual ~AlphabeticallyLastCouldHaveChangedChangesLister() {}
 };

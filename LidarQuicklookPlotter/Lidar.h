@@ -63,7 +63,8 @@ public:
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
-
+	sci::string getFilenameFilter() const override { return sU("*Stare_??_????????_??.hpl"); };
+	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 };
 
 class LidarRhiProcessor : public LidarBackscatterDopplerProcessor
@@ -73,7 +74,7 @@ public:
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
-
+	sci::string getFilenameFilter() const override;
 };
 
 class LidarVadProcessor : public LidarBackscatterDopplerProcessor
@@ -88,6 +89,8 @@ public:
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
+	sci::string getFilenameFilter() const override { return sU("*VAD_??_????????_??????.hpl"); };
+	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 private:
 	size_t m_nSegmentsMin;
 	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries);
@@ -100,7 +103,8 @@ public:
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
-
+	sci::string getFilenameFilter() const override { return sU("*User*.hpl"); };
+	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 };
 
 class LidarWindProfileProcessor : public InstrumentProcessor
@@ -114,6 +118,8 @@ public:
 		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
 	virtual bool hasData() const override { return m_hasData; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
+	sci::string getFilenameFilter() const override { return sU("*Processed_Wind_Profile_??_????????_??????.hpl"); };
+	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 private:
 	bool m_hasData;
 	struct Profile

@@ -275,11 +275,11 @@ void mainFrame::process()
 	leedsHaloInfo.operatingSoftwareVersion = sU("v9");
 	leedsHaloInfo.serial = sU("1210-18");
 
-	process(sU("*_ceilometer.csv"), CeilometerProcessor());
-	process(sU("*Processed_Wind_Profile_??_????????_??????.hpl"), LidarWindProfileProcessor(leedsHaloInfo));
-	//process(sU("*Stare_??_????????_??.hpl"), LidarStareProcessor());
-	//process(sU("*VAD_??_????????_??????.hpl"), LidarVadProcessor());
-	//process(sU("*User*.hpl"), LidarUserProcessor());
+	process(CeilometerProcessor());
+	process(LidarWindProfileProcessor(leedsHaloInfo));
+	//process(LidarStareProcessor());
+	//process(LidarVadProcessor());
+	//process(LidarUserProcessor());
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())
 		(*m_progressReporter) << sU("Generated plots for all files found. Waiting approx 10 mins to check again.\n\n");
@@ -288,21 +288,27 @@ void mainFrame::process()
 		m_logText->AppendText("Stopped\n\n");
 }
 
-void mainFrame::process(const sci::string &filter, InstrumentProcessor &processor)
+void mainFrame::process(InstrumentProcessor &processor)
 {
+
+	//Check that the input/output diectories are actually there
+	checkDirectoryStructue();
+
 	//This class lists changes that have occured since the last time its method
 	//updateSnapshotFile() was called. This class in particular assumes that when
 	//it performs a search of previously existing files, the last one alphabetically
 	//will have changed, but the rest will not.
-	AlphabeticallyLastCouldHaveChangedChangesLister changesLister(m_inputDirectory, m_outputDirectory + sU("previouslyPlottedFiles.txt"));
+	AlphabeticallyLastCouldHaveChangedChangesLister plotChangesLister(m_inputDirectory, m_outputDirectory + sU("previouslyPlottedFiles.txt"));
+	AlphabeticallyLastCouldHaveChangedChangesLister ncChangesLister(m_inputDirectory, m_outputDirectory + sU("previouslyProcessedFiles.txt"));
 
 	try
 	{
 		if (!m_progressReporter->shouldStop())
 		{
-			readDataThenPlotThenNc(checkForNewFiles(filter, changesLister), changesLister, m_author, m_processingSoftwareInfo, m_projectInfo, m_platformInfo, m_comment, processor);
+			//Ensure all our directoris are as
+			readDataThenPlotThenNc(plotChangesLister, ncChangesLister, m_author, m_processingSoftwareInfo, m_projectInfo, m_platformInfo, m_comment, processor);
 			if (!m_progressReporter->shouldStop())
-				(*m_progressReporter) << sU("Generated plots for all files matching filter ") << filter << sU("\n");
+				(*m_progressReporter) << sU("Processed all files matching filter ") << processor.getFilenameFilter() << sU("\n");
 		}
 	}
 	catch (sci::err err)
@@ -355,11 +361,9 @@ void mainFrame::process(const sci::string &filter, InstrumentProcessor &processo
 	}
 }
 
-//Check for new files - the last file found alphabetically
-//is assumed to be the last file chronologically (assuming you have a
-//sensible naming structure) and it is assumed that this file may be
-//incomplete, so will be reported next time just in case.
-std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, const FolderChangesLister &changesLister)
+//Check that the directory names are correctly formatted (with trailing slash or blank) and
+//that all input and output directories actually exist
+void mainFrame::checkDirectoryStructue()
 {
 	//ensure that the input and output directories end with a slash or are empty
 	if (m_inputDirectory.length() > 0 && m_inputDirectory.back()!= sU('/') && m_inputDirectory.back()!= sU('\\'))
@@ -367,8 +371,6 @@ std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, 
 	if (m_outputDirectory.length() > 0 && m_outputDirectory.back() != sU('/') && m_outputDirectory.back() != sU('\\'))
 		m_outputDirectory = m_outputDirectory + sU("/");
 
-	std::vector<std::string> plottedFiles;
-	(*m_progressReporter) << sU("Looking for data files to plot.\n");
 	//check the output directory exists
 	if (!wxDirExists(sci::nativeUnicode(m_outputDirectory)))
 		wxFileName::Mkdir(sci::nativeUnicode(m_outputDirectory), 770, wxPATH_MKDIR_FULL);
@@ -386,37 +388,39 @@ std::vector<sci::string> mainFrame::checkForNewFiles(const sci::string &filter, 
 		message << sU("The input directory ") << m_inputDirectory << sU(" does not exist.");
 		throw(message.str());
 	}
-
-
-	//check for new files
-	std::vector<sci::string> filesToPlot = changesLister.getChanges(filter);
-
-
-	if (filesToPlot.size() == 0)
-		(*m_progressReporter) << sU("Found no new files to plot.\n");
-	else
-	{
-		(*m_progressReporter) << sU("Found the following new files to plot matching the filter ") << filter << sU(" :\n");
-		for(size_t i=0; i<filesToPlot.size(); ++i)
-			(*m_progressReporter) << sU("\t") << filesToPlot[i] << sU("\n");
-	}
-
-	return filesToPlot;
 }
 
-void mainFrame::readDataThenPlotThenNc(std::vector<sci::string> &filesToPlot, const FolderChangesLister &changesLister,
+void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 	const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor)
 {
-	for (size_t i = 0; i < filesToPlot.size(); ++i)
+	//check for new files
+	(*m_progressReporter) << sU("Looking for data files to plot.\n");
+	std::vector<sci::string> newPlotFiles = plotChangesLister.getChanges(processor.getFilenameFilter());
+
+	//Keep the user updated
+	if (newPlotFiles.size() == 0)
 	{
-		(*m_progressReporter) << sU("Processing ") << filesToPlot[i] << sU("\n");
-		sci::string outputFile = m_outputDirectory + filesToPlot[i].substr(m_inputDirectory.length(), sci::string::npos);
+		(*m_progressReporter) << sU("Found no new files to process matching the filter ") << processor.getFilenameFilter() << sU("\n");
+		return;
+	}
+	else
+	{
+		(*m_progressReporter) << sU("Found the following new files to plot matching the filter ") << processor.getFilenameFilter() << sU(" :\n");
+		for (size_t i = 0; i < newPlotFiles.size(); ++i)
+			(*m_progressReporter) << sU("\t") << newPlotFiles[i] << sU("\n");
+	}
+
+	//plot the quicklooks
+	for (size_t i = 0; i < newPlotFiles.size(); ++i)
+	{
+		(*m_progressReporter) << sU("Plotting ") << newPlotFiles[i] << sU("\n");
+		sci::string outputFile = m_outputDirectory + newPlotFiles[i].substr(m_inputDirectory.length(), sci::string::npos);
 		try
 		{
 			//readData takes an array of files that will all be processed and plotted together
 			//and put in a single netcdf. To process just one file we make an array with just one filename
-			processor.readData({ filesToPlot[i] }, *m_progressReporter, this);
+			processor.readData({ newPlotFiles[i] }, *m_progressReporter, this);
 
 			if (m_progressReporter->shouldStop())
 			{
@@ -434,10 +438,92 @@ void mainFrame::readDataThenPlotThenNc(std::vector<sci::string> &filesToPlot, co
 					break;
 				}
 
+				//remember which files have been plotted
+				plotChangesLister.updateSnapshotFile(newPlotFiles[i]);
+			}
+		}
+		catch (sci::err err)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: " << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+		catch (char *errMessage)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: " << errMessage << "\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+		catch (std::string errMessage)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: " << errMessage << "\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+		catch (wxString errMessage)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: " << errMessage << "\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+		catch (...)
+		{
+			wxTextAttr originalStyle = m_logText->GetDefaultStyle();
+			m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
+			std::ostream stream(m_logText);
+			stream << "Error: Unknown\n";
+			m_logText->SetDefaultStyle(originalStyle);
+		}
+
+		if (m_progressReporter->shouldStop())
+		{
+			(*m_progressReporter) << sU("Operation halted at user request.\n");
+			break;
+		}
+	}
+
+	//generate the netcdfs
+	//check for new files
+	(*m_progressReporter) << sU("Looking for data files to process.\n");
+	std::vector<sci::string> newNcFiles = ncChangesLister.getChanges(processor.getFilenameFilter());
+	std::vector<sci::string> allFiles = ncChangesLister.listFolderContents(processor.getFilenameFilter());
+	std::vector<std::vector<sci::string>> dayFileSets = processor.groupFilesPerDayForReprocessing(newNcFiles, allFiles);
+	for(size_t i=0; i< dayFileSets.size(); ++i)
+	{
+		(*m_progressReporter) << sU("Processing\n");
+		for (size_t j = 0; j < dayFileSets[i].size(); ++j)
+			(*m_progressReporter) << dayFileSets[i][j] << sU("\n");
+		try
+		{
+			processor.readData(dayFileSets[i], *m_progressReporter, this);
+
+			if (m_progressReporter->shouldStop())
+			{
+				(*m_progressReporter) << sU("Operation halted at user request.\n");
+				break;
+			}
+
+			if (processor.hasData())
+			{
 				processor.writeToNc(m_outputDirectory, author, processingSoftwareInfo, projectInfo, platformInfo, comment, *m_progressReporter);
 
+				if (m_progressReporter->shouldStop())
+				{
+					(*m_progressReporter) << sU("Operation halted at user request.\n");
+					break;
+				}
+
 				//remember which files have been plotted
-				changesLister.updateSnapshotFile(filesToPlot[i]);
+				for(size_t j=0; j<dayFileSets[i].size(); ++j)
+					ncChangesLister.updateSnapshotFile(dayFileSets[i][j]);
 			}
 		}
 		catch (sci::err err)

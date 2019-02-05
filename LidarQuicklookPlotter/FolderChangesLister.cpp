@@ -84,6 +84,16 @@ std::vector<sci::string> AlphabeticallyLastCouldHaveChangedChangesLister::getCha
 	else
 		return allFiles; //this saves us including code below to deal with the case of previouslyExistingFiles.size() == 0 causing overruns
 
+	//remove duplicates from previously existing files;
+	for (size_t i = 1; i < previouslyExistingFiles.size(); ++i)
+	{
+		if (previouslyExistingFiles[i] == previouslyExistingFiles[i - 1])
+		{
+			previouslyExistingFiles.erase(previouslyExistingFiles.begin() + i);
+			--i;
+		}
+	}
+
 	//find the new files
 	std::vector<sci::string> newFiles;
 	newFiles.reserve(allFiles.size());
@@ -106,4 +116,14 @@ std::vector<sci::string> AlphabeticallyLastCouldHaveChangedChangesLister::getCha
 	}
 
 	return newFiles;
+}
+
+void AlphabeticallyLastCouldHaveChangedChangesLister::updateSnapshotFile(const sci::string &changedFile) const
+{
+	//Check to make sure the file hasn't been added already.
+	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(sU("*"));
+	for (size_t i = 0; i < previouslyExistingFiles.size(); ++i)
+		if (changedFile == previouslyExistingFiles[i])
+			return;
+	ExistedFolderChangesLister::updateSnapshotFile(changedFile);
 }

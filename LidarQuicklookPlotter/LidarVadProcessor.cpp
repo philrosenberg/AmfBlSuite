@@ -317,3 +317,8 @@ void LidarVadProcessor::writeToNc(const sci::string &directory, const PersonInfo
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, calibrationInfo, dataInfo,
 		projectInfo, platformInfo, comment, times);*/
 }
+
+std::vector<std::vector<sci::string>> LidarVadProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+{
+	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 7);
+}

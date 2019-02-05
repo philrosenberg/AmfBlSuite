@@ -411,3 +411,8 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 
 	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 }
+
+std::vector<std::vector<sci::string>> CeilometerProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+{
+	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 0);
+}

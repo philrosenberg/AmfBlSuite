@@ -34,3 +34,10 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 		createDirectoryAndWritePlot(window, rangeLimitedfilename.str(), 1000, 1000, progressReporter);
 	}
 }
+
+
+
+std::vector<std::vector<sci::string>> LidarStareProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+{
+	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 9);
+}

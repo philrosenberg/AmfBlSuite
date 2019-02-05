@@ -78,6 +78,57 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, s
 	progressReporter << sU("Plot rendered to ") << filename << sU("\n");
 }
 
+std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter)
+{
+	//Here we grab the date from each file based on it starting at the given character in the filename (path removed)
+	//and assuming it is formatted yyyymmdd and use this to detemine which files belong to which day
 
+	std::vector<std::vector<sci::string>> result;
+	std::vector<sci::string> unassignedNewFiles = newFiles;
+
+	//extract the dates from all the existing files
+	std::vector<sci::string> datesAllFiles(allFiles.size());
+	for (size_t i = 0; i < datesAllFiles.size(); ++i)
+	{
+		wxFileName fileNameToSplit(sci::nativeUnicode(allFiles[i]));
+		datesAllFiles[i] = sci::fromWxString(fileNameToSplit.GetFullName()).substr(dateStartCharacter, 8);
+	}
+	std::vector<sci::string> datesNewFiles(newFiles.size());
+	for (size_t i = 0; i < datesNewFiles.size(); ++i)
+	{
+		wxFileName fileNameToSplit(sci::nativeUnicode(newFiles[i]));
+		datesNewFiles[i] = sci::fromWxString(fileNameToSplit.GetFullName()).substr(dateStartCharacter, 8);
+	}
+
+
+	for(size_t i=0; i<datesNewFiles.size(); ++i)
+	{
+		//check we have a valid date - we blank out duplicate dates.
+		if (datesNewFiles[i] != sU(""))
+		{
+			//expand our result
+			result.resize(result.size() + 1);
+
+			//go through all the files and grab those that have a date the same as the current
+			//unassigned new file
+			for (size_t j = 0; j < allFiles.size(); ++j)
+			{
+				if (datesAllFiles[j] == datesNewFiles[0])
+				{
+					result.back().push_back(allFiles[j]);
+				}
+			}
+
+			//now go through all the remaining unassigned new files and blank out the date if it matches
+			for (size_t j = i; j < datesNewFiles.size(); ++j)
+			{
+				if (datesNewFiles[j] == datesNewFiles[i])
+					datesNewFiles[j] = sU("");
+			}
+		}
+	}
+
+	return result;
+}
 
 
