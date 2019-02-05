@@ -155,16 +155,16 @@ private:
 
 //create a partial specialization for any AmfNcVariable based on a sci::Physical value
 template <class T>
-class AmfNcVariable<sci::Physical<T>> : public sci::NcVariable<double>
+class AmfNcVariable<sci::Physical<T>> : public sci::NcVariable<sci::Physical<T>>
 {
 public:
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName)
-		:NcVariable<double>(name, ncFile, dimension)
+		:NcVariable<sci::Physical<T>>(name, ncFile, dimension)
 	{
 		setAttributes(longName);
 	}
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName)
-		:NcVariable<double>(name, ncFile, dimensions)
+		:NcVariable<sci::Physical<T>>(name, ncFile, dimensions)
 	{
 		setAttributes(longName);
 	}

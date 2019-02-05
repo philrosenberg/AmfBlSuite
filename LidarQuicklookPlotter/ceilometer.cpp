@@ -142,19 +142,19 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	std::vector<unitless> gatesPhysical;
 	sci::convert(gatesPhysical, gates);
 	ceilometerFile.write(AmfNcVariable<int32_t>(sU("gate-number"), ceilometerFile, gateDimension, sU(""), sU("1")), gates);
-	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-lower-height"), ceilometerFile, gateDimension, sU("")), AmfNcVariable<metre>::convertValues(gatesPhysical*resolution));
-	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-upper-height"), ceilometerFile, gateDimension, sU("")), AmfNcVariable<metre>::convertValues((gatesPhysical + unitless(1))*resolution));
-	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-mid-height"), ceilometerFile, gateDimension, sU("")), AmfNcVariable<metre>::convertValues((gatesPhysical + unitless(0.5))*resolution));
+	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-lower-height"), ceilometerFile, gateDimension, sU("")), gatesPhysical*resolution);
+	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-upper-height"), ceilometerFile, gateDimension, sU("")), (gatesPhysical + unitless(1))*resolution);
+	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-mid-height"), ceilometerFile, gateDimension, sU("")), (gatesPhysical + unitless(0.5))*resolution);
 	
 	//backscatter
 	std::vector<sci::NcDimension*> backscatterDimensions{ &ceilometerFile.getTimeDimension(), &gateDimension };
-	ceilometerFile.write(AmfNcVariable<steradianPerMetre>(sU("aerosol-backscatter"), ceilometerFile, backscatterDimensions, sU("aerosol-backscatter")), AmfNcVariable<steradianPerMetre>::convertValues(backscatter));
+	ceilometerFile.write(AmfNcVariable<steradianPerMetre>(sU("aerosol-backscatter"), ceilometerFile, backscatterDimensions, sU("aerosol-backscatter")), backscatter);
 
 	//cloud bases
-	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-1"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase1));
-	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-2"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase2));
-	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-3"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase3));
-	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-4"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<metre>::convertValues(cloudBase4));
+	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-1"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), cloudBase1);
+	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-2"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), cloudBase2);
+	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-3"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), cloudBase3);
+	ceilometerFile.write(AmfNcVariable<metre>(sU("cloud-base-4"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), cloudBase4);
 
 	//flags
 	ceilometerFile.write(sci::NcVariable<uint8_t>(sU("profile-flag"), ceilometerFile, ceilometerFile.getTimeDimension()),profileFlag);
@@ -162,12 +162,12 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 
 	//housekeeping
 	ceilometerFile.write(sci::NcVariable<int32_t>(sU("pulse-quantity"), ceilometerFile, ceilometerFile.getTimeDimension()), pulseQuantities);
-	ceilometerFile.write(AmfNcVariable<megahertz>(sU("sample-rate"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<megahertz>::convertValues(sampleRates));
-	ceilometerFile.write(AmfNcVariable<percent>(sU("window-transmission"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<percent>::convertValues(windowTransmissions));
-	ceilometerFile.write(AmfNcVariable<percent>(sU("laser-energy"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<percent>::convertValues(laserEnergies));
-	ceilometerFile.write(AmfNcVariable<kelvin>(sU("laser-temperature"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<kelvin>::convertValues(laserTemperatures));
-	ceilometerFile.write(AmfNcVariable<radian>(sU("tilt-angle"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<radian>::convertValues(tiltAngles));
-	ceilometerFile.write(AmfNcVariable<millivolt>(sU("background"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), AmfNcVariable<millivolt>::convertValues(backgrounds));
+	ceilometerFile.write(AmfNcVariable<megahertz>(sU("sample-rate"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), sampleRates);
+	ceilometerFile.write(AmfNcVariable<percent>(sU("window-transmission"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), windowTransmissions);
+	ceilometerFile.write(AmfNcVariable<percent>(sU("laser-energy"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), laserEnergies);
+	ceilometerFile.write(AmfNcVariable<kelvin>(sU("laser-temperature"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), laserTemperatures);
+	ceilometerFile.write(AmfNcVariable<radian>(sU("tilt-angle"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), tiltAngles);
+	ceilometerFile.write(AmfNcVariable<millivolt>(sU("background"), ceilometerFile, ceilometerFile.getTimeDimension(), sU("")), backgrounds);
 }
 
 
