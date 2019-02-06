@@ -50,7 +50,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 		}
 	}
 
-	m_profiles.resize(processedFilenames.size());
+	m_profiles.resize(processedFilenames.size(), Profile(getCalibrationInfo()));
 
 	for (size_t i=0; i<processedFilenames.size(); ++i)
 	{
@@ -179,10 +179,6 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
 {
-	CalibrationInfo calibrationInfo;
-	calibrationInfo.certificationDate = sci::UtcTime(0, 1, 1, 0, 0, 0.0);
-	calibrationInfo.certificateUrl = sU("Not available");
-	calibrationInfo.calibrationDescription = sU("Calibrated to manufacturers standard:: 0 to 19 ms-1");
 	DataInfo dataInfo;
 	dataInfo.averagingPeriod = 0.0;
 	for (size_t i = 0; i < m_profiles.size(); ++i)
@@ -219,7 +215,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	sci::NcDimension indexDimension(sU("index"), m_profiles[0].m_heights.size());
 	nonTimeDimensions.push_back(&indexDimension);
 
-	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, calibrationInfo, dataInfo,
+	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
 		projectInfo, platformInfo, comment, times, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), metre(0), metre(20000.0));

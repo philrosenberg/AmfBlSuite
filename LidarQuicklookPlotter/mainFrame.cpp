@@ -275,8 +275,13 @@ void mainFrame::process()
 	leedsHaloInfo.operatingSoftwareVersion = sU("v9");
 	leedsHaloInfo.serial = sU("1210-18");
 
+	CalibrationInfo leedsHaloCalibrationInfo;
+	leedsHaloCalibrationInfo.certificationDate = sci::UtcTime(0, 1, 1, 0, 0, 0.0);
+	leedsHaloCalibrationInfo.certificateUrl = sU("Not available");
+	leedsHaloCalibrationInfo.calibrationDescription = sU("Calibrated to manufacturers standard:: 0 to 19 ms-1");
+
 	process(CeilometerProcessor());
-	process(LidarWindProfileProcessor(leedsHaloInfo));
+	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo));
 	//process(LidarStareProcessor());
 	//process(LidarVadProcessor());
 	//process(LidarUserProcessor());
