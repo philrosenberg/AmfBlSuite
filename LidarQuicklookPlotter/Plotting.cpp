@@ -113,14 +113,16 @@ std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForRe
 			//unassigned new file
 			for (size_t j = 0; j < allFiles.size(); ++j)
 			{
-				if (datesAllFiles[j] == datesNewFiles[0])
+				if (datesAllFiles[j] == datesNewFiles[i])
 				{
 					result.back().push_back(allFiles[j]);
 				}
 			}
 
 			//now go through all the remaining unassigned new files and blank out the date if it matches
-			for (size_t j = i; j < datesNewFiles.size(); ++j)
+			//Note we strt at i+1 otherwise we overwrite the date we just used and then no other dates
+			//will match it
+			for (size_t j = i+1; j < datesNewFiles.size(); ++j)
 			{
 				if (datesNewFiles[j] == datesNewFiles[i])
 					datesNewFiles[j] = sU("");
