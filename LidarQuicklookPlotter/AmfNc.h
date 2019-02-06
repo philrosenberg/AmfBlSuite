@@ -105,6 +105,100 @@ struct PlatformInfo
 	std::vector<radian>longitudes; //would have just one element for a static platform
 };
 
+template <class T>
+class AmfNcVariable : public sci::NcVariable<T>
+{
+public:
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &units, T validMin, T validMax)
+		:NcVariable<T>(name, ncFile, dimension)
+	{
+		setAttributes(longName, units, validMin, validMax);
+	}
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &units, T validMin, T validMax)
+		:NcVariable<T>(name, ncFile, dimensions)
+	{
+		setAttributes(longName, units, validMin, validMax);
+	}
+private:
+	void setAttributes(const sci::string &longName, const sci::string &units, T validMin, T validMax)
+	{
+		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
+		sci::NcAttribute unitsAttribute(sU("units"), units);
+		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
+		sci::NcAttribute validMaxAttribute(sU("valid_min"), validMax);
+		addAttribute(longNameAttribute);
+		addAttribute(unitsAttribute);
+		addAttribute(validMinAttribute);
+		addAttribute(validMaxAttribute);
+	}
+};
+
+//create a partial specialization for any AmfNcVariable based on a sci::Physical value
+template <class T>
+class AmfNcVariable<sci::Physical<T>> : public sci::NcVariable<sci::Physical<T>>
+{
+public:
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
+		:NcVariable<sci::Physical<T>>(name, ncFile, dimension)
+	{
+		setAttributes(longName, validMin, validMax);
+	}
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
+		:NcVariable<sci::Physical<T>>(name, ncFile, dimensions)
+	{
+		setAttributes(longName, validMin, validMax);
+	}
+	template <class U>
+	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<T>(physicals))
+	{
+		return sci::physicalsToValues<sci::Physical<T>>(physicals);
+	}
+
+private:
+	void setAttributes(const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
+	{
+		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
+		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getShortUnitString());
+		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>() );
+		sci::NcAttribute validMaxAttribute(sU("valid_min"), validMax.value<T>() );
+		addAttribute(longNameAttribute);
+		addAttribute(unitsAttribute);
+		addAttribute(validMinAttribute);
+		addAttribute(validMaxAttribute);
+	}
+};
+
+class AmfNcTimeVariable : public AmfNcVariable<double>
+{
+public:
+	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
+		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("seconds since 1970-01-01 00:00:00"), 0, std::numeric_limits<double>::max())
+	{}
+	static std::vector<double> convertToSeconds(const std::vector<sci::UtcTime> &times)
+	{
+		std::vector<double> secondsAfterEpoch(times.size());
+		sci::UtcTime epoch(1970, 1, 1, 0, 0, 0.0);
+		for (size_t i = 0; i < times.size(); ++i)
+			secondsAfterEpoch[i] = times[i] - epoch;
+		return secondsAfterEpoch;
+	}
+};
+class AmfNcLongitudeVariable : public AmfNcVariable<double>
+{
+public:
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
+		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("degrees_north"), -360.0, 360.0)
+	{}
+};
+class AmfNcLatitudeVariable : public AmfNcVariable<double>
+{
+public:
+	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
+		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("degrees_east"), -90.0, 90.0)
+	{}
+};
+
+
 class OutputAmfNcFile : public sci::OutputNcFile
 {
 public:
@@ -118,96 +212,29 @@ public:
 		const PlatformInfo &platformInfo,
 		const sci::string &comment,
 		const std::vector<sci::UtcTime> &times,
+		radian longitude,
+		radian latitude,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions= std::vector<sci::NcDimension *>(0));
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
+	void writeTimeAndLocationData();
 private:
 	sci::NcDimension m_timeDimension;
-};
-/*template<>
-void sci::OutputNcFile::write<metre>(const sci::NcVariable<metre> &variable, const std::vector<metre> &data)
-{
-	//static_assert(false, "Using this template");
-}*/
+	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
+	std::unique_ptr<AmfNcLatitudeVariable> m_latitudeVariable;
+	std::unique_ptr<AmfNcLongitudeVariable> m_longitudeVariable;
+	std::unique_ptr<AmfNcVariable<double>> m_dayOfYearVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_yearVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_monthVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_dayVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_hourVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_minuteVariable;
+	std::unique_ptr<AmfNcVariable<double>> m_secondVariable;
 
-template <class T>
-class AmfNcVariable : public sci::NcVariable<T>
-{
-public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &units)
-		:NcVariable<T>(name, ncFile, dimension)
-	{
-		setAttributes(longName, units);
-	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &units)
-		:NcVariable<T>(name, ncFile, dimensions)
-	{
-		setAttributes(longName, units);
-	}
-private:
-	void setAttributes(const sci::string &longName, const sci::string &units)
-	{
-		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
-		sci::NcAttribute unitsAttribute(sU("units"), units);
-		addAttribute(longNameAttribute);
-		addAttribute(unitsAttribute);
-	}
+	std::vector<sci::UtcTime> m_times;
+	radian m_longitude;
+	radian m_latitude;
 };
 
-//create a partial specialization for any AmfNcVariable based on a sci::Physical value
-template <class T>
-class AmfNcVariable<sci::Physical<T>> : public sci::NcVariable<sci::Physical<T>>
-{
-public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName)
-		:NcVariable<sci::Physical<T>>(name, ncFile, dimension)
-	{
-		setAttributes(longName);
-	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName)
-		:NcVariable<sci::Physical<T>>(name, ncFile, dimensions)
-	{
-		setAttributes(longName);
-	}
-	template <class U>
-	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<T>(physicals))
-	{
-		return sci::physicalsToValues<sci::Physical<T>>(physicals);
-	}
-
-private:
-	void setAttributes(const sci::string &longName)
-	{
-		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
-		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getShortUnitString());
-		addAttribute(longNameAttribute);
-		addAttribute(unitsAttribute);
-	}
-};
-
-
-
-
-class AmfNcTimeVariable : public AmfNcVariable<double>
-{
-public:
-	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("seconds since 1970-01-01 00:00:00"))
-	{}
-};
-class AmfNcLongitudeVariable : public AmfNcVariable<double>
-{
-public:
-	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("degrees_north"))
-	{}
-};
-class AmfNcLatitudeVariable : public AmfNcVariable<double>
-{
-public:
-	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("degrees_east"))
-	{}
-};
 
 class OutputAmfSeaNcFile : public OutputAmfNcFile
 {

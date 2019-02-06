@@ -7,6 +7,7 @@
 #include<svector\splot.h>
 #include"ProgressReporter.h"
 #include<wx/filename.h>
+#include"AmfNc.h"
 
 void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent)
 {
@@ -99,6 +100,9 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 
 		//now read the hpl file, we can simply reuse the VAD code as they are the same.
 		m_profiles[i].m_VadProcessor.readData({ hplFilenames[i] }, progressReporter, parent);
+
+		//check that we actually found some VAD data
+		sci::assertThrow(m_profiles[i].m_VadProcessor.getTimesUtcTime().size() > 0, sci::err(sci::SERR_USER, 0, "Could not read VAD data to accompany wind profile data. Aborting read."));
 	}
 
 	m_hasData = true;
@@ -180,6 +184,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	calibrationInfo.certificateUrl = sU("Not available");
 	calibrationInfo.calibrationDescription = sU("Calibrated to manufacturers standard:: 0 to 19 ms-1");
 	DataInfo dataInfo;
+	dataInfo.averagingPeriod = 0.0;
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		dataInfo.averagingPeriod += (m_profiles[i].m_VadProcessor.getTimesSeconds().back() - m_profiles[i].m_VadProcessor.getTimesSeconds()[0]).value<second>();
@@ -187,8 +192,13 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	dataInfo.averagingPeriod /= double(m_profiles.size());
 	dataInfo.averagingPeriodUnit = sU("s");
 	dataInfo.continuous = true;
-	dataInfo.startTime = m_profiles[0].m_VadProcessor.getTimesUtcTime()[0];
-	dataInfo.endTime = m_profiles.back().m_VadProcessor.getTimesUtcTime()[0];
+	dataInfo.startTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
+	dataInfo.endTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
+	if (m_profiles.size() > 0)
+	{
+		dataInfo.startTime = m_profiles[0].m_VadProcessor.getTimesUtcTime()[0];
+		dataInfo.endTime = m_profiles.back().m_VadProcessor.getTimesUtcTime()[0];
+	}
 	dataInfo.featureType = ft_timeSeriesPoint;
 	dataInfo.maxLatDecimalDegrees = sci::max<radian>(platformInfo.latitudes).value<radian>()/M_PI*180.0;
 	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>() / M_PI * 180.0;
@@ -204,9 +214,43 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		times[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
 	}
 	
+	std::vector<sci::NcDimension*> nonTimeDimensions;
+
+	sci::NcDimension indexDimension(sU("index"), m_profiles[0].m_heights.size());
+	nonTimeDimensions.push_back(&indexDimension);
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, calibrationInfo, dataInfo,
-		projectInfo, platformInfo, comment, times);
+		projectInfo, platformInfo, comment, times, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
+
+	AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), metre(0), metre(20000.0));
+	altitudeVariable.addAttribute(sci::NcAttribute(sU("Note:"), sU("Altitude is above instrument, not referenced to sea level or any geoid and not compensated for instrument platform height.")));
+	AmfNcVariable<metrePerSecond> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), metrePerSecond(0), metrePerSecond(20.0));
+	AmfNcVariable<radian> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), radian(0), radian(2.0*M_PI));
+	
+	file.writeTimeAndLocationData();
+
+	if (m_profiles.size() > 0 && m_profiles[0].m_heights.size() > 0)
+	{
+		std::vector<std::vector<metre>> altitudes = sci::makevector<metre>(0.0, m_profiles.size(), m_profiles[0].m_heights.size());
+		std::vector<std::vector<metrePerSecond>> windSpeeds = sci::makevector<metrePerSecond>(0.0, m_profiles.size(), m_profiles[0].m_heights.size());
+		std::vector<std::vector<radian>> windDirections = sci::makevector<radian>(0.0, m_profiles.size(), m_profiles[0].m_heights.size());
+		
+		altitudes[0] = m_profiles[0].m_heights;
+		windSpeeds[0] = m_profiles[0].m_windSpeeds;
+		windDirections[0] = m_profiles[0].m_windDirections;
+
+		for (size_t i = 1; i < m_profiles.size(); ++i)
+		{
+			sci::assertThrow(m_profiles[i].m_heights.size() == altitudes[0].size(), sci::err(sci::SERR_USER, 0, "Lidar wind profiles do not have the same number of altitude points. Aborting processing that day's data."));
+
+			altitudes[i] = m_profiles[i].m_heights;
+			windSpeeds[i] = m_profiles[i].m_windSpeeds;
+			windDirections[i] = m_profiles[i].m_windDirections;
+		}
+		file.write(altitudeVariable, altitudes);
+		file.write(windSpeedVariable, windSpeeds);
+		file.write(windDirectionVariable, windDirections);
+	}
 }
 
 std::vector<std::vector<sci::string>> LidarWindProfileProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const

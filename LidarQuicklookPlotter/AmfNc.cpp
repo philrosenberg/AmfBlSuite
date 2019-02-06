@@ -1,7 +1,9 @@
+#define _USE_MATH_DEFINES
 #include"AmfNc.h"
 #include<sstream>
 #include<iomanip>
 #include<filesystem>
+#include<cmath>
 
 sci::string getFormattedDateTime(const sci::UtcTime &time)
 {
@@ -92,8 +94,10 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const PlatformInfo &platformInfo,
 	const sci::string &comment,
 	const std::vector<sci::UtcTime> &times,
+	radian longitude,
+	radian latitude,
 	const std::vector<sci::NcDimension *> &nonTimeDimensions)
-	:OutputNcFile(), m_timeDimension(sU("time"), times.size())
+	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times), m_longitude(longitude), m_latitude(latitude)
 {
 	//construct the title for the dataset
 	//add the instument name
@@ -261,17 +265,71 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	//and any other dimensions
 	for (size_t i = 0; i < nonTimeDimensions.size(); ++i)
 		write(*nonTimeDimensions[i]);
+
+	//create the time variables, but do not write the data as we need to stay in define mode
+	//so the user can add other variables
+
+	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension()));
+	m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension));
+	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, longitudeDimension));
+	m_dayOfYearVariable.reset(new AmfNcVariable<double>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU("1"), 0.0, 366.0));
+	m_yearVariable.reset(new AmfNcVariable<int>(sU("year"), *this, getTimeDimension(), sU("Year"), sU("1"), std::numeric_limits<int>::min(), std::numeric_limits<int>::max()));
+	m_monthVariable.reset(new AmfNcVariable<int>(sU("month"), *this, getTimeDimension(), sU("Month"), sU("1"), 1, 12));
+	m_dayVariable.reset(new AmfNcVariable<int>(sU("day"), *this, getTimeDimension(), sU("Day"), sU("1"), 1, 31));
+	m_hourVariable.reset(new AmfNcVariable<int>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU("1"), 0, 23));
+	m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU("1"), 0, 59));
+	m_secondVariable.reset(new AmfNcVariable<double>(sU("second"), *this, getTimeDimension(), sU("Second"), sU("1"), 0.0, 60*(1.0-std::numeric_limits<double>::epsilon())));
+	
+
 	//and the time variable
-	std::vector<double> secondsAfterEpoch(times.size());
+	/*std::vector<double> secondsAfterEpoch(times.size());
 	sci::UtcTime epoch(1970, 1, 1, 0, 0, 0.0);
 	for (size_t i = 0; i < times.size(); ++i)
 		secondsAfterEpoch[i] = times[i] - epoch;
 	//this will end define mode!
-	write(AmfNcTimeVariable(*this, m_timeDimension), secondsAfterEpoch);
+	write(AmfNcTimeVariable(*this, m_timeDimension), secondsAfterEpoch);*/
 	
 }
 
-OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,
+void OutputAmfNcFile::writeTimeAndLocationData()
+{
+	std::vector<double> secondsAfterEpoch(m_times.size());
+	std::vector<double> dayOfYear(m_times.size());
+	std::vector<int> year(m_times.size());
+	std::vector<int> month(m_times.size());
+	std::vector<int> day(m_times.size());
+	std::vector<int> hour(m_times.size());
+	std::vector<int> minute(m_times.size());
+	std::vector<double> second(m_times.size());
+
+	sci::UtcTime epoch(1970, 1, 1, 0, 0, 0.0);
+	for (size_t i = 0; i < m_times.size(); ++i)
+	{
+		secondsAfterEpoch[i] = m_times[i] - epoch;
+		year[i] = m_times[i].getYear();
+		month[i] = m_times[i].getMonth();
+		day[i] = m_times[i].getDayOfMonth();
+		hour[i] = m_times[i].getHour();
+		minute[i] = m_times[i].getMinute();
+		second[i] = m_times[i].getSecond();
+		sci::UtcTime startOfYear(year[i], 1, 1, 0, 0, 0);
+		dayOfYear[i] = (m_times[i] - startOfYear) / 60.0 / 60.0 / 24.0;
+	}
+
+	write(*m_timeVariable, secondsAfterEpoch);
+	write(*m_dayOfYearVariable, dayOfYear);
+	write(*m_yearVariable, year);
+	write(*m_monthVariable, month);
+	write(*m_dayVariable, day);
+	write(*m_hourVariable, hour);
+	write(*m_minuteVariable, minute);
+	write(*m_secondVariable, second);
+
+	write(*m_latitudeVariable, std::vector<double>(1, m_latitude.value<radian>()/M_PI*180.0));
+	write(*m_longitudeVariable, std::vector<double>(1, m_latitude.value<radian>() / M_PI * 180.0));
+}
+
+/*OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,
 	const InstrumentInfo &instrumentInfo,
 	const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingsoftwareInfo,
@@ -288,4 +346,4 @@ OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,
 {
 	write(AmfNcLatitudeVariable(*this, getTimeDimension()), latitudes);
 	write(AmfNcLongitudeVariable(*this, getTimeDimension()), longitudes);
-}
+}*/
