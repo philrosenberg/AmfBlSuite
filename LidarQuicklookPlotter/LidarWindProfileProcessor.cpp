@@ -180,13 +180,17 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
-	dataInfo.averagingPeriod = 0.0;
+	dataInfo.averagingPeriod = second(0.0);
+	unitless count(0);
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
-		dataInfo.averagingPeriod += (m_profiles[i].m_VadProcessor.getTimesSeconds().back() - m_profiles[i].m_VadProcessor.getTimesSeconds()[0]).value<second>();
+		if (m_profiles[i].m_VadProcessor.getTimesSeconds().size() > 0)
+		{
+			dataInfo.averagingPeriod += m_profiles[i].m_VadProcessor.getTimesSeconds().back() - m_profiles[i].m_VadProcessor.getTimesSeconds()[0];
+			count += unitless(1);
+		}
 	}
-	dataInfo.averagingPeriod /= double(m_profiles.size());
-	dataInfo.averagingPeriodUnit = sU("s");
+	dataInfo.averagingPeriod /= count;
 	dataInfo.continuous = true;
 	dataInfo.startTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
 	dataInfo.endTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);

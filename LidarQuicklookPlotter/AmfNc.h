@@ -55,10 +55,8 @@ const std::vector<sci::string> g_featureTypeStrings{ sU("timeSeriesPoint") };
 
 struct DataInfo
 {
-	double sampingInterval;
-	sci::string samplingIntervalUnit;
-	double averagingPeriod;
-	sci::string averagingPeriodUnit;
+	second samplingInterval;
+	second averagingPeriod;
 	int processingLevel;
 	FeatureType featureType;
 	double minLatDecimalDegrees;//for point measurements set min and max the same or set one to nan

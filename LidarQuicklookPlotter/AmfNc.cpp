@@ -195,10 +195,10 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate)));
 	write(sci::NcAttribute(sU("calibration_certification_url"), calibrationInfo.certificateUrl));
 	sci::stringstream samplingIntervalString;
-	samplingIntervalString << dataInfo.sampingInterval << " " << dataInfo.samplingIntervalUnit;
+	samplingIntervalString << dataInfo.samplingInterval;
 	write(sci::NcAttribute(sU("sampling_interval"), samplingIntervalString.str()));
 	sci::stringstream averagingIntervalString;
-	averagingIntervalString << dataInfo.averagingPeriod << " " << dataInfo.averagingPeriodUnit;
+	averagingIntervalString << dataInfo.averagingPeriod;
 	write(sci::NcAttribute(sU("averaging_interval"), averagingIntervalString.str()));
 	write(sci::NcAttribute(sU("processing_level"), dataInfo.processingLevel));
 	write(sci::NcAttribute(sU("project"), projectInfo.name));
