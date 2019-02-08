@@ -283,7 +283,7 @@ void mainFrame::process()
 	process(CeilometerProcessor());
 	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
 	//process(LidarStareProcessor());
-	//process(LidarVadProcessor());
+	process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
 	//process(LidarUserProcessor());
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())

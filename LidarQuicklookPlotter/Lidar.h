@@ -59,6 +59,7 @@ class LidarBackscatterDopplerProcessor : public PlotableLidar
 {
 public:
 	LidarBackscatterDopplerProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) :m_hasData(false), m_calibrationInfo(calibrationInfo) {}
+	virtual ~LidarBackscatterDopplerProcessor() {}
 	virtual void readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent) override;
 	void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clear);
 	virtual bool hasData() const override { return m_hasData; }
@@ -92,6 +93,17 @@ private:
 	std::shared_ptr<OrientationGrabber> m_orientationGrabber;
 };
 
+class LidarScanningProcessor : public LidarBackscatterDopplerProcessor
+{
+public:
+	LidarScanningProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber)
+		:LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, orientationGrabber)
+	{}
+	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
+		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
+};
+
 class LidarStareProcessor : public LidarBackscatterDopplerProcessor
 {
 public:
@@ -104,29 +116,23 @@ public:
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 };
 
-class LidarRhiProcessor : public LidarBackscatterDopplerProcessor
+class LidarRhiProcessor : public LidarScanningProcessor
 {
 public:
-	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
-		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
 	sci::string getFilenameFilter() const override;
 };
 
-class LidarVadProcessor : public LidarBackscatterDopplerProcessor
+class LidarVadProcessor : public LidarScanningProcessor
 {
 public:
-	LidarVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, size_t  nSegmentsMin = 10) : LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, orientationGrabber), m_nSegmentsMin(nSegmentsMin) {}
+	LidarVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, size_t  nSegmentsMin = 10) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber), m_nSegmentsMin(nSegmentsMin) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	void plotDataPlan(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 	void plotDataCone(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 	void plotDataCone(radian viewAzimuth, metre maxRange, splot2d * plot);
 	void plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
-	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
-		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
 	sci::string getFilenameFilter() const override { return sU("*VAD_??_????????_??????.hpl"); };
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 private:
@@ -134,14 +140,11 @@ private:
 	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries);
 };
 
-class LidarUserProcessor : public LidarBackscatterDopplerProcessor
+class LidarUserProcessor : public LidarScanningProcessor
 {
 public:
-	LidarUserProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	LidarUserProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
-		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
 	sci::string getFilenameFilter() const override { return sU("*User*.hpl"); };
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 };

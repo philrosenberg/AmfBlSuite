@@ -199,3 +199,166 @@ void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::
 	legend->addentry(sU(""), g_lidarColourscale, false, false, 0.05, 0.3, 15, sU(""), 0, 0.05, wxColour(0, 0, 0), 128, false, 150, false);
 }
 
+void LidarScanningProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
+	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
+{
+	DataInfo dataInfo;
+	dataInfo.averagingPeriod = second(0); //To Do, this should be the time for one VAD
+	dataInfo.continuous = true;
+	dataInfo.startTime = getTimesUtcTime()[0];
+	dataInfo.endTime = getTimesUtcTime().back();
+	dataInfo.featureType = ft_timeSeriesPoint;
+	dataInfo.maxLatDecimalDegrees = sci::max<radian>(platformInfo.latitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.maxLonDecimalDegrees = sci::max<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
+
+	//build up our data arrays. We must account for the fact that the user could change
+	//the number of profiles in a scan pattern or the range of the instruemnt during a day
+	//so we work through the profiles checking when the filename changes. At this point things could
+	//change. The number of gates in each profile can change within a file, but the distance per
+	//gate cannot, so we find the longest range per hile and use this
+	//work out how many lidar profiles there are per VAD and find the start time of each VAD and the ranges array for each vad
+	size_t maxProfilesPerScan = 1;
+	size_t thisProfilesPerScan = 1;
+	std::vector<sci::UtcTime> allTimes = getTimesUtcTime();
+	std::vector<radian> allAzimuths = getAzimuths();
+	std::vector<radian> allElevations = getElevations();
+	std::vector<std::vector<metrePerSecond>> allDopplerVelocities = getDopplerVelocities();
+	std::vector<std::vector<perSteradianPerMetre>> allBackscatters = getBetas();
+	std::vector<sci::UtcTime> scanStartTimes;
+	scanStartTimes.reserve(allTimes.size() / 6);
+	//a 2d array for ranges (time,range)
+	std::vector<std::vector<metre>> ranges;
+	ranges.reserve(allTimes.size() / 6);
+	//a 2d array for azimuth (time, profile within scan)
+	std::vector<std::vector<radian>> azimuthAngles;
+	azimuthAngles.reserve(allTimes.size() / 6);
+	//a 2d array for elevation angle (time, profile within scan)
+	std::vector<std::vector<radian>> elevationAngles;
+	elevationAngles.reserve(allTimes.size() / 6);
+	//a 3d array for doppler speeds (time, profile within a scan, elevation) - note this is not the order we need to output
+	//so immediately after this code we transpose the second two dimensions (time, elevation, profile within a scan)
+	std::vector<std::vector<std::vector<metrePerSecond>>> dopplerVelocities;
+	dopplerVelocities.reserve(allTimes.size() / 6);
+	//a 3d array for backscatters (time, profile within a scan, elevation) - note this is not the order we need to output
+	//so immediately after this code we transpose the second two dimensions (time, elevation, profile within a scan)
+	std::vector<std::vector<std::vector<perSteradianPerMetre>>> backscatters;
+	backscatters.reserve(allTimes.size() / 6);
+
+	HplHeader previousHeader;
+	size_t maxNGatesThisScan;
+	size_t maxNGates;
+
+	if (allTimes.size() > 0)
+	{
+		//keep track of the previous header as we go throught the data. We compare current to previous
+		//header to check if we have moved to the next scan.
+		//Set all the variables using the first profile.
+		previousHeader = getHeaderForProfile(0);
+		scanStartTimes.push_back(allTimes[0]);
+		maxNGatesThisScan = getNGates(0);
+		maxNGates = maxNGatesThisScan;
+		ranges.push_back(getGateCentres(0));
+		azimuthAngles.resize(1);
+		azimuthAngles.back().reserve(6);
+		azimuthAngles.back().push_back(allAzimuths[0]);
+		elevationAngles.resize(1);
+		elevationAngles.back().reserve(6);
+		elevationAngles.back().push_back(allElevations[0]);
+		dopplerVelocities.resize(1);
+		dopplerVelocities.back().reserve(6);
+		dopplerVelocities.back().push_back(allDopplerVelocities[0]);
+		backscatters.resize(1);
+		backscatters.back().reserve(6);
+		backscatters.back().push_back(allBackscatters[0]);
+	}
+
+	//Work through all the profiles finding the needed data
+	for (size_t i = 1; i < allTimes.size(); ++i)
+	{
+		if (getHeaderForProfile(i).filename == previousHeader.filename)
+		{
+			++thisProfilesPerScan;
+			//we want to find the maximum number of gates in the whole set
+			//For a particular scan we want to set the ranges using the profile with the most gates, but
+			//we can't use the longest profile in the whole dataset as the gate length may change between
+			//scans.
+			if (getNGates(i) > maxNGatesThisScan)
+			{
+				maxNGatesThisScan = getNGates(i);
+				maxNGates = std::max(maxNGates, maxNGatesThisScan);
+				ranges.back() = getGateCentres(i);
+			}
+		}
+		else
+		{
+			previousHeader = getHeaderForProfile(i);
+			maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
+			thisProfilesPerScan = 1;
+			scanStartTimes.push_back(allTimes[i]);
+			maxNGatesThisScan = getNGates(i);
+			ranges.push_back(getGateCentres(i));
+			azimuthAngles.resize(azimuthAngles.size() + 1);
+			azimuthAngles.back().reserve(maxProfilesPerScan);
+			elevationAngles.resize(elevationAngles.size() + 1);
+			elevationAngles.back().reserve(maxProfilesPerScan);
+			dopplerVelocities.resize(dopplerVelocities.size() + 1);
+			dopplerVelocities.back().reserve(maxProfilesPerScan);
+			backscatters.resize(backscatters.size() + 1);
+			backscatters.back().reserve(maxProfilesPerScan);
+		}
+		azimuthAngles.back().push_back(allAzimuths[i]);
+		elevationAngles.back().push_back(allElevations[i]);
+		dopplerVelocities.back().push_back(allDopplerVelocities[i]);
+		backscatters.back().push_back(allBackscatters[i]);
+	}
+	//check if the last scan happened to be the one with the most profiles.
+	maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
+
+	//Now we must transpose each element of the doppler and backscatter data
+	//so they are indexed by the range before the profile within the scan.
+	for (size_t i = 0; i < dopplerVelocities.size(); ++i)
+	{
+		dopplerVelocities[i] = sci::transpose(dopplerVelocities[i]);
+		backscatters[i] = sci::transpose(backscatters[i]);
+	}
+
+
+	//expand the arrays, padding with fill value as needed
+	for (size_t i = 0; i < ranges.size(); ++i)
+	{
+		ranges[i].resize(maxNGates, OutputAmfNcFile::getFillValue());
+		azimuthAngles[i].resize(maxProfilesPerScan, OutputAmfNcFile::getFillValue());
+		elevationAngles[i].resize(maxProfilesPerScan, OutputAmfNcFile::getFillValue());
+		dopplerVelocities[i].resize(maxNGates);
+		backscatters[i].resize(maxNGates);
+		for (size_t j = 0; j < maxNGates; ++j)
+		{
+			dopplerVelocities[i][j].resize(maxProfilesPerScan, OutputAmfNcFile::getFillValue());
+			backscatters[i][j].resize(maxProfilesPerScan, OutputAmfNcFile::getFillValue());
+		}
+	}
+
+	std::vector<sci::NcDimension*> nonTimeDimensions;
+	sci::NcDimension rangeIndexDimension(sU("index_of_range"), maxNGates);
+	sci::NcDimension angleIndexDimension(sU("index_of_angle"), maxProfilesPerScan);
+
+
+
+	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
+		projectInfo, platformInfo, comment, scanStartTimes, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
+
+	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), metre(0), metre(10000.0));
+	AmfNcVariable<radian> azimuthVariable(sU("sensor_azimuth_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head azimuth angle"), radian(0), radian(2.0*M_PI));
+	AmfNcVariable<radian> elevationVariable(sU("sensor_view_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head elevation angle"), radian(-M_PI / 2.0), radian(M_PI / 2.0));
+	AmfNcVariable<metrePerSecond> dopplerVariable(sU("los_radial_wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Line of sight radial wind speed"), metrePerSecond(-19.0), metrePerSecond(19.0));
+	AmfNcVariable<perSteradianPerMetre> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Attenuated Aerosol Backscatter Coefficient"), perSteradianPerMetre(0.0), perSteradianPerMetre(1e-3));
+
+	file.write(rangeVariable, ranges);
+	file.write(azimuthVariable, azimuthAngles);
+	file.write(elevationVariable, elevationAngles);
+	file.write(dopplerVariable, dopplerVelocities);
+	file.write(backscatterVariable, backscatters);
+}
