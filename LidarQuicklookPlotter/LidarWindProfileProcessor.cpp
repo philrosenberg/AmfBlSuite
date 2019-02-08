@@ -50,7 +50,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 		}
 	}
 
-	m_profiles.resize(processedFilenames.size(), Profile(getCalibrationInfo()));
+	m_profiles.resize(processedFilenames.size(), Profile(getInstrumentInfo(), getCalibrationInfo(), m_orientationGrabber));
 
 	for (size_t i=0; i<processedFilenames.size(); ++i)
 	{

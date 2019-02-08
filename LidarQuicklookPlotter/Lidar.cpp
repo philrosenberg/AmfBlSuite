@@ -22,6 +22,8 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 	{
 		m_hasData = false;
 		m_profiles.clear();
+		m_hplHeaders.clear();
+		m_headerIndex.clear();
 	}
 
 	std::fstream fin;
@@ -30,14 +32,20 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 		throw(sU("Could not open lidar file ") + inputFilename + sU("."));
 
 	progressReporter << sU("Reading file.\n");
-	fin >> m_hplHeader;
+
+	//Read the HPL header from the top of the file
+	m_hplHeaders.resize(m_hplHeaders.size() + 1);
+	fin >> m_hplHeaders.back();
 
 	bool readingOkay = true;
 	size_t nRead = 0;
+	//Read each profile in turn
 	while (readingOkay)
 	{
 		m_profiles.resize(m_profiles.size() + 1);
-		readingOkay = m_profiles.back().readFromStream(fin, m_hplHeader);
+		m_headerIndex.push_back(m_hplHeaders.size() - 1);//record which header this profile is linked to
+		//Read the profile itself - it takes the header as an input to give details of what needs reading
+		readingOkay = m_profiles.back().readFromStream(fin, m_hplHeaders.back());
 		if (!readingOkay) //we hit the end of the file while reading this profile
 			m_profiles.resize(m_profiles.size() - 1);
 		++nRead;
@@ -118,43 +126,43 @@ std::vector<std::vector<metrePerSecond>> LidarBackscatterDopplerProcessor::getDo
 	return result;
 }
 
-std::vector<metre> LidarBackscatterDopplerProcessor::getGateBoundariesForPlotting() const
+std::vector<metre> LidarBackscatterDopplerProcessor::getGateBoundariesForPlotting(size_t profileIndex) const
 {
-	//because thee may be gate overlapping, for plotting the lower and upper gate boundaries
+	//because there may be gate overlapping, for plotting the lower and upper gate boundaries
 	//aren't quite what we want.
-	metre interval = m_hplHeader.rangeGateLength;
+	metre interval = m_hplHeaders[profileIndex].rangeGateLength;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
-	if (m_profiles[0].nGates() > 533)
-		interval /= unitless(m_hplHeader.pointsPerGate);
+	if (m_profiles[profileIndex].nGates() > 533)
+		interval /= unitless(m_hplHeaders[m_headerIndex[profileIndex]].pointsPerGate);
 
-	std::vector<metre> result = getGateCentres() - unitless(0.5)*interval;
+	std::vector<metre> result = getGateCentres(profileIndex) - unitless(0.5)*interval;
 	result.push_back(result.back() + interval);
 
 	return result;
 }
 
-std::vector<metre> LidarBackscatterDopplerProcessor::getGateLowerBoundaries() const
+std::vector<metre> LidarBackscatterDopplerProcessor::getGateLowerBoundaries(size_t profileIndex) const
 {
 	if (m_profiles.size() == 0)
 		return std::vector<metre>(0);
 
-	std::vector<metre> result(m_profiles[0].nGates() + 1);
+	std::vector<metre> result(m_profiles[profileIndex].nGates() + 1);
 	for (size_t i = 0; i < m_profiles.size(); ++i)
-		result[i] = unitless(i) * m_hplHeader.rangeGateLength;
+		result[i] = unitless(i) * m_hplHeaders[m_headerIndex[profileIndex]].rangeGateLength;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
-	if (m_profiles[0].nGates() > 533)
-		result /= unitless(m_hplHeader.pointsPerGate);
+	if (m_profiles[profileIndex].nGates() > 533)
+		result /= unitless(m_hplHeaders[m_headerIndex[profileIndex]].pointsPerGate);
 	return result;
 }
 
-std::vector<metre> LidarBackscatterDopplerProcessor::getGateUpperBoundaries() const
+std::vector<metre> LidarBackscatterDopplerProcessor::getGateUpperBoundaries(size_t profileIndex) const
 {
-	return getGateLowerBoundaries() + m_hplHeader.rangeGateLength;
+	return getGateLowerBoundaries(profileIndex) + m_hplHeaders[m_headerIndex[profileIndex]].rangeGateLength;
 }
 
-std::vector<metre> LidarBackscatterDopplerProcessor::getGateCentres() const
+std::vector<metre> LidarBackscatterDopplerProcessor::getGateCentres(size_t profileIndex) const
 {
-	return getGateLowerBoundaries() + unitless(0.5) * m_hplHeader.rangeGateLength;
+	return getGateLowerBoundaries(profileIndex) + unitless(0.5) * m_hplHeaders[m_headerIndex[profileIndex]].rangeGateLength;
 }
 
 std::vector<radian> LidarBackscatterDopplerProcessor::getAzimuths() const

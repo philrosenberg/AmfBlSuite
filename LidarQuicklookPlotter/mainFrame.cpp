@@ -281,7 +281,7 @@ void mainFrame::process()
 	leedsHaloCalibrationInfo.calibrationDescription = sU("Calibrated to manufacturers standard:: 0 to 19 ms-1");
 
 	process(CeilometerProcessor());
-	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo));
+	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
 	//process(LidarStareProcessor());
 	//process(LidarVadProcessor());
 	//process(LidarUserProcessor());

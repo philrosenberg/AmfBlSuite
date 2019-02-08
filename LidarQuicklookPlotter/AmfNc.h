@@ -215,6 +215,7 @@ public:
 		const std::vector<sci::NcDimension *> &nonTimeDimensions= std::vector<sci::NcDimension *>(0));
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
 	void writeTimeAndLocationData();
+	static double getFillValue() { return -1e20; }
 private:
 	sci::NcDimension m_timeDimension;
 	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
