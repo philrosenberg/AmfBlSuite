@@ -31,7 +31,8 @@ std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 
 void CeilometerProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
+	const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	if (!hasData())
 		throw(sU("Attempted to write ceilometer data to netcdf when it has not been read"));

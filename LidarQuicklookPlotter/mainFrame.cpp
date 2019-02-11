@@ -280,12 +280,20 @@ void mainFrame::process()
 	leedsHaloCalibrationInfo.certificateUrl = sU("Not available");
 	leedsHaloCalibrationInfo.calibrationDescription = sU("Calibrated to manufacturers standard:: 0 to 19 ms-1");
 
+	m_processingLevel = 1;
+	m_reasonForProcessing = sU("Testing");
+
 	process(CeilometerProcessor());
 	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
+	process(LidarCopolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
+	process(LidarCrosspolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
 	process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
 	process(LidarRhiProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarUserProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
+	process(LidarUser1Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
+	process(LidarUser2Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
+	process(LidarUser3Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
+	process(LidarUser4Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
+	process(LidarUser5Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
 	
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())
@@ -520,7 +528,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 
 			if (processor.hasData())
 			{
-				processor.writeToNc(m_outputDirectory, author, processingSoftwareInfo, projectInfo, platformInfo, comment, *m_progressReporter);
+				processor.writeToNc(m_outputDirectory, author, processingSoftwareInfo, projectInfo, platformInfo, m_processingLevel, m_reasonForProcessing, comment, *m_progressReporter);
 
 				if (m_progressReporter->shouldStop())
 				{

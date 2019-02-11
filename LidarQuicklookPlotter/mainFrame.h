@@ -54,6 +54,9 @@ private:
 	ProjectInfo m_projectInfo;
 	PlatformInfo m_platformInfo;
 	sci::string m_comment;
+	int m_processingLevel;
+	sci::string m_reasonForProcessing;
+
 
 	void start();
 	void stop();

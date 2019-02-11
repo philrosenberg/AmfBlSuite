@@ -63,6 +63,7 @@ public:
 	virtual void readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent) override;
 	void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clear);
 	virtual bool hasData() const override { return m_hasData; }
+	virtual std::vector<sci::string> getProcessingOptions() const = 0;
 	std::vector<second> getTimesSeconds() const;
 	std::vector<sci::UtcTime> getTimesUtcTime() const;
 	std::vector<std::vector<perSteradianPerMetre>> getBetas() const;
@@ -101,7 +102,8 @@ public:
 	{}
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
+		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+		const sci::string &comment, ProgressReporter &progressReporter) override;
 };
 
 class LidarStareProcessor : public LidarBackscatterDopplerProcessor
@@ -111,9 +113,25 @@ public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
-	sci::string getFilenameFilter() const override { return sU("*Stare_??_????????_??.hpl"); };
+		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+		const sci::string &comment, ProgressReporter &progressReporter) override;
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+};
+
+class LidarCopolarisedStareProcessor : public LidarStareProcessor
+{
+public:
+	LidarCopolarisedStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarStareProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	sci::string getFilenameFilter() const override { return sU("*/Proc/????/??????/????????/Stare_??_????????_??.hpl"); };
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("fixed"), sU("co") }; }
+};
+
+class LidarCrosspolarisedStareProcessor : public LidarStareProcessor
+{
+public:
+	LidarCrosspolarisedStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarStareProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	sci::string getFilenameFilter() const override { return sU("*/cross/Proc/????/??????/????????/Stare_??_????????_??.hpl"); };
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("fixed"), sU("cr") }; }
 };
 
 class LidarRhiProcessor : public LidarScanningProcessor
@@ -123,6 +141,7 @@ public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	sci::string getFilenameFilter() const override { return sU("*RHI_??_????????_??????.hpl"); };
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("rhi") }; }
 };
 
 class LidarVadProcessor : public LidarScanningProcessor
@@ -136,6 +155,7 @@ public:
 	void plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 	sci::string getFilenameFilter() const override { return sU("*VAD_??_????????_??????.hpl"); };
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("ppi") }; }
 private:
 	size_t m_nSegmentsMin;
 	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries);
@@ -146,8 +166,49 @@ class LidarUserProcessor : public LidarScanningProcessor
 public:
 	LidarUserProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	sci::string getFilenameFilter() const override { return sU("*User?_??_????????_??????.hpl"); };
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+private:
+	sci::string m_userNumber;
+};
+
+class LidarUser1Processor : public LidarUserProcessor
+{
+public:
+	LidarUser1Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarUserProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	sci::string getFilenameFilter() const override { return sU("*User1_??_????????_??????.hpl"); };
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 1") }; }
+};
+
+class LidarUser2Processor : public LidarUserProcessor
+{
+public:
+	LidarUser2Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarUserProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	sci::string getFilenameFilter() const override { return sU("*User2_??_????????_??????.hpl"); };
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 2") }; }
+};
+
+class LidarUser3Processor : public LidarUserProcessor
+{
+public:
+	LidarUser3Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarUserProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	sci::string getFilenameFilter() const override { return sU("*User3_??_????????_??????.hpl"); };
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 3") }; }
+};
+
+class LidarUser4Processor : public LidarUserProcessor
+{
+public:
+	LidarUser4Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarUserProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	sci::string getFilenameFilter() const override { return sU("*User4_??_????????_??????.hpl"); };
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 4") }; }
+};
+
+class LidarUser5Processor : public LidarUserProcessor
+{
+public:
+	LidarUser5Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarUserProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
+	sci::string getFilenameFilter() const override { return sU("*User5_??_????????_??????.hpl"); };
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 5") }; }
 };
 
 class LidarWindProfileProcessor : public InstrumentProcessor
@@ -158,7 +219,8 @@ public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) override;
+		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+		const sci::string &comment, ProgressReporter &progressReporter) override;
 	virtual bool hasData() const override { return m_hasData; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
 	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }

@@ -88,7 +88,8 @@ public:
 	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) = 0;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter) = 0;
+		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+		const sci::string &comment, ProgressReporter &progressReporter) = 0;
 	virtual bool hasData() const = 0;
 	virtual sci::string getFilenameFilter() const = 0;
 	virtual std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const = 0;

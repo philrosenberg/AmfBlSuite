@@ -4,38 +4,39 @@
 #include<iomanip>
 #include<filesystem>
 #include<cmath>
+#include<locale>
 
-sci::string getFormattedDateTime(const sci::UtcTime &time)
+sci::string getFormattedDateTime(const sci::UtcTime &time, sci::string dateSeparator, sci::string timeSeparator, sci::string dateTimeSeparator)
 {
 	sci::ostringstream timeString;
 	timeString << std::setfill(sU('0'));
-	timeString << time.getYear() << sU("-")
-		<< std::setw(2) << time.getMonth() << sU("-")
-		<< std::setw(2) << time.getDayOfMonth() << sU("T")
-		<< std::setw(2) << time.getHour() << sU(":")
-		<< std::setw(2) << time.getMinute() << sU(":")
+	timeString << time.getYear() << dateSeparator
+		<< std::setw(2) << time.getMonth() << dateSeparator
+		<< std::setw(2) << time.getDayOfMonth() << dateTimeSeparator
+		<< std::setw(2) << time.getHour() << timeSeparator
+		<< std::setw(2) << time.getMinute() << timeSeparator
 		<< std::setw(2) << std::floor(time.getSecond());
 
 	return timeString.str();
 }
 
-sci::string getFormattedDateOnly(const sci::UtcTime &time)
+sci::string getFormattedDateOnly(const sci::UtcTime &time, sci::string separator)
 {
 	sci::ostringstream timeString;
 	timeString << std::setfill(sU('0'));
-	timeString << time.getYear() << sU("-")
-		<< std::setw(2) << time.getMonth() << sU("-")
+	timeString << time.getYear() << separator
+		<< std::setw(2) << time.getMonth() << separator
 		<< std::setw(2) << time.getDayOfMonth();
 
 	return timeString.str();
 }
 
-sci::string getFormattedTimeOnly(const sci::UtcTime &time)
+sci::string getFormattedTimeOnly(const sci::UtcTime &time, sci::string separator)
 {
 	sci::ostringstream timeString;
 	timeString << std::setfill(sU('0'));
-	timeString << std::setw(2) << time.getHour() << sU(":")
-		<< std::setw(2) << time.getMinute() << sU(":")
+	timeString << std::setw(2) << time.getHour() << separator
+		<< std::setw(2) << time.getMinute() << separator
 		<< std::setw(2) << std::floor(time.getSecond());
 
 	return timeString.str();
@@ -104,18 +105,28 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	sci::string title = instrumentInfo.name;
 	//add the platform if there is one
 	if (platformInfo.name.length() > 0)
-		title = title + sU("_") + platformInfo.name;
+		title = title + sU("-") + platformInfo.name;
 	//add either the date or date and time depending upon whether the data is
 	//continuous or a single measurement
 	if (dataInfo.continuous)
-		title = title + sU("_") + getFormattedDateOnly(dataInfo.startTime);
+		title = title + sU("-") + getFormattedDateOnly(dataInfo.startTime, sU(""));
 	else
-		title = title + sU("_") + getFormattedDateTime(dataInfo.startTime);
+		title = title + sU("-") + getFormattedDateTime(dataInfo.startTime, sU(""), sU(""), sU("T"));
 	//add the data product name
-	title = title + sU("_") + dataInfo.productName;
+	title = title + sU("-") + dataInfo.productName;
 	//add any options
 	for (size_t i = 0; i < dataInfo.options.size(); ++i)
 		title = title + sU("_") + dataInfo.options[i];
+
+	//Swap spaces for underscores and make lower case
+	std::locale locale;
+	for (size_t i = 0; i < title.length(); ++i)
+	{
+		if (title[i] == sU(' '))
+			title[i] = sU('_');
+		else
+			title[i] = std::tolower(title[i], locale);
+	}
 
 
 	//construct the file path, without the version number of suffix
@@ -192,7 +203,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("processing_software_url"), processingsoftwareInfo.url));
 	write(sci::NcAttribute(sU("processing_software_version"), processingsoftwareInfo.version));
 	write(sci::NcAttribute(sU("calibration_sensitivity"), calibrationInfo.calibrationDescription));
-	write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate)));
+	write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("calibration_certification_url"), calibrationInfo.certificateUrl));
 	sci::stringstream samplingIntervalString;
 	samplingIntervalString << dataInfo.samplingInterval;
@@ -212,8 +223,8 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings[ platformInfo.deploymentMode ] ));
 	write(sci::NcAttribute(sU("title"), title));
 	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings[ dataInfo.featureType ] ));
-	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime)));
-	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime)));
+	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
+	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(dataInfo)));
 	if (std::isnan(platformInfo.altitudeMetres))
 	{
@@ -242,17 +253,17 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 
 	if (existingHistory.length() == 0)
 	{
-		existingHistory = getFormattedDateTime(dataInfo.endTime) + sU(" - Data collected.");
+		existingHistory = getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T")) + sU(" - Data collected.");
 	}
 
 	sci::UtcTime now = sci::UtcTime::now();
 	sci::ostringstream history;
-	history << existingHistory + sU("\n") + getFormattedDateTime(now) + sU(" - v") << prevVersion + 1 << sU(" ") + processingReason;
+	history << existingHistory + sU("\n") + getFormattedDateTime(now, sU("-"), sU(":"), sU("T")) + sU(" - v") << prevVersion + 1 << sU(" ") + processingReason;
 	write(sci::NcAttribute(sU("history"), history.str()));
 	sci::ostringstream versionString;
 	versionString << sU("v") << prevVersion + 1;
 	write(sci::NcAttribute(sU("product_version"), versionString.str()));
-	write(sci::NcAttribute(sU("last_revised_date"), getFormattedDateTime(now)));
+	write(sci::NcAttribute(sU("last_revised_date"), getFormattedDateTime(now, sU("-"), sU(":"), sU("T"))));
 
 	//Now add the time dimension
 	write(m_timeDimension);

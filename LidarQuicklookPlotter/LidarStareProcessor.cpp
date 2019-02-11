@@ -51,7 +51,8 @@ std::vector<std::vector<sci::string>> LidarStareProcessor::groupFilesPerDayForRe
 
 void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
+	const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
 	dataInfo.continuous = true;
@@ -64,6 +65,10 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>()*180.0 / M_PI;
 	dataInfo.maxLonDecimalDegrees = sci::max<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
 	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.options = getProcessingOptions();
+	dataInfo.processingLevel = processingLevel;
+	dataInfo.productName = sU("mean winds profile");
+	dataInfo.reasonForProcessing = reasonForProcessing;
 
 	//build up our data arrays.
 	std::vector<sci::UtcTime> times = getTimesUtcTime();

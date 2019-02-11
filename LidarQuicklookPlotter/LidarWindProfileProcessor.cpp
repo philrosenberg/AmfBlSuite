@@ -177,10 +177,12 @@ void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, cons
 
 void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
+	const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
 	dataInfo.averagingPeriod = second(0.0);
+	dataInfo.samplingInterval = second(OutputAmfNcFile::getFillValue());
 	unitless count(0);
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
@@ -204,6 +206,10 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>() / M_PI * 180.0;
 	dataInfo.maxLonDecimalDegrees = sci::max<radian>(platformInfo.longitudes).value<radian>() / M_PI * 180.0;
 	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>() / M_PI * 180.0;
+	dataInfo.options = std::vector<sci::string>(0);
+	dataInfo.processingLevel = processingLevel;
+	dataInfo.productName = sU("mean winds profile");
+	dataInfo.reasonForProcessing = reasonForProcessing;
 
 	//get the time for each wind profile retrieval
 	//Note that each retrieval is multiple measurements so we use the

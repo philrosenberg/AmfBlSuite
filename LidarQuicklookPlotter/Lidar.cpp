@@ -202,7 +202,8 @@ void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::
 
 void LidarScanningProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
+	const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
 	dataInfo.continuous = true;
@@ -215,6 +216,10 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>()*180.0 / M_PI;
 	dataInfo.maxLonDecimalDegrees = sci::max<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
 	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.options = getProcessingOptions();
+	dataInfo.processingLevel = processingLevel;
+	dataInfo.productName = sU("mean winds profile");
+	dataInfo.reasonForProcessing = reasonForProcessing;
 
 	//build up our data arrays. We must account for the fact that the user could change
 	//the number of profiles in a scan pattern or the range of the instruemnt during a day
