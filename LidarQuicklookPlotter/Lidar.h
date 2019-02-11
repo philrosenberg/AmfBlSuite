@@ -58,7 +58,7 @@ public:
 class LidarBackscatterDopplerProcessor : public PlotableLidar
 {
 public:
-	LidarBackscatterDopplerProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) :m_hasData(false), m_calibrationInfo(calibrationInfo) {}
+	LidarBackscatterDopplerProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) :m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo), m_orientationGrabber(orientationGrabber) {}
 	virtual ~LidarBackscatterDopplerProcessor() {}
 	virtual void readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent) override;
 	void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clear);
