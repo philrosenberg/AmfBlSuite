@@ -121,7 +121,8 @@ class LidarRhiProcessor : public LidarScanningProcessor
 public:
 	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	sci::string getFilenameFilter() const override;
+	sci::string getFilenameFilter() const override { return sU("*RHI_??_????????_??????.hpl"); };
+	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 };
 
 class LidarVadProcessor : public LidarScanningProcessor
@@ -145,7 +146,7 @@ class LidarUserProcessor : public LidarScanningProcessor
 public:
 	LidarUserProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	sci::string getFilenameFilter() const override { return sU("*User*.hpl"); };
+	sci::string getFilenameFilter() const override { return sU("*User?_??_????????_??????.hpl"); };
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 };
 
