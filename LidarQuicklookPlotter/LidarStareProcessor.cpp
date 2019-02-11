@@ -83,6 +83,28 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 		ranges[i].resize(maxNGates, OutputAmfNcFile::getFillValue());
 	}
 
+	//work out the averaging time - this is the difference between the scan start and end times.
+	//use the median as the value for the file
+	if (times.size() > 0)
+	{
+		std::vector <size_t> pulsesPerPoint(times.size());
+		for (size_t i = 0; i < times.size(); ++i)
+			pulsesPerPoint[i] = getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays;
+		std::vector <size_t> sortedPulsesPerRay = pulsesPerPoint;
+		std::sort(sortedPulsesPerRay.begin(), sortedPulsesPerRay.end());
+		dataInfo.averagingPeriod = unitless(sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>>(15.0);
+	}
+
+	//work out the sampling interval.
+	//use the median as the value for the file
+	if (times.size() > 1)
+	{
+		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(times.begin() + 1, times.end()) - std::vector<sci::UtcTime>(times.begin(), times.end() - 1);
+		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
+		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
+		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
+	}
+
 	std::vector<sci::NcDimension*> nonTimeDimensions;
 	sci::NcDimension rangeIndexDimension(sU("index_of_range"), maxNGates);
 	nonTimeDimensions.push_back(&rangeIndexDimension);
