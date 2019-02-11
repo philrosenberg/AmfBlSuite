@@ -204,8 +204,9 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
-	dataInfo.averagingPeriod = second(0); //To Do, this should be the time for one VAD
 	dataInfo.continuous = true;
+	dataInfo.samplingInterval = second(OutputAmfNcFile::getFillValue());//set to fill value initially - calculate it later
+	dataInfo.averagingPeriod = second(OutputAmfNcFile::getFillValue());//set to fill value initially - calculate it later
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
 	dataInfo.featureType = ft_timeSeriesPoint;
@@ -228,7 +229,9 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	std::vector<std::vector<metrePerSecond>> allDopplerVelocities = getDopplerVelocities();
 	std::vector<std::vector<perSteradianPerMetre>> allBackscatters = getBetas();
 	std::vector<sci::UtcTime> scanStartTimes;
+	std::vector<sci::UtcTime> scanEndTimes;
 	scanStartTimes.reserve(allTimes.size() / 6);
+	scanEndTimes.reserve(allTimes.size() / 6);
 	//a 2d array for ranges (time,range)
 	std::vector<std::vector<metre>> ranges;
 	ranges.reserve(allTimes.size() / 6);
@@ -298,6 +301,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 			maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
 			thisProfilesPerScan = 1;
 			scanStartTimes.push_back(allTimes[i]);
+			scanEndTimes.push_back(allTimes[i-1]);
 			maxNGatesThisScan = getNGates(i);
 			ranges.push_back(getGateCentres(i));
 			azimuthAngles.resize(azimuthAngles.size() + 1);
@@ -314,7 +318,8 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		dopplerVelocities.back().push_back(allDopplerVelocities[i]);
 		backscatters.back().push_back(allBackscatters[i]);
 	}
-	//check if the last scan happened to be the one with the most profiles.
+	//Some final items that need doing regaring the last scan/profile.
+	scanEndTimes.push_back(allTimes.back());
 	maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
 
 	//Now we must transpose each element of the doppler and backscatter data
@@ -339,6 +344,26 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 			dopplerVelocities[i][j].resize(maxProfilesPerScan, OutputAmfNcFile::getFillValue());
 			backscatters[i][j].resize(maxProfilesPerScan, OutputAmfNcFile::getFillValue());
 		}
+	}
+
+	//work out the averaging time - this is the difference between the scan start and end times.
+	//use the median as the value for the file
+	if (scanStartTimes.size() > 0)
+	{
+		std::vector<sci::TimeInterval> averagingTimes = scanEndTimes - scanStartTimes;
+		std::vector < sci::TimeInterval> sortedAveragingTimes = averagingTimes;
+		std::sort(sortedAveragingTimes.begin(), sortedAveragingTimes.end());
+		dataInfo.averagingPeriod = second(sortedAveragingTimes[sortedAveragingTimes.size() / 2]);
+	}
+
+	//work out the sampling interval - this is the difference between each scan time.
+	//use the median as the value for the file
+	if (scanStartTimes.size() > 1)
+	{
+		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(scanStartTimes.begin()+1, scanStartTimes.end()) - std::vector<sci::UtcTime>(scanStartTimes.begin(), scanStartTimes.end() - 1);
+		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
+		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
+		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
 
 	std::vector<sci::NcDimension*> nonTimeDimensions;

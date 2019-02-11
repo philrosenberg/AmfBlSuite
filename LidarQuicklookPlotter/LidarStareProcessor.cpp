@@ -36,9 +36,70 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 	}
 }
 
-
-
 std::vector<std::vector<sci::string>> LidarStareProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
 	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 9);
+}
+
+void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
+	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+	const PlatformInfo &platformInfo, const sci::string &comment, ProgressReporter &progressReporter)
+{
+	DataInfo dataInfo;
+	dataInfo.continuous = true;
+	dataInfo.samplingInterval = second(OutputAmfNcFile::getFillValue());//set to fill value initially - calculate it later
+	dataInfo.averagingPeriod = second(OutputAmfNcFile::getFillValue());//set to fill value initially - calculate it later
+	dataInfo.startTime = getTimesUtcTime()[0];
+	dataInfo.endTime = getTimesUtcTime().back();
+	dataInfo.featureType = ft_timeSeriesPoint;
+	dataInfo.maxLatDecimalDegrees = sci::max<radian>(platformInfo.latitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.maxLonDecimalDegrees = sci::max<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
+
+	//build up our data arrays.
+	std::vector<sci::UtcTime> times = getTimesUtcTime();
+	std::vector<radian> azimuthAngles = getAzimuths();
+	std::vector<radian> elevationAngles = getElevations();
+	std::vector<std::vector<metrePerSecond>> dopplerVelocities = getDopplerVelocities();
+	std::vector<std::vector<perSteradianPerMetre>> backscatters = getBetas();
+	std::vector<std::vector<metre>> ranges(backscatters.size());
+	for (size_t i = 0; i < ranges.size(); ++i)
+	{
+		ranges[i] = getGateCentres(i);
+	}
+
+	//If the user changed the number of range gates during the day we need to expand the data arrays
+	//padding with fill value
+	size_t maxNGates = 0;
+	for (size_t i = 0; i < times.size(); ++i)
+	{
+		maxNGates = std::max(maxNGates, ranges[i].size());
+	}
+	for (size_t i = 0; i < times.size(); ++i)
+	{
+		dopplerVelocities[i].resize(maxNGates, OutputAmfNcFile::getFillValue());
+		backscatters[i].resize(maxNGates, OutputAmfNcFile::getFillValue());
+		ranges[i].resize(maxNGates, OutputAmfNcFile::getFillValue());
+	}
+
+	std::vector<sci::NcDimension*> nonTimeDimensions;
+	sci::NcDimension rangeIndexDimension(sU("index_of_range"), maxNGates);
+	nonTimeDimensions.push_back(&rangeIndexDimension);
+
+
+	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
+		projectInfo, platformInfo, comment, times, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
+
+	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), metre(0), metre(10000.0));
+	AmfNcVariable<radian> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), radian(0), radian(2.0*M_PI));
+	AmfNcVariable<radian> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning head elevation angle"), radian(-M_PI / 2.0), radian(M_PI / 2.0));
+	AmfNcVariable<metrePerSecond> dopplerVariable(sU("los_radial_wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Line of sight radial wind speed"), metrePerSecond(-19.0), metrePerSecond(19.0));
+	AmfNcVariable<perSteradianPerMetre> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), perSteradianPerMetre(0.0), perSteradianPerMetre(1e-3));
+
+	file.write(rangeVariable, ranges);
+	file.write(azimuthVariable, azimuthAngles);
+	file.write(elevationVariable, elevationAngles);
+	file.write(dopplerVariable, dopplerVelocities);
+	file.write(backscatterVariable, backscatters);
 }
