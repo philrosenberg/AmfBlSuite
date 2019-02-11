@@ -373,9 +373,9 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
 
-	std::vector<sci::NcDimension*> nonTimeDimensions;
 	sci::NcDimension rangeIndexDimension(sU("index_of_range"), maxNGates);
 	sci::NcDimension angleIndexDimension(sU("index_of_angle"), maxProfilesPerScan);
+	std::vector<sci::NcDimension*> nonTimeDimensions{ &rangeIndexDimension, &angleIndexDimension };
 
 
 
