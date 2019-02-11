@@ -83,6 +83,7 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 				throw(error.str());
 			}
 	}
+	m_hasData = true;
 }
 
 
@@ -146,8 +147,8 @@ std::vector<metre> LidarBackscatterDopplerProcessor::getGateLowerBoundaries(size
 	if (m_profiles.size() == 0)
 		return std::vector<metre>(0);
 
-	std::vector<metre> result(m_profiles[profileIndex].nGates() + 1);
-	for (size_t i = 0; i < m_profiles.size(); ++i)
+	std::vector<metre> result(m_profiles[profileIndex].nGates());
+	for (size_t i = 0; i < result.size(); ++i)
 		result[i] = unitless(i) * m_hplHeaders[m_headerIndex[profileIndex]].rangeGateLength;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
 	if (m_profiles[profileIndex].nGates() > 533)

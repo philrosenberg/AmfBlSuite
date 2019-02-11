@@ -22,7 +22,15 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 		setupCanvas(&window, &plot, sU(""), parent);
 		WindowCleaner cleaner(window);
 
-		std::shared_ptr<PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>(getTimesSeconds(), getGateBoundariesForPlotting(0), getBetas(), g_lidarColourscale, true, true));
+		//create time boundaries between plots;
+		std::vector<second> times = getTimesSeconds();
+		sci::assertThrow(times.size() > 0, sci::err(sci::SERR_USER, 0, "Attempted to plot a set of stares with no profiles."));
+		if (times.size() == 1)
+			times.push_back(times.back() + second(2.5));
+		else
+			times.push_back(times.back() + times.back() - times[times.size() - 2]);
+
+		std::shared_ptr<PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>(times, getGateBoundariesForPlotting(0), getBetas(), g_lidarColourscale, true, true));
 		plot->addData(gridData);
 
 		plot->getxaxis()->settitle(sU("Time"));
