@@ -276,51 +276,52 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		backscatters.resize(1);
 		backscatters.back().reserve(6);
 		backscatters.back().push_back(allBackscatters[0]);
-	}
 
-	//Work through all the profiles finding the needed data
-	for (size_t i = 1; i < allTimes.size(); ++i)
-	{
-		if (getHeaderForProfile(i).filename == previousHeader.filename)
+
+		//Work through all the profiles finding the needed data
+		for (size_t i = 1; i < allTimes.size(); ++i)
 		{
-			++thisProfilesPerScan;
-			//we want to find the maximum number of gates in the whole set
-			//For a particular scan we want to set the ranges using the profile with the most gates, but
-			//we can't use the longest profile in the whole dataset as the gate length may change between
-			//scans.
-			if (getNGates(i) > maxNGatesThisScan)
+			if (getHeaderForProfile(i).filename == previousHeader.filename)
 			{
-				maxNGatesThisScan = getNGates(i);
-				maxNGates = std::max(maxNGates, maxNGatesThisScan);
-				ranges.back() = getGateCentres(i);
+				++thisProfilesPerScan;
+				//we want to find the maximum number of gates in the whole set
+				//For a particular scan we want to set the ranges using the profile with the most gates, but
+				//we can't use the longest profile in the whole dataset as the gate length may change between
+				//scans.
+				if (getNGates(i) > maxNGatesThisScan)
+				{
+					maxNGatesThisScan = getNGates(i);
+					maxNGates = std::max(maxNGates, maxNGatesThisScan);
+					ranges.back() = getGateCentres(i);
+				}
 			}
+			else
+			{
+				previousHeader = getHeaderForProfile(i);
+				maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
+				thisProfilesPerScan = 1;
+				scanStartTimes.push_back(allTimes[i]);
+				scanEndTimes.push_back(allTimes[i - 1] + (unitless(getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0)).value<second>()); //this is the time of the last profile in the scan plus the duration of this profile
+				maxNGatesThisScan = getNGates(i);
+				ranges.push_back(getGateCentres(i));
+				azimuthAngles.resize(azimuthAngles.size() + 1);
+				azimuthAngles.back().reserve(maxProfilesPerScan);
+				elevationAngles.resize(elevationAngles.size() + 1);
+				elevationAngles.back().reserve(maxProfilesPerScan);
+				dopplerVelocities.resize(dopplerVelocities.size() + 1);
+				dopplerVelocities.back().reserve(maxProfilesPerScan);
+				backscatters.resize(backscatters.size() + 1);
+				backscatters.back().reserve(maxProfilesPerScan);
+			}
+			azimuthAngles.back().push_back(allAzimuths[i]);
+			elevationAngles.back().push_back(allElevations[i]);
+			dopplerVelocities.back().push_back(allDopplerVelocities[i]);
+			backscatters.back().push_back(allBackscatters[i]);
 		}
-		else
-		{
-			previousHeader = getHeaderForProfile(i);
-			maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
-			thisProfilesPerScan = 1;
-			scanStartTimes.push_back(allTimes[i]);
-			scanEndTimes.push_back(allTimes[i-1]);
-			maxNGatesThisScan = getNGates(i);
-			ranges.push_back(getGateCentres(i));
-			azimuthAngles.resize(azimuthAngles.size() + 1);
-			azimuthAngles.back().reserve(maxProfilesPerScan);
-			elevationAngles.resize(elevationAngles.size() + 1);
-			elevationAngles.back().reserve(maxProfilesPerScan);
-			dopplerVelocities.resize(dopplerVelocities.size() + 1);
-			dopplerVelocities.back().reserve(maxProfilesPerScan);
-			backscatters.resize(backscatters.size() + 1);
-			backscatters.back().reserve(maxProfilesPerScan);
-		}
-		azimuthAngles.back().push_back(allAzimuths[i]);
-		elevationAngles.back().push_back(allElevations[i]);
-		dopplerVelocities.back().push_back(allDopplerVelocities[i]);
-		backscatters.back().push_back(allBackscatters[i]);
+		//Some final items that need doing regaring the last scan/profile.
+		scanEndTimes.push_back(allTimes.back() + (unitless(getHeaderForProfile(allTimes.size() - 1).pulsesPerRay * getHeaderForProfile(allTimes.size() - 1).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0)).value<second>()); //this is the time of the last profile in the scan plus the duration of this profile);
+		maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
 	}
-	//Some final items that need doing regaring the last scan/profile.
-	scanEndTimes.push_back(allTimes.back());
-	maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
 
 	//Now we must transpose each element of the doppler and backscatter data
 	//so they are indexed by the range before the profile within the scan.
