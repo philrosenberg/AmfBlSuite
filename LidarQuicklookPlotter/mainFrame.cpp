@@ -283,17 +283,17 @@ void mainFrame::process()
 	m_processingLevel = 1;
 	m_reasonForProcessing = sU("Testing");
 
-	//process(CeilometerProcessor(), sU("Ceilometer processor"));
-	//process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Wind Profile processor"));
+	process(CeilometerProcessor(), sU("Ceilometer processor"));
+	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Wind Profile processor"));
 	process(LidarCopolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Copolarised Stare processor"));
 	process(LidarCrosspolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Cross Polarised Stare processor"));
-	//process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar VAD/PPI processor"));
-	//process(LidarRhiProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar RHI processor"));
-	//process(LidarUser1Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User1 processor"));
-	//process(LidarUser2Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User2 processor"));
-	//process(LidarUser3Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User3 processor"));
-	//process(LidarUser4Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User4 processor"));
-	//process(LidarUser5Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User5 processor"));
+	process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar VAD/PPI processor"));
+	process(LidarRhiProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar RHI processor"));
+	process(LidarUser1Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User1 processor"));
+	process(LidarUser2Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User2 processor"));
+	process(LidarUser3Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User3 processor"));
+	process(LidarUser4Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User4 processor"));
+	process(LidarUser5Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User5 processor"));
 	
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())

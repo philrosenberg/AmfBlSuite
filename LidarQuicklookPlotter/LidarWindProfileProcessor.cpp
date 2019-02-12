@@ -181,18 +181,8 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
-	dataInfo.averagingPeriod = second(0.0);
+	dataInfo.averagingPeriod = second(OutputAmfNcFile::getFillValue());
 	dataInfo.samplingInterval = second(OutputAmfNcFile::getFillValue());
-	unitless count(0);
-	for (size_t i = 0; i < m_profiles.size(); ++i)
-	{
-		if (m_profiles[i].m_VadProcessor.getTimesSeconds().size() > 0)
-		{
-			dataInfo.averagingPeriod += m_profiles[i].m_VadProcessor.getTimesSeconds().back() - m_profiles[i].m_VadProcessor.getTimesSeconds()[0];
-			count += unitless(1);
-		}
-	}
-	dataInfo.averagingPeriod /= count;
 	dataInfo.continuous = true;
 	dataInfo.startTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
 	dataInfo.endTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
@@ -211,13 +201,33 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	dataInfo.productName = sU("mean winds profile");
 	dataInfo.reasonForProcessing = reasonForProcessing;
 
-	//get the time for each wind profile retrieval
-	//Note that each retrieval is multiple measurements so we use the
-	//time of the first measurement
-	std::vector<sci::UtcTime> times(m_profiles.size());
+	//get the start and end time for each wind profile retrieval
+	std::vector<sci::UtcTime> scanStartTimes(m_profiles.size());
+	std::vector<sci::UtcTime> scanEndTimes(m_profiles.size());
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
-		times[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
+		scanStartTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
+		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back()+ (unitless(m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0)).value<second>();//the second bit of this adds the duration of each ray
+	}
+
+	//work out the averaging time - this is the difference between the scan start and end times.
+	//use the median as the value for the file
+	if (scanStartTimes.size() > 0)
+	{
+		std::vector<sci::TimeInterval> averagingTimes = scanEndTimes - scanStartTimes;
+		std::vector < sci::TimeInterval> sortedAveragingTimes = averagingTimes;
+		std::sort(sortedAveragingTimes.begin(), sortedAveragingTimes.end());
+		dataInfo.averagingPeriod = second(sortedAveragingTimes[sortedAveragingTimes.size() / 2]);
+	}
+
+	//work out the sampling interval - this is the difference between each start time.
+	//use the median as the value for the file
+	if (scanStartTimes.size() > 1)
+	{
+		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(scanStartTimes.begin() + 1, scanStartTimes.end()) - std::vector<sci::UtcTime>(scanStartTimes.begin(), scanStartTimes.end() - 1);
+		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
+		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
+		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
 	
 	std::vector<sci::NcDimension*> nonTimeDimensions;
@@ -226,7 +236,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	nonTimeDimensions.push_back(&indexDimension);
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platformInfo, comment, times, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
+		projectInfo, platformInfo, comment, scanStartTimes, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), metre(0), metre(20000.0));
 	altitudeVariable.addAttribute(sci::NcAttribute(sU("Note:"), sU("Altitude is above instrument, not referenced to sea level or any geoid and not compensated for instrument platform height.")));
