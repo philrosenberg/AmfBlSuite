@@ -62,7 +62,7 @@ private:
 	const unitless m_sinElevationRad;
 };
 
-void LidarVadProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void ConicalScanningProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::assertThrow(getNFilesRead() == 1, sci::err(sci::SERR_USER, 0, "Attempted to plot a VAD with either no files or multiple files. This code can only plot one file at a time."));
 
@@ -74,7 +74,7 @@ void LidarVadProcessor::plotData(const sci::string &outputFilename, const std::v
 	}
 }
 
-void LidarVadProcessor::plotDataPlan(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void ConicalScanningProcessor::plotDataPlan(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::ostringstream rangeLimitedfilename;
 	rangeLimitedfilename << outputFilename;
@@ -135,7 +135,7 @@ void LidarVadProcessor::plotDataPlan(const sci::string &outputFilename, metre ma
 }
 
 
-void LidarVadProcessor::plotDataCone(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void ConicalScanningProcessor::plotDataCone(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window = new splotframe(parent, true);
 	WindowCleaner cleaner(window);
@@ -157,7 +157,7 @@ void LidarVadProcessor::plotDataCone(const sci::string &outputFilename, metre ma
 	createDirectoryAndWritePlot(window, outputFilename, 1000, 2000, progressReporter);
 }
 
-void LidarVadProcessor::plotDataCone(radian viewAzimuth, metre maxRange, splot2d * plot)
+void ConicalScanningProcessor::plotDataCone(radian viewAzimuth, metre maxRange, splot2d * plot)
 {
 	//sort the data into ascending azimuth
 	std::vector<std::vector<perSteradianPerMetre>> sortedBetas;
@@ -224,7 +224,7 @@ void LidarVadProcessor::plotDataCone(radian viewAzimuth, metre maxRange, splot2d
 	plot->getyaxis()->settitledistance(4.5);
 }
 
-void LidarVadProcessor::plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window = new splotframe(parent, true);
 	splot2d *plot;
@@ -254,7 +254,7 @@ void LidarVadProcessor::plotDataUnwrapped(const sci::string &outputFilename, met
 	createDirectoryAndWritePlot(window, outputFilename, 1000, 1000, progressReporter);
 }
 
-void LidarVadProcessor::getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries)
+void ConicalScanningProcessor::getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries)
 {
 
 	std::vector<radian> midAzimuths = getAzimuths();
@@ -285,4 +285,9 @@ void LidarVadProcessor::getDataSortedByAzimuth(std::vector<std::vector<perSterad
 std::vector<std::vector<sci::string>> LidarVadProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
 	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 7);
+}
+
+std::vector<std::vector<sci::string>> LidarWindVadProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+{
+	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 16);
 }

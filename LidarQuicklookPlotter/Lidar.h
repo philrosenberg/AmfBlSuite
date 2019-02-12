@@ -142,20 +142,40 @@ public:
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("rhi") }; }
 };
 
-class LidarVadProcessor : public LidarScanningProcessor
+
+
+class ConicalScanningProcessor : public LidarScanningProcessor
 {
 public:
-	LidarVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, size_t  nSegmentsMin = 10) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber, sU("[/\\\\]VAD_.._........_......\\.hpl$")), m_nSegmentsMin(nSegmentsMin) {}
+	ConicalScanningProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, sci::string fileSearchRegEx, size_t  nSegmentsMin = 10) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber, fileSearchRegEx), m_nSegmentsMin(nSegmentsMin) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	void plotDataPlan(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 	void plotDataCone(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 	void plotDataCone(radian viewAzimuth, metre maxRange, splot2d * plot);
 	void plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+private:
+	size_t m_nSegmentsMin;
+	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries);
+};
+
+class LidarVadProcessor : public ConicalScanningProcessor
+{
+public:
+	LidarVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber, sU("[/\\\\]VAD_.._........_......\\.hpl$"), nSegmentsMin) {}
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("ppi") }; }
 private:
 	size_t m_nSegmentsMin;
-	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries);
+};
+
+class LidarWindVadProcessor : public ConicalScanningProcessor
+{
+public:
+	LidarWindVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber, sU("[/\\\\]Wind_Profile_.._........_......\\.hpl$"), nSegmentsMin) {}
+	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("wind ppi") }; }
+private:
+	size_t m_nSegmentsMin;
 };
 
 class LidarUserProcessor : public LidarScanningProcessor
@@ -227,7 +247,7 @@ private:
 		std::vector<metrePerSecond> m_windSpeeds;
 		InstrumentInfo m_instrumentInfo;
 		//sci::UtcTime m_time;
-		LidarVadProcessor m_VadProcessor; // have a separate VAD processor for each profile
+		LidarWindVadProcessor m_VadProcessor; // have a separate Wind VAD processor for each profile
 	};
 	std::vector<Profile> m_profiles;
 	const InstrumentInfo m_instrumentInfo;
