@@ -61,10 +61,10 @@ private:
 	void start();
 	void stop();
 	void process();
-	void process(InstrumentProcessor &processor);
+	void process(InstrumentProcessor &processor, sci::string processorName);
 	void readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 		const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor);
+		const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor, sci::string processorName);
 	void checkDirectoryStructue();
 
 	DECLARE_EVENT_TABLE();

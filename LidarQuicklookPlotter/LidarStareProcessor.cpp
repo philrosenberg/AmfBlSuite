@@ -6,6 +6,7 @@
 #include"Plotting.h"
 #include<svector\splot.h>
 #include"ProgressReporter.h"
+#include<wx/filename.h>
 
 void LidarStareProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
@@ -67,7 +68,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
 	dataInfo.options = getProcessingOptions();
 	dataInfo.processingLevel = processingLevel;
-	dataInfo.productName = sU("mean winds profile");
+	dataInfo.productName = sU("backscatter radial winds");
 	dataInfo.reasonForProcessing = reasonForProcessing;
 
 	//build up our data arrays.

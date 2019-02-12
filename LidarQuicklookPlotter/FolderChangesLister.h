@@ -4,6 +4,8 @@
 #include<wx/dir.h>
 #include<svector/sstring.h>
 
+class InstrumentProcessor;
+
 class FolderChangesLister
 {
 public:
@@ -16,18 +18,10 @@ public:
 	void setSnapshotFile(const sci::string &snapshotFile) { m_snapshotFile = snapshotFile; }
 	const sci::string &getDirectory() const { return m_directory; }
 	const sci::string &getSnapshotFile() const { return m_snapshotFile; }
-	virtual std::vector<sci::string> getChanges(const sci::string &filespec) const = 0;
+	virtual std::vector<sci::string> getChanges(const InstrumentProcessor &processor) const = 0;
 	virtual void updateSnapshotFile( const sci::string &changedFile) const = 0;
 	virtual void clearSnapshotFile();
-	std::vector<sci::string> listFolderContents(const sci::string &filespec) const
-	{
-		wxArrayString files;
-		wxDir::GetAllFiles(sci::nativeUnicode(m_directory), &files, sci::nativeUnicode(filespec));
-		std::vector<sci::string> result(files.size());
-		for (size_t i = 0; i < files.size(); ++i)
-			result[i] = sci::fromWxString(files[i]);
-		return result;
-	}
+	std::vector<sci::string> listFolderContents(const InstrumentProcessor &processor) const;
 	virtual ~FolderChangesLister() {}
 private:
 	sci::string m_directory;
@@ -42,10 +36,11 @@ public:
 	ExistedFolderChangesLister(const sci::string &directory, const sci::string snapshotFile)
 		:FolderChangesLister(directory, snapshotFile)
 	{}
-	std::vector<sci::string> getChanges(const sci::string &filespec) const override;
+	std::vector<sci::string> getChanges(const InstrumentProcessor &processor) const override;
 	void updateSnapshotFile(const sci::string &changedFile) const override;
 	virtual ~ExistedFolderChangesLister() {}
-	std::vector<sci::string> getPreviouslyExistingFiles(const sci::string &filespec) const;
+	std::vector<sci::string> getPreviouslyExistingFiles(const InstrumentProcessor &processor) const;
+	std::vector<sci::string> getAllPreviouslyExistingFiles() const;
 };
 
 //This class lists folder changes simply assuming that if a file existed during the last snapshot
@@ -56,7 +51,7 @@ public:
 	AlphabeticallyLastCouldHaveChangedChangesLister(const sci::string &directory, const sci::string snapshotFile)
 		:ExistedFolderChangesLister(directory, snapshotFile)
 	{}
-	std::vector<sci::string> getChanges(const sci::string &filespec) const override;
+	std::vector<sci::string> getChanges(const InstrumentProcessor &processor) const override;
 	void updateSnapshotFile(const sci::string &changedFile) const override;
 	virtual ~AlphabeticallyLastCouldHaveChangedChangesLister() {}
 };

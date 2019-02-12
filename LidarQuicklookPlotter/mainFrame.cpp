@@ -283,17 +283,17 @@ void mainFrame::process()
 	m_processingLevel = 1;
 	m_reasonForProcessing = sU("Testing");
 
-	process(CeilometerProcessor());
-	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarCopolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarCrosspolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarRhiProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarUser1Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarUser2Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarUser3Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarUser4Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
-	process(LidarUser5Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))));
+	//process(CeilometerProcessor(), sU("Ceilometer processor"));
+	//process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Wind Profile processor"));
+	process(LidarCopolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Copolarised Stare processor"));
+	process(LidarCrosspolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Cross Polarised Stare processor"));
+	//process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar VAD/PPI processor"));
+	//process(LidarRhiProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar RHI processor"));
+	//process(LidarUser1Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User1 processor"));
+	//process(LidarUser2Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User2 processor"));
+	//process(LidarUser3Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User3 processor"));
+	//process(LidarUser4Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User4 processor"));
+	//process(LidarUser5Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User5 processor"));
 	
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())
@@ -303,7 +303,7 @@ void mainFrame::process()
 		m_logText->AppendText("Stopped\n\n");
 }
 
-void mainFrame::process(InstrumentProcessor &processor)
+void mainFrame::process(InstrumentProcessor &processor, sci::string processorName)
 {
 
 	//Check that the input/output diectories are actually there
@@ -321,9 +321,9 @@ void mainFrame::process(InstrumentProcessor &processor)
 		if (!m_progressReporter->shouldStop())
 		{
 			//Ensure all our directoris are as
-			readDataThenPlotThenNc(plotChangesLister, ncChangesLister, m_author, m_processingSoftwareInfo, m_projectInfo, m_platformInfo, m_comment, processor);
+			readDataThenPlotThenNc(plotChangesLister, ncChangesLister, m_author, m_processingSoftwareInfo, m_projectInfo, m_platformInfo, m_comment, processor, processorName);
 			if (!m_progressReporter->shouldStop())
-				(*m_progressReporter) << sU("Processed all files matching filter ") << processor.getFilenameFilter() << sU("\n");
+				(*m_progressReporter) << sU("Processed all files matching filter ") << processorName << sU("\n");
 		}
 	}
 	catch (sci::err err)
@@ -407,21 +407,21 @@ void mainFrame::checkDirectoryStructue()
 
 void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 	const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor)
+	const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor, sci::string processorName)
 {
 	//check for new files
 	(*m_progressReporter) << sU("Looking for data files to plot.\n");
-	std::vector<sci::string> newPlotFiles = plotChangesLister.getChanges(processor.getFilenameFilter());
+	std::vector<sci::string> newPlotFiles = plotChangesLister.getChanges(processor);
 
 	//Keep the user updated
 	if (newPlotFiles.size() == 0)
 	{
-		(*m_progressReporter) << sU("Found no new files to process matching the filter ") << processor.getFilenameFilter() << sU("\n");
+		(*m_progressReporter) << sU("Found no new files to process for the ") << processorName << sU("\n");
 		return;
 	}
 	else
 	{
-		(*m_progressReporter) << sU("Found the following new files to plot matching the filter ") << processor.getFilenameFilter() << sU(" :\n");
+		(*m_progressReporter) << sU("Found the following new files to for the  ") << processorName << sU(" :\n");
 		for (size_t i = 0; i < newPlotFiles.size(); ++i)
 			(*m_progressReporter) << sU("\t") << newPlotFiles[i] << sU("\n");
 	}
@@ -508,8 +508,8 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 	//generate the netcdfs
 	//check for new files
 	(*m_progressReporter) << sU("Looking for data files to process.\n");
-	std::vector<sci::string> newNcFiles = ncChangesLister.getChanges(processor.getFilenameFilter());
-	std::vector<sci::string> allFiles = ncChangesLister.listFolderContents(processor.getFilenameFilter());
+	std::vector<sci::string> newNcFiles = ncChangesLister.getChanges(processor);
+	std::vector<sci::string> allFiles = ncChangesLister.listFolderContents(processor);
 	std::vector<std::vector<sci::string>> dayFileSets = processor.groupFilesPerDayForReprocessing(newNcFiles, allFiles);
 	for(size_t i=0; i< dayFileSets.size(); ++i)
 	{

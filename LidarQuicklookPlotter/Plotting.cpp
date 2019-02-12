@@ -6,6 +6,8 @@
 #include<wx/filename.h>
 #include"ProgressReporter.h"
 #include"Ceilometer.h"
+#include<wx/dir.h>
+#include<wx/regex.h>
 
 
 
@@ -133,4 +135,18 @@ std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForRe
 	return result;
 }
 
-
+std::vector<sci::string> InstrumentProcessor::selectRelevantFilesUsingRegEx(const std::vector<sci::string> &allFiles, sci::string regEx)
+{
+	std::vector<sci::string> result;
+	result.reserve(allFiles.size());
+	wxRegEx regularExpression = sci::nativeUnicode(regEx);
+	sci::assertThrow(regularExpression.IsValid(), sci::err(sci::SERR_USER, 0, sci::nativeCodepage(regEx)));
+	for(size_t i=0; i<allFiles.size(); ++i)
+	{
+		if (regularExpression.Matches(sci::nativeUnicode(allFiles[i])))
+		{
+			result.push_back(allFiles[i]);
+		}
+	}
+	return result;
+}

@@ -66,7 +66,7 @@ class CeilometerProcessor : public PlotableLidar
 {
 public:
 	CeilometerProcessor::CeilometerProcessor()
-		:m_hasData(false)
+		:PlotableLidar(sU("[/\\\\]_ceilometer\\.csv$")), m_hasData(false)
 	{}
 	static void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
 		sci::string directory, const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo,
@@ -86,7 +86,6 @@ public:
 		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
 		const sci::string &comment, ProgressReporter &progressReporter) override;
 	virtual bool hasData() const override { return m_hasData; }
-	sci::string getFilenameFilter() const override { return sU("*_ceilometer.csv"); }
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 private:
 	std::vector<CampbellCeilometerProfile> m_allData;

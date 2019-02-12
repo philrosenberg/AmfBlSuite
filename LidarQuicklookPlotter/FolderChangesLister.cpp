@@ -1,6 +1,7 @@
 #include "FolderChangesLister.h"
 #include<fstream>
 #include<algorithm>
+#include"Plotting.h"
 
 void FolderChangesLister::clearSnapshotFile()
 {
@@ -11,12 +12,24 @@ void FolderChangesLister::clearSnapshotFile()
 	fin.close();
 }
 
-std::vector<sci::string> ExistedFolderChangesLister::getChanges(const sci::string &filespec) const
+
+std::vector<sci::string> FolderChangesLister::listFolderContents(const InstrumentProcessor &processor) const
+{
+	wxArrayString files;
+	wxDir::GetAllFiles(sci::nativeUnicode(m_directory), &files);
+	std::vector<sci::string> result(files.size());
+	for (size_t i = 0; i < files.size(); ++i)
+		result[i] = sci::fromWxString(files[i]);
+	result = processor.selectRelevantFiles(result);
+	return result;
+}
+
+std::vector<sci::string> ExistedFolderChangesLister::getChanges(const InstrumentProcessor &processor) const
 {
 	//find all the previously existing files that match the filespec
-	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(filespec);
+	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(processor);
 	//Find all the files in the input directory that match the filespec
-	std::vector<sci::string> allFiles = listFolderContents(filespec);
+	std::vector<sci::string> allFiles = listFolderContents(processor);
 
 	//Sort the files in alphabetical order
 	if (allFiles.size() > 0)
@@ -44,7 +57,24 @@ std::vector<sci::string> ExistedFolderChangesLister::getChanges(const sci::strin
 	return newFiles;
 }
 
-std::vector<sci::string>  ExistedFolderChangesLister::getPreviouslyExistingFiles(const sci::string &filespec) const
+std::vector<sci::string>  ExistedFolderChangesLister::getPreviouslyExistingFiles(const InstrumentProcessor &processor) const
+{
+	std::vector<sci::string> previouslyExistingFiles;
+	std::fstream fin;
+	fin.open(sci::nativeUnicode(getSnapshotFile()), std::ios::in);
+	std::string filename; //utf8
+	std::getline(fin, filename);
+	while (filename.length() > 0)
+	{
+		previouslyExistingFiles.push_back(sci::fromUtf8(filename));
+		std::getline(fin, filename);
+	}
+	fin.close();
+
+	return processor.selectRelevantFiles(previouslyExistingFiles);
+}
+
+std::vector<sci::string>  ExistedFolderChangesLister::getAllPreviouslyExistingFiles() const
 {
 	std::vector<sci::string> previouslyExistingFiles;
 	std::fstream fin;
@@ -69,12 +99,12 @@ void ExistedFolderChangesLister::updateSnapshotFile(const sci::string &changedFi
 	fout.close();
 }
 
-std::vector<sci::string> AlphabeticallyLastCouldHaveChangedChangesLister::getChanges(const sci::string &filespec) const
+std::vector<sci::string> AlphabeticallyLastCouldHaveChangedChangesLister::getChanges(const InstrumentProcessor &processor) const
 {
 	//find all the previously existing files that match the filespec
-	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(filespec);
+	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(processor);
 	//Find all the files in the input directory that match the filespec
-	std::vector<sci::string> allFiles = listFolderContents(filespec);
+	std::vector<sci::string> allFiles = listFolderContents(processor);
 
 	//Sort the files in alphabetical order
 	if (allFiles.size() > 0)
@@ -121,7 +151,7 @@ std::vector<sci::string> AlphabeticallyLastCouldHaveChangedChangesLister::getCha
 void AlphabeticallyLastCouldHaveChangedChangesLister::updateSnapshotFile(const sci::string &changedFile) const
 {
 	//Check to make sure the file hasn't been added already.
-	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(sU("*"));
+	std::vector<sci::string> previouslyExistingFiles = getAllPreviouslyExistingFiles();
 	for (size_t i = 0; i < previouslyExistingFiles.size(); ++i)
 		if (changedFile == previouslyExistingFiles[i])
 			return;
