@@ -11,10 +11,10 @@ bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 	double pitchDeg;
 	double rollDeg;
 	stream >> decimalHour >> azimuthDeg >> elevationDeg >> pitchDeg >> rollDeg;
-	m_azimuth = radian(azimuthDeg*M_PI / 180.0);
-	m_elevation = radian(elevationDeg*M_PI / 180.0);
-	m_pitch = radian(pitchDeg*M_PI / 180.0);
-	m_roll = radian(rollDeg*M_PI / 180.0);
+	m_azimuth = degree(azimuthDeg);
+	m_elevation = degree(elevationDeg);
+	m_pitch = degree(pitchDeg);
+	m_roll = degree(rollDeg);
 	if (stream.eof())
 	{
 		return false;

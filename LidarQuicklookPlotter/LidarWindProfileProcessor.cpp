@@ -71,7 +71,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 		{
 			double windDirectionDegrees;
 			fin >> m_profiles[i].m_heights[j] >> windDirectionDegrees >> m_profiles[i].m_windSpeeds[j];
-			m_profiles[i].m_windDirections[j] = radian(windDirectionDegrees*(M_PI / 180.0));
+			m_profiles[i].m_windDirections[j] = degree(windDirectionDegrees);
 			if (fin.fail())
 				throw(sU("When opening file ") + processedFilenames[i] + sU(" some lines were missing."));
 
@@ -118,7 +118,7 @@ void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, cons
 			wxFileName outputFilenameSplit(sci::nativeUnicode(outputFilename));
 			sci::ostringstream finalOutputfilename;
 			finalOutputfilename << sci::fromWxString(outputFilenameSplit.GetPathWithSep()) << sci::fromWxString(outputFilenameSplit.GetName());
-			if (maxRanges[j] != decltype(maxRanges[j])(std::numeric_limits<double>::max()))
+			if (maxRanges[j] != std::numeric_limits<metre>::max() && maxRanges[j] != std::numeric_limits<metre>::infinity())
 				finalOutputfilename << sU("_maxRange_") << maxRanges[j];
 			finalOutputfilename << sU(".") << sci::fromWxString(outputFilenameSplit.GetExt());
 
@@ -192,10 +192,10 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		dataInfo.endTime = m_profiles.back().m_VadProcessor.getTimesUtcTime()[0];
 	}
 	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.maxLatDecimalDegrees = sci::max<radian>(platformInfo.latitudes).value<radian>()/M_PI*180.0;
-	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>() / M_PI * 180.0;
-	dataInfo.maxLonDecimalDegrees = sci::max<radian>(platformInfo.longitudes).value<radian>() / M_PI * 180.0;
-	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>() / M_PI * 180.0;
+	dataInfo.maxLat = platformInfo.latitudes[0];
+	dataInfo.minLat = platformInfo.latitudes[0];
+	dataInfo.maxLon = platformInfo.longitudes[0];
+	dataInfo.minLon = platformInfo.longitudes[0];
 	dataInfo.options = std::vector<sci::string>(0);
 	dataInfo.processingLevel = processingLevel;
 	dataInfo.productName = sU("mean winds profile");
@@ -241,15 +241,15 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), metre(0), metre(20000.0));
 	altitudeVariable.addAttribute(sci::NcAttribute(sU("Note:"), sU("Altitude is above instrument, not referenced to sea level or any geoid and not compensated for instrument platform height.")));
 	AmfNcVariable<metrePerSecond> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), metrePerSecond(0), metrePerSecond(20.0));
-	AmfNcVariable<radian> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), radian(0), radian(2.0*M_PI));
+	AmfNcVariable<degree> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), degree(0), degree(360.0));
 	
 	file.writeTimeAndLocationData();
 
 	if (m_profiles.size() > 0 && m_profiles[0].m_heights.size() > 0)
 	{
-		std::vector<std::vector<metre>> altitudes = sci::makevector<metre>(0.0, m_profiles.size(), m_profiles[0].m_heights.size());
-		std::vector<std::vector<metrePerSecond>> windSpeeds = sci::makevector<metrePerSecond>(0.0, m_profiles.size(), m_profiles[0].m_heights.size());
-		std::vector<std::vector<radian>> windDirections = sci::makevector<radian>(0.0, m_profiles.size(), m_profiles[0].m_heights.size());
+		std::vector<std::vector<metre>> altitudes = sci::makevector<metre>(metre(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
+		std::vector<std::vector<metrePerSecond>> windSpeeds = sci::makevector<metrePerSecond>(metrePerSecond(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
+		std::vector<std::vector<degree>> windDirections = sci::makevector<degree>(degree(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
 		
 		altitudes[0] = m_profiles[0].m_heights;
 		windSpeeds[0] = m_profiles[0].m_windSpeeds;

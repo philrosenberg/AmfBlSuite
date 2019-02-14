@@ -365,7 +365,7 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	m_resolution = metre(std::atof(res));
 	m_laserPulseEnergy = percent(std::atof(energy));
 	m_laserTemperature = kelvin(std::atof(laserTemperature)+273.15);
-	m_tiltAngle = radian(std::atof(tiltAngle)/360.0*2.0*M_PI);
+	m_tiltAngle = degree(std::atof(tiltAngle));
 	m_background = millivolt(std::atof(background));
 	m_pulseQuantity = std::atoi(pulseQuantity)*1000;
 	m_sampleRate = megahertz(std::atof(sampleRate));

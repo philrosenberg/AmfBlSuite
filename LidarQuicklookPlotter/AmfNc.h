@@ -59,10 +59,10 @@ struct DataInfo
 	second averagingPeriod;
 	int processingLevel;
 	FeatureType featureType;
-	double minLatDecimalDegrees;//for point measurements set min and max the same or set one to nan
-	double maxLatDecimalDegrees;
-	double minLonDecimalDegrees;
-	double maxLonDecimalDegrees;
+	degree minLat;//for point measurements set min and max the same or set one to nan
+	degree maxLat;
+	degree minLon;
+	degree maxLon;
 	sci::UtcTime startTime;
 	sci::UtcTime endTime;
 	sci::string reasonForProcessing; // This string is put in the history. Add any special reason for processing if there is any e.g. Reprocessing due to x error or initial processing to be updated later for y reason
@@ -97,10 +97,10 @@ struct PlatformInfo
 	sci::string name;
 	PlatformType platformType;
 	DeploymentMode deploymentMode;
-	double altitudeMetres; //Use nan for varying altitude airborne
+	metre altitude; //Use nan for varying altitude airborne
 	std::vector<sci::string> locationKeywords;
-	std::vector<radian> latitudes; //would have just one element for a static platform
-	std::vector<radian>longitudes; //would have just one element for a static platform
+	std::vector<degree> latitudes; //would have just one element for a static platform
+	std::vector<degree>longitudes; //would have just one element for a static platform
 };
 
 template <class T>
@@ -210,8 +210,8 @@ public:
 		const PlatformInfo &platformInfo,
 		const sci::string &comment,
 		const std::vector<sci::UtcTime> &times,
-		radian longitude,
-		radian latitude,
+		degree longitude,
+		degree latitude,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions= std::vector<sci::NcDimension *>(0));
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
 	void writeTimeAndLocationData();
@@ -230,8 +230,8 @@ private:
 	std::unique_ptr<AmfNcVariable<double>> m_secondVariable;
 
 	std::vector<sci::UtcTime> m_times;
-	radian m_longitude;
-	radian m_latitude;
+	degree m_longitude;
+	degree m_latitude;
 };
 
 

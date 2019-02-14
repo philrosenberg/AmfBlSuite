@@ -83,7 +83,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	std::vector<percent> windowTransmissions(profiles.size());
 	std::vector<percent> laserEnergies(profiles.size());
 	std::vector<kelvin> laserTemperatures(profiles.size());
-	std::vector<radian> tiltAngles(profiles.size());
+	std::vector<degree> tiltAngles(profiles.size());
 	std::vector<millivolt> backgrounds(profiles.size());
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{

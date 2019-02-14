@@ -54,32 +54,32 @@ sci::string getFormattedTimeOnly(const sci::UtcTime &time, sci::string separator
 
 sci::string getBoundsString(const DataInfo &dataInfo)
 {
-	bool hasLatNan = std::isnan(dataInfo.minLatDecimalDegrees) || std::isnan(dataInfo.maxLatDecimalDegrees);
-	bool hasLonNan = std::isnan(dataInfo.minLonDecimalDegrees) || std::isnan(dataInfo.maxLonDecimalDegrees);
-	bool hasLatValue = !std::isnan(dataInfo.minLatDecimalDegrees) || !std::isnan(dataInfo.maxLatDecimalDegrees);
-	bool hasLonValue = !std::isnan(dataInfo.minLonDecimalDegrees) || !std::isnan(dataInfo.maxLonDecimalDegrees);
+	bool hasLatNan = std::isnan(dataInfo.minLat) || std::isnan(dataInfo.maxLat);
+	bool hasLonNan = std::isnan(dataInfo.minLon) || std::isnan(dataInfo.maxLon);
+	bool hasLatValue = !std::isnan(dataInfo.minLat) || !std::isnan(dataInfo.maxLat);
+	bool hasLonValue = !std::isnan(dataInfo.minLon) || !std::isnan(dataInfo.maxLon);
 	bool valid = hasLatValue && hasLonValue //must have at least one value for lat/lon
 		&& (hasLatNan == hasLonNan); //either both are flagged as points or neither are
 
-	bool isPoint = hasLatNan || (dataInfo.minLatDecimalDegrees == dataInfo.maxLatDecimalDegrees && dataInfo.minLonDecimalDegrees == dataInfo.maxLonDecimalDegrees);
+	bool isPoint = hasLatNan || (dataInfo.minLat == dataInfo.maxLat && dataInfo.minLon == dataInfo.maxLon);
 
 	sci::stringstream result;
 	if (isPoint)
 	{
-		if (!std::isnan(dataInfo.minLatDecimalDegrees))
-			result << dataInfo.minLatDecimalDegrees << "N ";
+		if (!std::isnan(dataInfo.minLat))
+			result << dataInfo.minLat << " N ";
 		else
-			result << dataInfo.maxLatDecimalDegrees << "N ";
+			result << dataInfo.maxLat << " N ";
 
-		if (!std::isnan(dataInfo.minLonDecimalDegrees))
-			result << dataInfo.minLonDecimalDegrees << "E";
+		if (!std::isnan(dataInfo.minLon))
+			result << dataInfo.minLon << " E";
 		else
-			result << dataInfo.maxLonDecimalDegrees << "E";
+			result << dataInfo.maxLon << " E";
 	}
 	else
 	{
-		result << dataInfo.minLatDecimalDegrees << "N " << dataInfo.minLonDecimalDegrees << "E, "
-			<< dataInfo.maxLatDecimalDegrees << "N " << dataInfo.maxLonDecimalDegrees << "E";
+		result << dataInfo.minLat << " N " << dataInfo.minLon << " E, "
+			<< dataInfo.maxLat << " N " << dataInfo.maxLon << " E";
 	}
 
 	return result.str();
@@ -95,8 +95,8 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const PlatformInfo &platformInfo,
 	const sci::string &comment,
 	const std::vector<sci::UtcTime> &times,
-	radian longitude,
-	radian latitude,
+	degree longitude,
+	degree latitude,
 	const std::vector<sci::NcDimension *> &nonTimeDimensions)
 	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times), m_longitude(longitude), m_latitude(latitude)
 {
@@ -226,14 +226,14 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(dataInfo)));
-	if (std::isnan(platformInfo.altitudeMetres))
+	if (std::isnan(platformInfo.altitude))
 	{
 		write(sci::NcAttribute(sU("platform_altitude"), sci::string(sU("Not Applicable"))));
 	}
 	else
 	{
 		sci::stringstream altitudeString;
-		altitudeString << platformInfo.altitudeMetres << " m";
+		altitudeString << platformInfo.altitude;
 		write(sci::NcAttribute(sU("platform_altitude"), altitudeString.str()));
 	}
 	sci::stringstream locationKeywords;
@@ -336,8 +336,8 @@ void OutputAmfNcFile::writeTimeAndLocationData()
 	write(*m_minuteVariable, minute);
 	write(*m_secondVariable, second);
 
-	write(*m_latitudeVariable, std::vector<double>(1, m_latitude.value<radian>()/M_PI*180.0));
-	write(*m_longitudeVariable, std::vector<double>(1, m_latitude.value<radian>() / M_PI * 180.0));
+	write(*m_latitudeVariable, std::vector<double>(1, m_latitude.value<degree>()));
+	write(*m_longitudeVariable, std::vector<double>(1, m_latitude.value<degree>()));
 }
 
 /*OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,

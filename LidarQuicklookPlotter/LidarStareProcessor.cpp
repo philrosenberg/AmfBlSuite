@@ -62,10 +62,10 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
 	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.maxLatDecimalDegrees = sci::max<radian>(platformInfo.latitudes).value<radian>()*180.0 / M_PI;
-	dataInfo.minLatDecimalDegrees = sci::min<radian>(platformInfo.latitudes).value<radian>()*180.0 / M_PI;
-	dataInfo.maxLonDecimalDegrees = sci::max<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
-	dataInfo.minLonDecimalDegrees = sci::min<radian>(platformInfo.longitudes).value<radian>()*180.0 / M_PI;
+	dataInfo.maxLat = sci::max<degree>(platformInfo.latitudes);
+	dataInfo.minLat = sci::min<degree>(platformInfo.latitudes);
+	dataInfo.maxLon = sci::max<degree>(platformInfo.longitudes);
+	dataInfo.minLon = sci::min<degree>(platformInfo.longitudes);
 	dataInfo.options = getProcessingOptions();
 	dataInfo.processingLevel = processingLevel;
 	dataInfo.productName = sU("backscatter radial winds");
@@ -73,8 +73,8 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 
 	//build up our data arrays.
 	std::vector<sci::UtcTime> times = getTimesUtcTime();
-	std::vector<radian> azimuthAngles = getAzimuths();
-	std::vector<radian> elevationAngles = getElevations();
+	std::vector<degree> azimuthAngles = getAzimuths();
+	std::vector<degree> elevationAngles = getElevations();
 	std::vector<std::vector<metrePerSecond>> dopplerVelocities = getDopplerVelocities();
 	std::vector<std::vector<perSteradianPerMetre>> backscatters = getBetas();
 	std::vector<std::vector<metre>> ranges(backscatters.size());
@@ -92,9 +92,9 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	}
 	for (size_t i = 0; i < times.size(); ++i)
 	{
-		dopplerVelocities[i].resize(maxNGates, OutputAmfNcFile::getFillValue());
-		backscatters[i].resize(maxNGates, OutputAmfNcFile::getFillValue());
-		ranges[i].resize(maxNGates, OutputAmfNcFile::getFillValue());
+		dopplerVelocities[i].resize(maxNGates, metrePerSecond(OutputAmfNcFile::getFillValue()));
+		backscatters[i].resize(maxNGates, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
+		ranges[i].resize(maxNGates, metre(OutputAmfNcFile::getFillValue()));
 	}
 
 	//work out the averaging time - this is the difference between the scan start and end times.
@@ -128,8 +128,8 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 		projectInfo, platformInfo, comment, times, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), metre(0), metre(10000.0));
-	AmfNcVariable<radian> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), radian(0), radian(2.0*M_PI));
-	AmfNcVariable<radian> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning head elevation angle"), radian(-M_PI / 2.0), radian(M_PI / 2.0));
+	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), degree(0), degree(360.0));
+	AmfNcVariable<degree> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning head elevation angle"), degree(-90.0), degree(90.0));
 	AmfNcVariable<metrePerSecond> dopplerVariable(sU("los_radial_wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Line of sight radial wind speed"), metrePerSecond(-19.0), metrePerSecond(19.0));
 	AmfNcVariable<perSteradianPerMetre> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), perSteradianPerMetre(0.0), perSteradianPerMetre(1e-3));
 

@@ -82,7 +82,7 @@ public:
 	metre getResolution() const { return m_resolution; }
 	percent getLaserPulseEnergy() const { return m_laserPulseEnergy; }
 	kelvin getLaserTemperature() const { return m_laserTemperature; }
-	radian getTiltAngle() const { return m_tiltAngle; }
+	degree getTiltAngle() const { return m_tiltAngle; }
 	millivolt getBackground() const { return m_background; }
 	size_t getPulseQuantity() const { return m_pulseQuantity; }
 	hertz getSampleRate() const { return m_sampleRate; }
@@ -103,7 +103,7 @@ private:
 	metre m_resolution;
 	percent m_laserPulseEnergy;
 	kelvin m_laserTemperature;
-	radian m_tiltAngle;
+	degree m_tiltAngle;
 	millivolt m_background;
 	size_t m_pulseQuantity;
 	megahertz m_sampleRate;

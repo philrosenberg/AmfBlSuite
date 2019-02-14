@@ -16,16 +16,16 @@ class wxWindow;
 class OrientationGrabber
 {
 public:
-	virtual void getOrientation(radian &roll, radian &pitch, radian &heading, sci::UtcTime time) const = 0;
+	virtual void getOrientation(degree &roll, degree &pitch, degree &heading, sci::UtcTime time) const = 0;
 	virtual ~OrientationGrabber() {}
 };
 
 class StaticOrientationGrabber : public OrientationGrabber
 {
 public:
-	StaticOrientationGrabber(radian roll, radian pitch, radian heading)
+	StaticOrientationGrabber(degree roll, degree pitch, degree heading)
 	{}
-	virtual void getOrientation(radian &roll, radian &pitch, radian &heading, sci::UtcTime time) const override
+	virtual void getOrientation(degree &roll, degree &pitch, degree &heading, sci::UtcTime time) const override
 	{
 		roll = m_roll;
 		pitch = m_pitch;
@@ -33,9 +33,9 @@ public:
 	}
 	virtual ~StaticOrientationGrabber() {}
 private:
-	const radian m_pitch;
-	const radian m_roll;
-	const radian m_heading;
+	const degree m_pitch;
+	const degree m_roll;
+	const degree m_heading;
 };
 
 const InstrumentInfo g_dopplerLidar1Info
@@ -73,8 +73,8 @@ public:
 	std::vector<metre> getGateLowerBoundaries(size_t profileIndex) const;
 	std::vector<metre> getGateUpperBoundaries(size_t profileIndex) const;
 	std::vector<metre> getGateCentres(size_t profileIndex) const;
-	std::vector<radian> getAzimuths() const;
-	std::vector<radian> getElevations() const;
+	std::vector<degree> getAzimuths() const;
+	std::vector<degree> getElevations() const;
 	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
 	void setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent)
@@ -151,11 +151,11 @@ public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	void plotDataPlan(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 	void plotDataCone(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
-	void plotDataCone(radian viewAzimuth, metre maxRange, splot2d * plot);
+	void plotDataCone(degree viewAzimuth, metre maxRange, splot2d * plot);
 	void plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 private:
 	size_t m_nSegmentsMin;
-	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<radian> &sortedElevations, std::vector<radian> &sortedMidAzimuths, std::vector<radian> &azimuthBoundaries);
+	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<degree> &sortedElevations, std::vector<degree> &sortedMidAzimuths, std::vector<degree> &azimuthBoundaries);
 };
 
 class LidarVadProcessor : public ConicalScanningProcessor
@@ -243,7 +243,7 @@ private:
 	{
 		Profile(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : m_VadProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
 		std::vector<metre> m_heights;
-		std::vector<radian> m_windDirections;
+		std::vector<degree> m_windDirections;
 		std::vector<metrePerSecond> m_windSpeeds;
 		InstrumentInfo m_instrumentInfo;
 		//sci::UtcTime m_time;

@@ -68,10 +68,10 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 	m_projectInfo.principalInvestigatorInfo.institution = sU("University of Leeds");
 	m_projectInfo.principalInvestigatorInfo.orcidUrl = sU("https://orcid.org/0000-0002-5051-1322");
 
-	m_platformInfo.altitudeMetres = 0;
+	m_platformInfo.altitude = metre(0.0);
 	m_platformInfo.deploymentMode = dm_land;
-	m_platformInfo.latitudes = std::vector<radian>(1, radian(0.0));
-	m_platformInfo.longitudes = std::vector<radian>(1, radian(0.0));
+	m_platformInfo.latitudes = std::vector<degree>(1, degree(0.0));
+	m_platformInfo.longitudes = std::vector<degree>(1, degree(0.0));
 	m_platformInfo.locationKeywords = { sU("Dummy") };
 	m_platformInfo.name = sU("Neverland");
 	m_platformInfo.platformType = pt_stationary;
@@ -82,9 +82,9 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 	PersonInfo author = { sU("Neil"), sU("armstrong@nans.org"), sU("armsrong.orchid.org"), sU("NASA") };
 	ProcessingSoftwareInfo processingsoftwareInfo = { sU("http://mycode.git"), sU("1001") };
 	CalibrationInfo calibrationInfo = { sU("Calibrated by nasa for a big range."), sci::UtcTime::now(), sU("someurl.org")};
-	DataInfo dataInfo = { 10.0, 5.0, 0, ft_timeSeriesPoint, 0.0, 0.0, 0, 360, sci::UtcTime::now(), sci::UtcTime::now(), sU("Another go"), true, sU("Moon data"), {} };
+	DataInfo dataInfo = { second(10.0), second(5.0), 0, ft_timeSeriesPoint, degree(0.0), degree(0.0), degree(0), degree(360), sci::UtcTime::now(), sci::UtcTime::now(), sU("Another go"), true, sU("Moon data"), {} };
 	ProjectInfo projectInfo{ sU("Apolo"), {sU("Nixon"), sU("nixon@thewhitehouse.org"), sU("none"), sU("US government")} };
-	PlatformInfo platformInfo{ sU("Saturn"), pt_moving, dm_air, 1.0e6, {sU("Moon"), sU("Cape Canavral")} };
+	PlatformInfo platformInfo{ sU("Saturn"), pt_moving, dm_air, metre(1.0e6), {sU("Moon"), sU("Cape Canavral")} };
 	sci::string comment = sU("Fingers crossed");
 	/*try
 	{
@@ -283,18 +283,20 @@ void mainFrame::process()
 	m_processingLevel = 1;
 	m_reasonForProcessing = sU("Testing");
 
+	std::shared_ptr<OrientationGrabber>orientationGrabber(new StaticOrientationGrabber(degree(0.0), degree(0.0), degree(0.0)));
+
 	process(CeilometerProcessor(), sU("Ceilometer processor"));
-	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Wind Profile processor"));
-	process(LidarWindVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Wind VAD/PPI processor"));
-	process(LidarCopolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Copolarised Stare processor"));
-	process(LidarCrosspolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar Cross Polarised Stare processor"));
-	process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar VAD/PPI processor"));
-	process(LidarRhiProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar RHI processor"));
-	process(LidarUser1Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User1 processor"));
-	process(LidarUser2Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User2 processor"));
-	process(LidarUser3Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User3 processor"));
-	process(LidarUser4Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User4 processor"));
-	process(LidarUser5Processor(leedsHaloInfo, leedsHaloCalibrationInfo, std::shared_ptr<OrientationGrabber>(new StaticOrientationGrabber(0.0, 0.0, 0.0))), sU("Lidar User5 processor"));
+	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Wind Profile processor"));
+	process(LidarWindVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Wind VAD/PPI processor"));
+	process(LidarCopolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Copolarised Stare processor"));
+	process(LidarCrosspolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Cross Polarised Stare processor"));
+	process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar VAD/PPI processor"));
+	process(LidarRhiProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar RHI processor"));
+	process(LidarUser1Processor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar User1 processor"));
+	process(LidarUser2Processor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar User2 processor"));
+	process(LidarUser3Processor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar User3 processor"));
+	process(LidarUser4Processor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar User4 processor"));
+	process(LidarUser5Processor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar User5 processor"));
 	
 	//Tell the user we are done for now
 	if (!m_progressReporter->shouldStop())
@@ -446,7 +448,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 
 			if (processor.hasData())
 			{
-				processor.plotData(outputFile, { std::numeric_limits<double>::max(), 2000.0, 1000.0 }, *m_progressReporter, this);
+				processor.plotData(outputFile, { std::numeric_limits<metre>::max(), metre(2000.0), metre(1000.0) }, *m_progressReporter, this);
 
 				if (m_progressReporter->shouldStop())
 				{

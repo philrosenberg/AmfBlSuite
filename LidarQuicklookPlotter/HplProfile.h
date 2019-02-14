@@ -16,8 +16,8 @@ public:
 	sci::UtcTime getTime<sci::UtcTime>() const { return m_time; }
 	template<>
 	second getTime<second>() const { return second(m_time.getUnixTime()); }
-	radian getAzimuth() const { return m_azimuth; }
-	radian getElevation() const { return m_elevation; }
+	degree getAzimuth() const { return m_azimuth; }
+	degree getElevation() const { return m_elevation; }
 	std::vector<size_t> getGates() const { return m_gates; }
 	std::vector<metrePerSecond> getDopplerVelocities() const { return m_dopplerVelocities; }
 	std::vector<unitless> getIntensities() const { return m_intensities; }
@@ -25,10 +25,10 @@ public:
 	size_t nGates() const { return m_gates.size(); }
 private:
 	sci::UtcTime m_time;
-	radian m_azimuth;
-	radian m_elevation;
-	radian m_pitch;
-	radian m_roll;
+	degree m_azimuth;
+	degree m_elevation;
+	degree m_pitch;
+	degree m_roll;
 	std::vector<size_t> m_gates;
 	std::vector<metrePerSecond> m_dopplerVelocities;
 	std::vector<unitless> m_intensities;

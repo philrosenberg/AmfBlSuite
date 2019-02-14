@@ -29,7 +29,7 @@ public:
 	metre getResolution() const { return m_profile.getResolution(); }
 	percent getLaserPulseEnergy() const { return m_profile.getLaserPulseEnergy(); }
 	kelvin getLaserTemperature() const { return m_profile.getLaserTemperature(); }
-	radian getTiltAngle() const { return m_profile.getTiltAngle(); }
+	degree getTiltAngle() const { return m_profile.getTiltAngle(); }
 	millivolt getBackground() const { return m_profile.getBackground(); }
 	size_t getPulseQuantity() const { return m_profile.getPulseQuantity(); }
 	hertz getSampleRate() const { return m_profile.getSampleRate(); }
