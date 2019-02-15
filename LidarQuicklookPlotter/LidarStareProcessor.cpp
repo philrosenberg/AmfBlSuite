@@ -77,6 +77,8 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	std::vector<degree> elevationAngles = getElevations();
 	std::vector<std::vector<metrePerSecond>> dopplerVelocities = getDopplerVelocities();
 	std::vector<std::vector<perSteradianPerMetre>> backscatters = getBetas();
+	std::vector<std::vector<uint8_t>> dopplerVelocityFlags = getDopplerFlags();
+	std::vector<std::vector<uint8_t>> backscatterFlags = getBetaFlags();
 	std::vector<std::vector<metre>> ranges(backscatters.size());
 	for (size_t i = 0; i < ranges.size(); ++i)
 	{
@@ -95,6 +97,8 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 		dopplerVelocities[i].resize(maxNGates, metrePerSecond(OutputAmfNcFile::getFillValue()));
 		backscatters[i].resize(maxNGates, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
 		ranges[i].resize(maxNGates, metre(OutputAmfNcFile::getFillValue()));
+		dopplerVelocityFlags[i].resize(maxNGates, lidarNoDataFlag);
+		backscatterFlags[i].resize(maxNGates, lidarNoDataFlag);
 	}
 
 	//work out the averaging time - this is the difference between the scan start and end times.
@@ -119,6 +123,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
 
+
 	std::vector<sci::NcDimension*> nonTimeDimensions;
 	sci::NcDimension rangeIndexDimension(sU("index_of_range"), maxNGates);
 	nonTimeDimensions.push_back(&rangeIndexDimension);
@@ -132,10 +137,15 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	AmfNcVariable<degree> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning head elevation angle"), degree(-90.0), degree(90.0));
 	AmfNcVariable<metrePerSecond> dopplerVariable(sU("los_radial_wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Line of sight radial wind speed"), metrePerSecond(-19.0), metrePerSecond(19.0));
 	AmfNcVariable<perSteradianPerMetre> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), perSteradianPerMetre(0.0), perSteradianPerMetre(1e-3));
+	AmfNcFlagVariable dopplerFlagVariable(sU("los_radial_wind_speed_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
+	AmfNcFlagVariable backscatterFlagVariable(sU("attenuated_aerosol_backscatter_coefficient_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
+	
 
 	file.write(rangeVariable, ranges);
 	file.write(azimuthVariable, azimuthAngles);
 	file.write(elevationVariable, elevationAngles);
 	file.write(dopplerVariable, dopplerVelocities);
 	file.write(backscatterVariable, backscatters);
+	file.write(dopplerFlagVariable, dopplerVelocityFlags);
+	file.write(backscatterFlagVariable, backscatterFlags);
 }

@@ -131,6 +131,25 @@ private:
 	}
 };
 
+class AmfNcFlagVariable : public sci::NcVariable<uint8_t>
+{
+public:
+	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>> &flagDefinitions, const sci::OutputNcFile &ncFile, std::vector<sci::NcDimension *> &dimensions)
+		: sci::NcVariable<uint8_t>(name, ncFile, dimensions)
+	{
+		std::vector<uint8_t>  flagValues(flagDefinitions.size());
+		std::vector<sci::string>  flagDescriptions(flagDefinitions.size());
+		for (size_t i = 0; i < flagDefinitions.size(); ++i)
+		{
+			flagValues[i] = flagDefinitions[i].first;
+			flagDescriptions[i] = flagDefinitions[i].second;
+		}
+		addAttribute(sci::NcAttribute(sU("long name"), sU("Data Quality Flag")));
+		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues));
+		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptions));
+	}
+};
+
 //create a partial specialization for any AmfNcVariable based on a sci::Physical value
 template <class T>
 class AmfNcVariable<sci::Physical<T>> : public sci::NcVariable<sci::Physical<T>>

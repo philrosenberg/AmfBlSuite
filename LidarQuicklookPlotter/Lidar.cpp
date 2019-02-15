@@ -24,6 +24,8 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 		m_profiles.clear();
 		m_hplHeaders.clear();
 		m_headerIndex.clear();
+		m_betaFlags.clear();
+		m_dopplerFlags.clear();
 	}
 
 	std::fstream fin;
@@ -43,14 +45,28 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 	while (readingOkay)
 	{
 		m_profiles.resize(m_profiles.size() + 1);
-		m_headerIndex.push_back(m_hplHeaders.size() - 1);//record which header this profile is linked to
-		//Read the profile itself - it takes the header as an input to give details of what needs reading
+			//Read the profile itself - it takes the header as an input to give details of what needs reading
 		readingOkay = m_profiles.back().readFromStream(fin, m_hplHeaders.back());
 		if (!readingOkay) //we hit the end of the file while reading this profile
 			m_profiles.resize(m_profiles.size() - 1);
 		++nRead;
 		if (readingOkay)
 		{
+			m_headerIndex.push_back(m_hplHeaders.size() - 1);//record which header this profile is linked to
+			std::vector<uint8_t> dopplerVelocityFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
+			std::vector<uint8_t> betaFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
+			//flag for out of range doppler
+			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && (m_profiles.back().getDopplerVelocities() > metrePerSecond(19.0) || m_profiles.back().getDopplerVelocities() < metrePerSecond(-19.0)), lidarDopplerOutOfRangeFlag);
+			//flag for bad snr - not intensity reported by instrument is snr+1
+			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
+			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
+			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
+			sci::assign(betaFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
+			sci::assign(betaFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
+			sci::assign(betaFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
+			m_betaFlags.push_back(betaFlags);
+			m_dopplerFlags.push_back(dopplerVelocityFlags);
+
 			if (nRead == 1)
 				progressReporter << sU("Read profile 1");
 			else if (nRead <= 50)
@@ -113,6 +129,16 @@ std::vector<std::vector<perSteradianPerMetre>> LidarBackscatterDopplerProcessor:
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		result[i] = m_profiles[i].getBetas();
+	}
+	return result;
+}
+
+std::vector<std::vector<unitless>> LidarBackscatterDopplerProcessor::getSignalToNoiseRatios() const
+{
+	std::vector<std::vector<unitless>> result(m_profiles.size());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		result[i] = m_profiles[i].getIntensities()-unitless(1.0);
 	}
 	return result;
 }
@@ -234,6 +260,8 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	std::vector<degree> allElevations = getElevations();
 	std::vector<std::vector<metrePerSecond>> allDopplerVelocities = getDopplerVelocities();
 	std::vector<std::vector<perSteradianPerMetre>> allBackscatters = getBetas();
+	std::vector<std::vector<uint8_t>> allDopplerVelocityFlags = getDopplerFlags();
+	std::vector<std::vector<uint8_t>> allBackscatterFlags = getBetaFlags();
 	std::vector<sci::UtcTime> scanStartTimes;
 	std::vector<sci::UtcTime> scanEndTimes;
 	scanStartTimes.reserve(allTimes.size() / 6);
@@ -255,6 +283,11 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	//so immediately after this code we transpose the second two dimensions (time, elevation, profile within a scan)
 	std::vector<std::vector<std::vector<perSteradianPerMetre>>> backscatters;
 	backscatters.reserve(allTimes.size() / 6);
+	//As above, but for the flags
+	std::vector < std::vector<std::vector<uint8_t>>> dopplerVelocityFlags(backscatters.size());
+	std::vector < std::vector<std::vector<uint8_t>>> backscatterFlags(backscatters.size());
+	dopplerVelocityFlags.reserve(allTimes.size() / 6);
+	backscatterFlags.reserve(allTimes.size() / 6);
 
 	HplHeader previousHeader;
 	size_t maxNGatesThisScan;
@@ -282,6 +315,12 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		backscatters.resize(1);
 		backscatters.back().reserve(6);
 		backscatters.back().push_back(allBackscatters[0]);
+		dopplerVelocityFlags.resize(1);
+		dopplerVelocityFlags.back().reserve(6);
+		dopplerVelocityFlags.back().push_back(allDopplerVelocityFlags[0]);
+		backscatterFlags.resize(1);
+		backscatterFlags.back().reserve(6);
+		backscatterFlags.back().push_back(allBackscatterFlags[0]);
 
 
 		//Work through all the profiles finding the needed data
@@ -318,11 +357,17 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 				dopplerVelocities.back().reserve(maxProfilesPerScan);
 				backscatters.resize(backscatters.size() + 1);
 				backscatters.back().reserve(maxProfilesPerScan);
+				dopplerVelocityFlags.resize(dopplerVelocityFlags.size() + 1);
+				dopplerVelocityFlags.back().reserve(maxProfilesPerScan);
+				backscatterFlags.resize(backscatterFlags.size() + 1);
+				backscatterFlags.back().reserve(maxProfilesPerScan);
 			}
 			azimuthAngles.back().push_back(allAzimuths[i]);
 			elevationAngles.back().push_back(allElevations[i]);
 			dopplerVelocities.back().push_back(allDopplerVelocities[i]);
 			backscatters.back().push_back(allBackscatters[i]);
+			dopplerVelocityFlags.back().push_back(allDopplerVelocityFlags[i]);
+			backscatterFlags.back().push_back(allBackscatterFlags[i]);
 		}
 		//Some final items that need doing regaring the last scan/profile.
 		scanEndTimes.push_back(allTimes.back() + (unitless(getHeaderForProfile(allTimes.size() - 1).pulsesPerRay * getHeaderForProfile(allTimes.size() - 1).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0)).value<second>()); //this is the time of the last profile in the scan plus the duration of this profile);
@@ -335,6 +380,8 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	{
 		dopplerVelocities[i] = sci::transpose(dopplerVelocities[i]);
 		backscatters[i] = sci::transpose(backscatters[i]);
+		dopplerVelocityFlags[i] = sci::transpose(dopplerVelocityFlags[i]);
+		backscatterFlags[i] = sci::transpose(backscatterFlags[i]);
 	}
 
 
@@ -349,7 +396,9 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		for (size_t j = 0; j < maxNGates; ++j)
 		{
 			dopplerVelocities[i][j].resize(maxProfilesPerScan, metrePerSecond(OutputAmfNcFile::getFillValue()));
-			backscatters[i][j].resize(maxProfilesPerScan, perSteradianPerMetre( OutputAmfNcFile::getFillValue()));
+			backscatters[i][j].resize(maxProfilesPerScan, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
+			dopplerVelocityFlags[i][j].resize(maxProfilesPerScan, lidarNoDataFlag);
+			backscatterFlags[i][j].resize(maxProfilesPerScan, lidarNoDataFlag);
 		}
 	}
 
@@ -387,6 +436,8 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	AmfNcVariable<degree> elevationVariable(sU("sensor_view_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head elevation angle"), degree(-90.0), degree(90.0));
 	AmfNcVariable<metrePerSecond> dopplerVariable(sU("los_radial_wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Line of sight radial wind speed"), metrePerSecond(-19.0), metrePerSecond(19.0));
 	AmfNcVariable<perSteradianPerMetre> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Attenuated Aerosol Backscatter Coefficient"), perSteradianPerMetre(0.0), perSteradianPerMetre(1e-3));
+	AmfNcFlagVariable dopplerFlagVariable(sU("los_radial_wind_speed_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension });
+	AmfNcFlagVariable backscatterFlagVariable(sU("attenuated_aerosol_backscatter_coefficient_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension });
 
 	file.write(rangeVariable, ranges);
 	file.write(azimuthVariable, azimuthAngles);

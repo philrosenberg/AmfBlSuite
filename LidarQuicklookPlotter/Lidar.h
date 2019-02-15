@@ -69,6 +69,9 @@ public:
 	std::vector<sci::UtcTime> getTimesUtcTime() const;
 	std::vector<std::vector<perSteradianPerMetre>> getBetas() const;
 	std::vector<std::vector<metrePerSecond>> getDopplerVelocities() const;
+	std::vector<std::vector<unitless>> getSignalToNoiseRatios() const;
+	std::vector<std::vector<uint8_t>> getDopplerFlags() const { return m_dopplerFlags; }
+	std::vector<std::vector<uint8_t>> getBetaFlags() const { return m_betaFlags; }
 	std::vector<metre> getGateBoundariesForPlotting(size_t profileIndex) const;
 	std::vector<metre> getGateLowerBoundaries(size_t profileIndex) const;
 	std::vector<metre> getGateUpperBoundaries(size_t profileIndex) const;
@@ -89,6 +92,8 @@ private:
 	bool m_hasData;
 	std::vector<HplHeader> m_hplHeaders;
 	std::vector<HplProfile> m_profiles;
+	std::vector<std::vector<uint8_t>> m_dopplerFlags;
+	std::vector<std::vector<uint8_t>> m_betaFlags;
 	std::vector<size_t> m_headerIndex; //this links headers to profiles m_hplHeader[m_headerIndex[i]] is the header for the ith profile
 	const InstrumentInfo m_instrumentInfo;
 	const CalibrationInfo m_calibrationInfo;
@@ -248,9 +253,31 @@ private:
 		InstrumentInfo m_instrumentInfo;
 		//sci::UtcTime m_time;
 		LidarWindVadProcessor m_VadProcessor; // have a separate Wind VAD processor for each profile
+		std::vector<uint8_t> m_windFlags;
 	};
 	std::vector<Profile> m_profiles;
 	const InstrumentInfo m_instrumentInfo;
 	const CalibrationInfo m_calibrationInfo;
 	std::shared_ptr<OrientationGrabber> m_orientationGrabber;
+};
+
+
+
+const uint8_t lidarUnusedFlag = 0;
+const uint8_t lidarGoodDataFlag = 1;
+const uint8_t lidarSnrBelow3Flag = 2;
+const uint8_t lidarSnrBelow2Flag = 3;
+const uint8_t lidarSnrBelow1Flag = 4;
+const uint8_t lidarDopplerOutOfRangeFlag = 5;
+const uint8_t lidarNoDataFlag = 6;
+
+const std::vector<std::pair<uint8_t,sci::string>> lidarDopplerFlags
+{
+{ lidarUnusedFlag, sU("not_used") },
+{lidarGoodDataFlag, sU("good_data")},
+{lidarSnrBelow3Flag, sU("SNR_less_than_3") },
+{lidarSnrBelow2Flag, sU("SNR_less_than_2") },
+{lidarSnrBelow1Flag, sU("SNR_less_than_1") },
+{lidarDopplerOutOfRangeFlag, sU("doppler_velocity_out_of_+-_19_m_s-1_range") },
+{lidarNoDataFlag, sU("no_data")}
 };

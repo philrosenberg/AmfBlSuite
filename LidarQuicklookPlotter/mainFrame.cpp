@@ -285,9 +285,9 @@ void mainFrame::process()
 
 	std::shared_ptr<OrientationGrabber>orientationGrabber(new StaticOrientationGrabber(degree(0.0), degree(0.0), degree(0.0)));
 
-	process(CeilometerProcessor(), sU("Ceilometer processor"));
-	process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Wind Profile processor"));
-	process(LidarWindVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Wind VAD/PPI processor"));
+	//process(CeilometerProcessor(), sU("Ceilometer processor"));
+	//process(LidarWindProfileProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Wind Profile processor"));
+	//process(LidarWindVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Wind VAD/PPI processor"));
 	process(LidarCopolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Copolarised Stare processor"));
 	process(LidarCrosspolarisedStareProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar Cross Polarised Stare processor"));
 	process(LidarVadProcessor(leedsHaloInfo, leedsHaloCalibrationInfo, orientationGrabber), sU("Lidar VAD/PPI processor"));
