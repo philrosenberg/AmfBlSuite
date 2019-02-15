@@ -203,7 +203,10 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("processing_software_url"), processingsoftwareInfo.url));
 	write(sci::NcAttribute(sU("processing_software_version"), processingsoftwareInfo.version));
 	write(sci::NcAttribute(sU("calibration_sensitivity"), calibrationInfo.calibrationDescription));
-	write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate, sU("-"), sU(":"), sU("T"))));
+	if(calibrationInfo.certificationDate == sci::UtcTime(0,1,1,0,0,0))
+		write(sci::NcAttribute(sU("calibration_certification_date"), sU("Not available")));
+	else
+		write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("calibration_certification_url"), calibrationInfo.certificateUrl));
 	sci::stringstream samplingIntervalString;
 	samplingIntervalString << dataInfo.samplingInterval;
@@ -282,7 +285,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 
 	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension()));
 	m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension));
-	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, longitudeDimension));
+	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension));
 	m_dayOfYearVariable.reset(new AmfNcVariable<double>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU("1"), 0.0, 366.0));
 	m_yearVariable.reset(new AmfNcVariable<int>(sU("year"), *this, getTimeDimension(), sU("Year"), sU("1"), std::numeric_limits<int>::min(), std::numeric_limits<int>::max()));
 	m_monthVariable.reset(new AmfNcVariable<int>(sU("month"), *this, getTimeDimension(), sU("Month"), sU("1"), 1, 12));

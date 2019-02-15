@@ -90,7 +90,7 @@ enum DeploymentMode
 	dm_land,
 	dm_sea
 };
-const std::vector<sci::string> g_deploymentModeStrings{ sU("air"), sU("sea"), sU("land") };
+const std::vector<sci::string> g_deploymentModeStrings{ sU("air"), sU("land"), sU("sea") };
 
 struct PlatformInfo
 {
