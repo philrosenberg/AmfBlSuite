@@ -107,27 +107,30 @@ template <class T>
 class AmfNcVariable : public sci::NcVariable<T>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &units, T validMin, T validMax)
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &units, T validMin, T validMax, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimension)
 	{
-		setAttributes(longName, units, validMin, validMax);
+		setAttributes(ncFile, longName, units, validMin, validMax, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &units, T validMin, T validMax)
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &units, T validMin, T validMax, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimensions)
 	{
-		setAttributes(longName, units, validMin, validMax);
+		setAttributes(ncFile, longName, units, validMin, validMax, comment);
 	}
 private:
-	void setAttributes(const sci::string &longName, const sci::string &units, T validMin, T validMax)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &units, T validMin, T validMax, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute unitsAttribute(sU("units"), units);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
-		sci::NcAttribute validMaxAttribute(sU("valid_min"), validMax);
-		addAttribute(longNameAttribute);
-		addAttribute(unitsAttribute);
-		addAttribute(validMinAttribute);
-		addAttribute(validMaxAttribute);
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax);
+		sci::NcAttribute commentAttribute(sU("comment"), comment);
+		addAttribute(longNameAttribute, ncFile);
+		addAttribute(unitsAttribute, ncFile);
+		addAttribute(validMinAttribute, ncFile);
+		addAttribute(validMaxAttribute, ncFile);
+		if (comment.length() > 0)
+			addAttribte(commentAtribute, ncFile);
 	}
 };
 
@@ -144,9 +147,9 @@ public:
 			flagValues[i] = flagDefinitions[i].first;
 			flagDescriptions[i] = flagDefinitions[i].second;
 		}
-		addAttribute(sci::NcAttribute(sU("long name"), sU("Data Quality Flag")));
-		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues));
-		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptions));
+		addAttribute(sci::NcAttribute(sU("long name"), sU("Data Quality Flag")), ncFile);
+		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues), ncFile);
+		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptions), ncFile);
 	}
 };
 
@@ -158,12 +161,12 @@ public:
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
 		:NcVariable<sci::Physical<T>>(name, ncFile, dimension)
 	{
-		setAttributes(longName, validMin, validMax);
+		setAttributes(ncFile, longName, validMin, validMax);
 	}
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
 		:NcVariable<sci::Physical<T>>(name, ncFile, dimensions)
 	{
-		setAttributes(longName, validMin, validMax);
+		setAttributes(ncFile, longName, validMin, validMax);
 	}
 	template <class U>
 	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<T>(physicals))
@@ -172,16 +175,16 @@ public:
 	}
 
 private:
-	void setAttributes(const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getShortUnitString());
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>() );
 		sci::NcAttribute validMaxAttribute(sU("valid_min"), validMax.value<T>() );
-		addAttribute(longNameAttribute);
-		addAttribute(unitsAttribute);
-		addAttribute(validMinAttribute);
-		addAttribute(validMaxAttribute);
+		addAttribute(longNameAttribute, ncFile);
+		addAttribute(unitsAttribute, ncFile);
+		addAttribute(validMinAttribute, ncFile);
+		addAttribute(validMaxAttribute, ncFile);
 	}
 };
 

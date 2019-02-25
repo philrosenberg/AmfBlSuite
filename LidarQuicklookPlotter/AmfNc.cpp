@@ -293,7 +293,6 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	m_hourVariable.reset(new AmfNcVariable<int>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU("1"), 0, 23));
 	m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU("1"), 0, 59));
 	m_secondVariable.reset(new AmfNcVariable<double>(sU("second"), *this, getTimeDimension(), sU("Second"), sU("1"), 0.0, 60*(1.0-std::numeric_limits<double>::epsilon())));
-	
 
 	//and the time variable
 	/*std::vector<double> secondsAfterEpoch(times.size());
