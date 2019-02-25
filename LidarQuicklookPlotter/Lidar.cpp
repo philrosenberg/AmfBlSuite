@@ -9,11 +9,19 @@
 #include<svector/sstring.h>
 #include"ProgressReporter.h"
 
-void LidarBackscatterDopplerProcessor::readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarBackscatterDopplerProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	for (size_t i = 0; i < inputFilenames.size(); ++i)
 	{
 		readData(inputFilenames[i], progressReporter, parent, i == 0);
+	}
+
+	//correct azimuths and elevations for platform orientation
+	m_correctedAzimuths.resize(m_profiles.size(), degree(0.0));
+	m_correctedElevations.resize(m_profiles.size(), degree(0.0));
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		platform.correctDirection(m_profiles[i].getTime<sci::UtcTime>(), m_profiles[i].getAzimuth(), m_profiles[i].getElevation(), m_correctedAzimuths[i], m_correctedElevations[i]);
 	}
 }
 void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clear)
@@ -192,22 +200,6 @@ std::vector<metre> LidarBackscatterDopplerProcessor::getGateCentres(size_t profi
 	return getGateLowerBoundaries(profileIndex) + unitless(0.5) * m_hplHeaders[m_headerIndex[profileIndex]].rangeGateLength;
 }
 
-std::vector<degree> LidarBackscatterDopplerProcessor::getAzimuths() const
-{
-	std::vector<degree> result(m_profiles.size());
-	for (size_t i = 0; i < m_profiles.size(); ++i)
-		result[i] = m_profiles[i].getAzimuth();
-	return result;
-}
-
-std::vector<degree> LidarBackscatterDopplerProcessor::getElevations() const
-{
-	std::vector<degree> result(m_profiles.size());
-	for (size_t i = 0; i < m_profiles.size(); ++i)
-		result[i] = m_profiles[i].getElevation();
-	return result;
-}
-
 void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent, HplHeader hplHeader)
 {
 	*window = new splotframe(parent, true);
@@ -228,7 +220,7 @@ void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::
 
 void LidarScanningProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+	const Platform &platform, int processingLevel, sci::string reasonForProcessing,
 	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
@@ -238,10 +230,10 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
 	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.maxLat = sci::max<degree>(platformInfo.latitudes);
-	dataInfo.minLat = sci::min<degree>(platformInfo.latitudes);
-	dataInfo.maxLon = sci::max<degree>(platformInfo.longitudes);
-	dataInfo.minLon = sci::min<degree>(platformInfo.longitudes);
+	dataInfo.maxLat = sci::max<degree>(platform.getPlatformInfo().latitudes);
+	dataInfo.minLat = sci::min<degree>(platform.getPlatformInfo().latitudes);
+	dataInfo.maxLon = sci::max<degree>(platform.getPlatformInfo().longitudes);
+	dataInfo.minLon = sci::min<degree>(platform.getPlatformInfo().longitudes);
 	dataInfo.options = getProcessingOptions();
 	dataInfo.processingLevel = processingLevel;
 	dataInfo.productName = sU("backscatter radial winds");
@@ -429,7 +421,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platformInfo, comment, scanStartTimes, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
+		projectInfo, platform, comment, scanStartTimes, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), metre(0), metre(10000.0));
 	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head azimuth angle"), degree(0), degree(360.0));

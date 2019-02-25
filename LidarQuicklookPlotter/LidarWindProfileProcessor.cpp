@@ -9,7 +9,7 @@
 #include<wx/filename.h>
 #include"AmfNc.h"
 
-void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	m_hasData = false;
 	m_profiles.clear();
@@ -102,10 +102,16 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 		}
 		
 		//now read the hpl file
-		thisProfile.m_VadProcessor.readData({ hplFilenames[i] }, progressReporter, parent);
+		thisProfile.m_VadProcessor.readData({ hplFilenames[i] }, platform, progressReporter, parent);
 
 		//check that we actually found some VAD data
 		sci::assertThrow(thisProfile.m_VadProcessor.getTimesUtcTime().size() > 0, sci::err(sci::SERR_USER, 0, "Could not read VAD data to accompany wind profile data. Aborting read."));
+
+
+		//correct for instrument misalignment
+		degree windElevation;
+		for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
+			platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_windDirections[i], degree(0.0), thisProfile.m_windDirections[j], windElevation);
 
 		//set up the flags;
 		//note that we only get a max of 1000 wind profiles it seems, the rest are zero, so flag them out
@@ -117,6 +123,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 			for (size_t k = 0; k < vadFlags[j].size(); ++k)
 				thisProfile.m_windFlags[k] = std::max(thisProfile.m_windFlags[k], vadFlags[j][k]);
 		}
+
 		m_profiles.push_back(thisProfile);
 	}
 
@@ -192,7 +199,7 @@ void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, cons
 
 void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+	const Platform &platform, int processingLevel, sci::string reasonForProcessing,
 	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
@@ -207,10 +214,10 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		dataInfo.endTime = m_profiles.back().m_VadProcessor.getTimesUtcTime()[0];
 	}
 	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.maxLat = platformInfo.latitudes[0];
-	dataInfo.minLat = platformInfo.latitudes[0];
-	dataInfo.maxLon = platformInfo.longitudes[0];
-	dataInfo.minLon = platformInfo.longitudes[0];
+	dataInfo.maxLat = platform.getPlatformInfo().latitudes[0];
+	dataInfo.minLat = platform.getPlatformInfo().latitudes[0];
+	dataInfo.maxLon = platform.getPlatformInfo().longitudes[0];
+	dataInfo.minLon = platform.getPlatformInfo().longitudes[0];
 	dataInfo.options = std::vector<sci::string>(0);
 	dataInfo.processingLevel = processingLevel;
 	dataInfo.productName = sU("mean winds profile");
@@ -251,7 +258,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	nonTimeDimensions.push_back(&indexDimension);
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platformInfo, comment, scanStartTimes, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
+		projectInfo, platform, comment, scanStartTimes, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), metre(0), metre(20000.0));
 	altitudeVariable.addAttribute(sci::NcAttribute(sU("Note:"), sU("Altitude is above instrument, not referenced to sea level or any geoid and not compensated for instrument platform height.")), file);

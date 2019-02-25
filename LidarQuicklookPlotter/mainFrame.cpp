@@ -68,13 +68,7 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 	m_projectInfo.principalInvestigatorInfo.institution = sU("University of Leeds");
 	m_projectInfo.principalInvestigatorInfo.orcidUrl = sU("https://orcid.org/0000-0002-5051-1322");
 
-	m_platformInfo.altitude = metre(0.0);
-	m_platformInfo.deploymentMode = dm_land;
-	m_platformInfo.latitudes = std::vector<degree>(1, degree(0.0));
-	m_platformInfo.longitudes = std::vector<degree>(1, degree(0.0));
-	m_platformInfo.locationKeywords = { sU("Dummy") };
-	m_platformInfo.name = sU("Neverland");
-	m_platformInfo.platformType = pt_stationary;
+	m_platform.reset(new StationaryPlatform(sU("Neverland"), metre(0.0), degree(0.0), degree(0.0), { sU("Dummy") }, degree(0.0), degree(180.0), degree(0.0)));
 
 	m_comment = sU("This is a test file. It should not be used for scientific work.");
 
@@ -324,7 +318,7 @@ void mainFrame::process(InstrumentProcessor &processor, sci::string processorNam
 		if (!m_progressReporter->shouldStop())
 		{
 			//Ensure all our directoris are as
-			readDataThenPlotThenNc(plotChangesLister, ncChangesLister, m_author, m_processingSoftwareInfo, m_projectInfo, m_platformInfo, m_comment, processor, processorName);
+			readDataThenPlotThenNc(plotChangesLister, ncChangesLister, m_author, m_processingSoftwareInfo, m_projectInfo, *m_platform, m_comment, processor, processorName);
 			if (!m_progressReporter->shouldStop())
 				(*m_progressReporter) << sU("Processed all files matching filter ") << processorName << sU("\n");
 		}
@@ -410,7 +404,7 @@ void mainFrame::checkDirectoryStructue()
 
 void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 	const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor, sci::string processorName)
+	const Platform &platform, const sci::string &comment, InstrumentProcessor &processor, sci::string processorName)
 {
 	//check for new files
 	(*m_progressReporter) << sU("Looking for data files to plot.\n");
@@ -438,7 +432,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 		{
 			//readData takes an array of files that will all be processed and plotted together
 			//and put in a single netcdf. To process just one file we make an array with just one filename
-			processor.readData({ newPlotFiles[i] }, *m_progressReporter, this);
+			processor.readData({ newPlotFiles[i] }, platform, *m_progressReporter, this);
 
 			if (m_progressReporter->shouldStop())
 			{
@@ -521,7 +515,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 			(*m_progressReporter) << dayFileSets[i][j] << sU("\n");
 		try
 		{
-			processor.readData(dayFileSets[i], *m_progressReporter, this);
+			processor.readData(dayFileSets[i], platform, *m_progressReporter, this);
 
 			if (m_progressReporter->shouldStop())
 			{
@@ -531,7 +525,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 
 			if (processor.hasData())
 			{
-				processor.writeToNc(m_outputDirectory, author, processingSoftwareInfo, projectInfo, platformInfo, m_processingLevel, m_reasonForProcessing, comment, *m_progressReporter);
+				processor.writeToNc(m_outputDirectory, author, processingSoftwareInfo, projectInfo, platform, m_processingLevel, m_reasonForProcessing, comment, *m_progressReporter);
 
 				if (m_progressReporter->shouldStop())
 				{

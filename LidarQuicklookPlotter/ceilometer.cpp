@@ -31,18 +31,18 @@ std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 
 void CeilometerProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+	const Platform &platform, int processingLevel, sci::string reasonForProcessing,
 	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	if (!hasData())
 		throw(sU("Attempted to write ceilometer data to netcdf when it has not been read"));
 
-	writeToNc(m_firstHeaderHpl, m_allData, directory, author, processingSoftwareInfo, projectInfo, platformInfo, comment);
+	writeToNc(m_firstHeaderHpl, m_allData, directory, author, processingSoftwareInfo, projectInfo, platform, comment);
 }
 
 void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string directory,
 	const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, const sci::string &comment)
+	const Platform &platform, const sci::string &comment)
 {
 	InstrumentInfo ceilometerInfo;
 	ceilometerInfo.name = sU("ncas-ceilometer-3");
@@ -135,7 +135,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	nonTimeDimensions.push_back(&gateDimension);
 	//create the file and dimensions. The time variable is added automatically
 	OutputAmfNcFile ceilometerFile(directory, ceilometerInfo, author, processingSoftwareInfo, ceilometerCalibrationInfo, dataInfo,
-		projectInfo, platformInfo, comment, times, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
+		projectInfo, platform, comment, times, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
 
 	//add the data variables
 
@@ -186,7 +186,7 @@ sci::UtcTime getCeilometerTime(const sci::string &timeDateString)
 	return result;
 }
 
-void CeilometerProcessor::readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent)
+void CeilometerProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	for (size_t i = 0; i < inputFilenames.size(); ++i)
 	{

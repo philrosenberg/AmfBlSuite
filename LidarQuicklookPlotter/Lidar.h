@@ -61,7 +61,7 @@ class LidarBackscatterDopplerProcessor : public PlotableLidar
 public:
 	LidarBackscatterDopplerProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, sci::string fileSearchRegEx) : PlotableLidar(fileSearchRegEx), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo), m_orientationGrabber(orientationGrabber) {}
 	virtual ~LidarBackscatterDopplerProcessor() {}
-	virtual void readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent) override;
 	void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clear);
 	virtual bool hasData() const override { return m_hasData; }
 	virtual std::vector<sci::string> getProcessingOptions() const = 0;
@@ -76,8 +76,8 @@ public:
 	std::vector<metre> getGateLowerBoundaries(size_t profileIndex) const;
 	std::vector<metre> getGateUpperBoundaries(size_t profileIndex) const;
 	std::vector<metre> getGateCentres(size_t profileIndex) const;
-	std::vector<degree> getAzimuths() const;
-	std::vector<degree> getElevations() const;
+	std::vector<degree> getAzimuths() const { return m_correctedAzimuths;}
+	std::vector<degree> getElevations() const { return m_correctedElevations; }
 	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
 	void setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent)
@@ -98,6 +98,8 @@ private:
 	const InstrumentInfo m_instrumentInfo;
 	const CalibrationInfo m_calibrationInfo;
 	std::shared_ptr<OrientationGrabber> m_orientationGrabber;
+	std::vector<degree> m_correctedAzimuths;
+	std::vector<degree> m_correctedElevations;
 };
 
 class LidarScanningProcessor : public LidarBackscatterDopplerProcessor
@@ -108,7 +110,7 @@ public:
 	{}
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+		const Platform &platform, int processingLevel, sci::string reasonForProcessing,
 		const sci::string &comment, ProgressReporter &progressReporter) override;
 };
 
@@ -119,7 +121,7 @@ public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+		const Platform &platform, int processingLevel, sci::string reasonForProcessing,
 		const sci::string &comment, ProgressReporter &progressReporter) override;
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 };
@@ -232,11 +234,11 @@ class LidarWindProfileProcessor : public InstrumentProcessor
 {
 public:
 	LidarWindProfileProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) :InstrumentProcessor(sU("[/\\\\]Processed_Wind_Profile_.._........_......\\.hpl$")), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo), m_orientationGrabber(orientationGrabber) {}
-	virtual void readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+		const Platform &platform, int processingLevel, sci::string reasonForProcessing,
 		const sci::string &comment, ProgressReporter &progressReporter) override;
 	virtual bool hasData() const override { return m_hasData; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }

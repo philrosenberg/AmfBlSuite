@@ -85,11 +85,11 @@ class InstrumentProcessor
 public:
 	InstrumentProcessor(sci::string fileSearchRegEx) : m_fileSearchRegEx(fileSearchRegEx) {}
 	//virtual void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
-	virtual void readData(const std::vector<sci::string> &inputFilenames, ProgressReporter &progressReporter, wxWindow *parent) = 0;
+	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent) = 0;
 	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) = 0;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+		const Platform &platform, int processingLevel, sci::string reasonForProcessing,
 		const sci::string &comment, ProgressReporter &progressReporter) = 0;
 	virtual bool hasData() const = 0;
 	virtual std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const = 0;

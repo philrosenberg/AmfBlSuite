@@ -52,7 +52,7 @@ std::vector<std::vector<sci::string>> LidarStareProcessor::groupFilesPerDayForRe
 
 void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo, int processingLevel, sci::string reasonForProcessing,
+	const Platform &platform, int processingLevel, sci::string reasonForProcessing,
 	const sci::string &comment, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
@@ -62,10 +62,10 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
 	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.maxLat = sci::max<degree>(platformInfo.latitudes);
-	dataInfo.minLat = sci::min<degree>(platformInfo.latitudes);
-	dataInfo.maxLon = sci::max<degree>(platformInfo.longitudes);
-	dataInfo.minLon = sci::min<degree>(platformInfo.longitudes);
+	dataInfo.maxLat = sci::max<degree>(platform.getPlatformInfo().latitudes);
+	dataInfo.minLat = sci::min<degree>(platform.getPlatformInfo().latitudes);
+	dataInfo.maxLon = sci::max<degree>(platform.getPlatformInfo().longitudes);
+	dataInfo.minLon = sci::min<degree>(platform.getPlatformInfo().longitudes);
 	dataInfo.options = getProcessingOptions();
 	dataInfo.processingLevel = processingLevel;
 	dataInfo.productName = sU("backscatter radial winds");
@@ -130,7 +130,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platformInfo, comment, times, platformInfo.longitudes[0], platformInfo.latitudes[0], nonTimeDimensions);
+		projectInfo, platform, comment, times, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), metre(0), metre(10000.0));
 	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), degree(0), degree(360.0));

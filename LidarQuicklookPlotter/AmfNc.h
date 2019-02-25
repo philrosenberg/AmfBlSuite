@@ -103,6 +103,121 @@ struct PlatformInfo
 	std::vector<degree>longitudes; //would have just one element for a static platform
 };
 
+template< class T >
+void correctDirection( T measuredX, T measuredY, T measuredZ, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, T &correctedX, T &correctedY, T &correctedZ)
+{
+	//make things a little easier with notation
+	unitless cosE = cosInstrumentElevation;
+	unitless sinE = sinInstrumentElevation;
+	unitless cosR = cosInstrumentRoll;
+	unitless sinR = sinInstrumentRoll;
+	unitless cosA = cosInstrumentAzimuth;
+	unitless sinA = sinInstrumentAzimuth;
+
+	//transform the unit vector into the correct direction
+	correctedX = measuredX * (cosR*cosA - sinR * sinE*sinA) + measuredY * (-cosE * sinA) + measuredZ * (sinR*cosA + cosR * sinE*sinA);
+	correctedY = measuredX * (cosR*sinA + sinR * sinE*cosA) + measuredY * (cosE * cosA) + measuredZ * (sinR*sinA - cosR * sinE*cosA);
+	correctedZ = measuredX * (-sinR * cosE) + measuredY * (sinE)+measuredZ * (cosR*cosE);
+}
+
+void correctDirection(degree measuredElevation, degree measuredAzimuth, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, degree &correctedElevation, degree &correctedAzimuth);
+
+class Platform
+{
+public:
+	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, metre altitude, std::vector<degree> latitudes, std::vector<degree> longitudes, std::vector<sci::string> locationKeywords)
+	{
+		m_platformInfo.name = name;
+		m_platformInfo.platformType = platformType;
+		m_platformInfo.deploymentMode = deploymentMode;
+		m_platformInfo.altitude = altitude;
+		m_platformInfo.latitudes = latitudes;
+		m_platformInfo.longitudes = longitudes;
+		m_platformInfo.locationKeywords = locationKeywords;
+	}
+
+	PlatformInfo getPlatformInfo() const 
+	{
+		return m_platformInfo;
+	};
+	virtual ~Platform() {}
+	//virtual degree getInstrumentLatitude(sci::UtcTime time) const = 0;
+	//virtual degree getInstrumentLongitude(sci::UtcTime time) const = 0;
+	//virtual degree getInstrumentAltitude(sci::UtcTime time) const = 0;
+	//virtual void getInstrumentPosition(sci::UtcTime time, degree &latitude, degree &longitude, metre &altitude)
+	//{
+	//	latitude = getInstrumentLatitude(time);
+	//	longitude = getInstrumentLongitude(time);
+	//	altitude = getInstrumentAltitude(time);
+	//}
+	void correctDirection(sci::UtcTime time, degree instrumentRelativeAzimuth, degree instrumentRelativeElevation,  degree &correctedAzimuth, degree &correctedElevation) const
+	{
+		unitless sinInstrumentElevation;
+		unitless sinInstrumentAzimuth;
+		unitless sinInstrumentRoll;
+		unitless cosInstrumentElevation;
+		unitless cosInstrumentAzimuth;
+		unitless cosInstrumentRoll;
+		getInstrumentTrigAttitudes(time, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
+		
+		::correctDirection(instrumentRelativeElevation, instrumentRelativeAzimuth, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedElevation, correctedAzimuth);
+	}
+	template<class T>
+	void correctVector(sci::UtcTime time, T measuredX, T measuredY, T measuredZ, T &correctedX, T &correctedY, T &correctedZ) const
+	{
+		unitless sinInstrumentElevation;
+		unitless sinInstrumentAzimuth;
+		unitless sinInstrumentRoll;
+		unitless cosInstrumentElevation;
+		unitless cosInstrumentAzimuth;
+		unitless cosInstrumentRoll;
+		getInstrumentTrigAttitudes(time, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
+
+		::correctDirection(measuredX, measuredY, measuredZ, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedX, correctedY, correctedZ);
+	}
+	virtual void getInstrumentVelocity(sci::UtcTime time, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const = 0;
+	virtual void getInstrumentTrigAttitudes(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const = 0;
+private:
+	PlatformInfo m_platformInfo;
+};
+
+class StationaryPlatform : public Platform
+{
+public:
+	StationaryPlatform(sci::string name, metre altitude, degree latitude, degree longitude, std::vector<sci::string> locationKeywords, degree instrumentElevation, degree instrumentAzimuth, degree instrumentRoll)
+		:Platform(name, pt_stationary, dm_land, altitude, { latitude }, { longitude }, locationKeywords)
+	{
+		m_sinInstrumentElevation = sci::sin(instrumentElevation);
+		m_sinInstrumentAzimuth = sci::sin(instrumentAzimuth);
+		m_sinInstrumentRoll = sci::sin(instrumentRoll);
+		m_cosInstrumentElevation = sci::cos(instrumentElevation);
+		m_cosInstrumentAzimuth = sci::cos(instrumentAzimuth);
+		m_cosInstrumentRoll = sci::cos(instrumentRoll);
+	}
+	virtual void getInstrumentVelocity(sci::UtcTime time, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const override
+	{
+		eastwardVelocity = metrePerSecond(0.0);
+		northwardVelocity = metrePerSecond(0.0);
+		upwardVelocity = metrePerSecond(0.0);
+	}
+	virtual void getInstrumentTrigAttitudes(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
+	{
+		sinInstrumentElevation = m_sinInstrumentElevation;
+		sinInstrumentAzimuth = m_sinInstrumentAzimuth;
+		sinInstrumentRoll = m_sinInstrumentRoll;
+		cosInstrumentElevation = m_cosInstrumentElevation;
+		cosInstrumentAzimuth = m_cosInstrumentAzimuth;
+		cosInstrumentRoll = m_cosInstrumentRoll;
+	}
+private:
+	unitless m_sinInstrumentElevation;
+	unitless m_sinInstrumentAzimuth;
+	unitless m_sinInstrumentRoll;
+	unitless m_cosInstrumentElevation;
+	unitless m_cosInstrumentAzimuth;
+	unitless m_cosInstrumentRoll;
+};
+
 template <class T>
 class AmfNcVariable : public sci::NcVariable<T>
 {
@@ -130,7 +245,7 @@ private:
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
 		if (comment.length() > 0)
-			addAttribte(commentAtribute, ncFile);
+			addAttribute(commentAttribute, ncFile);
 	}
 };
 
@@ -229,7 +344,7 @@ public:
 		const CalibrationInfo &calibrationInfo,
 		const DataInfo &dataInfo,
 		const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo,
+		const Platform &platform,
 		const sci::string &comment,
 		const std::vector<sci::UtcTime> &times,
 		degree longitude,

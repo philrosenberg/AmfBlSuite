@@ -6,6 +6,24 @@
 #include<cmath>
 #include<locale>
 
+void correctDirection(degree measuredElevation, degree measuredAzimuth, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, degree &correctedElevation, degree &correctedAzimuth)
+{
+	//create a unit vector in the measured direction
+	unitless x = sci::sin(measuredAzimuth)*sci::cos(measuredElevation);
+	unitless y = sci::cos(measuredAzimuth)*sci::cos(measuredElevation);
+	unitless z = sci::sin(measuredElevation);
+
+	//correct the vector
+	unitless correctedX;
+	unitless correctedY;
+	unitless correctedZ;
+	correctDirection(x, y, z, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedX, correctedY, correctedZ);
+
+	//convert the unit vector back to spherical polar
+	correctedElevation = sci::asin(correctedZ);
+	correctedAzimuth = sci::atan2(correctedX, correctedY);
+}
+
 sci::string getFormattedDateTime(const sci::UtcTime &time, sci::string dateSeparator, sci::string timeSeparator, sci::string dateTimeSeparator)
 {
 	sci::ostringstream timeString;
@@ -92,7 +110,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const CalibrationInfo &calibrationInfo,
 	const DataInfo &dataInfo,
 	const ProjectInfo &projectInfo,
-	const PlatformInfo &platformInfo,
+	const Platform &platform,
 	const sci::string &comment,
 	const std::vector<sci::UtcTime> &times,
 	degree longitude,
@@ -104,8 +122,8 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	//add the instument name
 	sci::string title = instrumentInfo.name;
 	//add the platform if there is one
-	if (platformInfo.name.length() > 0)
-		title = title + sU("-") + platformInfo.name;
+	if (platform.getPlatformInfo().name.length() > 0)
+		title = title + sU("-") + platform.getPlatformInfo().name;
 	//add either the date or date and time depending upon whether the data is
 	//continuous or a single measurement
 	if (dataInfo.continuous)
@@ -221,29 +239,29 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("project_principal_investigator_url"), projectInfo.principalInvestigatorInfo.orcidUrl));
 	write(sci::NcAttribute(sU("licence"), sci::string(sU("Data usage licence - UK Government Open Licence agreement: http://www.nationalarchives.gov.uk/doc/open-government-licence"))));
 	write(sci::NcAttribute(sU("acknowledgement"), sci::string(sU("Acknowledgement of NCAS as the data provider is required whenever and wherever these data are used"))));
-	write(sci::NcAttribute(sU("platform"), platformInfo.name));
-	write(sci::NcAttribute(sU("platform_type"), g_platformTypeStrings[ platformInfo.platformType ]));
-	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings[ platformInfo.deploymentMode ] ));
+	write(sci::NcAttribute(sU("platform"), platform.getPlatformInfo().name));
+	write(sci::NcAttribute(sU("platform_type"), g_platformTypeStrings[platform.getPlatformInfo().platformType]));
+	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings[platform.getPlatformInfo().deploymentMode] ));
 	write(sci::NcAttribute(sU("title"), title));
 	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings[ dataInfo.featureType ] ));
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(dataInfo)));
-	if (std::isnan(platformInfo.altitude))
+	if (std::isnan(platform.getPlatformInfo().altitude))
 	{
 		write(sci::NcAttribute(sU("platform_altitude"), sci::string(sU("Not Applicable"))));
 	}
 	else
 	{
 		sci::stringstream altitudeString;
-		altitudeString << platformInfo.altitude;
+		altitudeString << platform.getPlatformInfo().altitude;
 		write(sci::NcAttribute(sU("platform_altitude"), altitudeString.str()));
 	}
 	sci::stringstream locationKeywords;
-	if (platformInfo.locationKeywords.size() > 0)
-		locationKeywords << platformInfo.locationKeywords[0];
-	for (size_t i = 1; i < platformInfo.locationKeywords.size(); ++i)
-		locationKeywords << ", " << platformInfo.locationKeywords[i];
+	if (platform.getPlatformInfo().locationKeywords.size() > 0)
+		locationKeywords << platform.getPlatformInfo().locationKeywords[0];
+	for (size_t i = 1; i < platform.getPlatformInfo().locationKeywords.size(); ++i)
+		locationKeywords << ", " << platform.getPlatformInfo().locationKeywords[i];
 	write(sci::NcAttribute(sU("location_keywords"), locationKeywords.str()));
 	write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/tree/v0.2.3"))));
 	write(sci::NcAttribute(sU("comment"), comment));

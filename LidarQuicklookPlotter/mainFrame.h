@@ -52,7 +52,7 @@ private:
 	PersonInfo m_author;
 	ProcessingSoftwareInfo m_processingSoftwareInfo;
 	ProjectInfo m_projectInfo;
-	PlatformInfo m_platformInfo;
+	std::shared_ptr<Platform> m_platform;
 	sci::string m_comment;
 	int m_processingLevel;
 	sci::string m_reasonForProcessing;
@@ -64,7 +64,7 @@ private:
 	void process(InstrumentProcessor &processor, sci::string processorName);
 	void readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 		const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo, const sci::string &comment, InstrumentProcessor &processor, sci::string processorName);
+		const Platform &platform, const sci::string &comment, InstrumentProcessor &processor, sci::string processorName);
 	void checkDirectoryStructue();
 
 	DECLARE_EVENT_TABLE();
