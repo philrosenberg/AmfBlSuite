@@ -97,7 +97,7 @@ struct PlatformInfo
 	sci::string name;
 	PlatformType platformType;
 	DeploymentMode deploymentMode;
-	metre altitude; //Use nan for varying altitude airborne
+	std::vector <metre> altitudes; //Use nan for varying altitude airborne
 	std::vector<sci::string> locationKeywords;
 	std::vector<degree> latitudes; //would have just one element for a static platform
 	std::vector<degree>longitudes; //would have just one element for a static platform
@@ -121,16 +121,17 @@ void correctDirection( T measuredX, T measuredY, T measuredZ, unitless sinInstru
 }
 
 void correctDirection(degree measuredElevation, degree measuredAzimuth, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, degree &correctedElevation, degree &correctedAzimuth);
+degree angleBetweenDirections(degree elevation1, degree azimuth1, degree elevation2, degree azimuth2);
 
 class Platform
 {
 public:
-	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, metre altitude, std::vector<degree> latitudes, std::vector<degree> longitudes, std::vector<sci::string> locationKeywords)
+	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, std::vector<metre> altitudes, std::vector<degree> latitudes, std::vector<degree> longitudes, std::vector<sci::string> locationKeywords)
 	{
 		m_platformInfo.name = name;
 		m_platformInfo.platformType = platformType;
 		m_platformInfo.deploymentMode = deploymentMode;
-		m_platformInfo.altitude = altitude;
+		m_platformInfo.altitudes = altitudes;
 		m_platformInfo.latitudes = latitudes;
 		m_platformInfo.longitudes = longitudes;
 		m_platformInfo.locationKeywords = locationKeywords;
@@ -141,15 +142,6 @@ public:
 		return m_platformInfo;
 	};
 	virtual ~Platform() {}
-	//virtual degree getInstrumentLatitude(sci::UtcTime time) const = 0;
-	//virtual degree getInstrumentLongitude(sci::UtcTime time) const = 0;
-	//virtual degree getInstrumentAltitude(sci::UtcTime time) const = 0;
-	//virtual void getInstrumentPosition(sci::UtcTime time, degree &latitude, degree &longitude, metre &altitude)
-	//{
-	//	latitude = getInstrumentLatitude(time);
-	//	longitude = getInstrumentLongitude(time);
-	//	altitude = getInstrumentAltitude(time);
-	//}
 	void correctDirection(sci::UtcTime time, degree instrumentRelativeAzimuth, degree instrumentRelativeElevation,  degree &correctedAzimuth, degree &correctedElevation) const
 	{
 		unitless sinInstrumentElevation;
@@ -185,7 +177,7 @@ class StationaryPlatform : public Platform
 {
 public:
 	StationaryPlatform(sci::string name, metre altitude, degree latitude, degree longitude, std::vector<sci::string> locationKeywords, degree instrumentElevation, degree instrumentAzimuth, degree instrumentRoll)
-		:Platform(name, pt_stationary, dm_land, altitude, { latitude }, { longitude }, locationKeywords)
+		:Platform(name, pt_stationary, dm_land, { altitude }, { latitude }, { longitude }, locationKeywords)
 	{
 		m_sinInstrumentElevation = sci::sin(instrumentElevation);
 		m_sinInstrumentAzimuth = sci::sin(instrumentAzimuth);
@@ -216,6 +208,189 @@ private:
 	unitless m_cosInstrumentElevation;
 	unitless m_cosInstrumentAzimuth;
 	unitless m_cosInstrumentRoll;
+};
+
+class MovingLevelPlatform : public Platform
+{
+	MovingLevelPlatform(sci::string name, DeploymentMode deploymentMode, std::vector<metre> altitudes, std::vector<degree> latitudes, std::vector<degree> longitudes, std::vector<sci::string> locationKeywords, degree instrumentElevation, degree instrumentAzimuth, degree instrumentRoll)
+		:Platform(name, pt_stationary, deploymentMode, altitudes, latitudes, longitudes, locationKeywords)
+	{
+
+	}
+};
+
+class ShipRelativePlatform : public Platform
+{
+public:
+	ShipRelativePlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationsShipRelative, degree instrumentAzimuthsShipRelative, degree instrumentRollsShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
+		:Platform(name, pt_moving, dm_sea, { altitude }, latitudes, longitudes, locationKeywords)
+	{
+		m_times = times;
+		m_instrumentAzimuthsShipRelative = std::vector<degree>(times.size(), instrumentAzimuthsShipRelative);
+		m_instrumentElevationsShipRelative = std::vector<degree>(times.size(), instrumentElevationsShipRelative);
+		m_instrumentRollsShipRelative = std::vector<degree>(times.size(), instrumentRollsShipRelative);
+		m_shipAzimuths = shipAzimuths;
+		m_shipCourses = shipCourses;
+		m_shipElevations = shipElevations;
+		m_shipRolls = shipRolls;
+		m_shipSpeeds = shipSpeeds;
+	}
+private:
+	std::vector<sci::UtcTime> m_times;
+	std::vector<degree> m_instrumentElevationsAbsolute;
+	std::vector<degree> m_instrumentAzimuthsAbsolute;
+	std::vector<degree> m_instrumentRollsAbsolute;
+	std::vector<degree> m_instrumentElevationsShipRelative;
+	std::vector<degree> m_instrumentAzimuthsShipRelative;
+	std::vector<degree> m_instrumentRollsShipRelative;
+	std::vector<degree> m_shipCourses;
+	std::vector<degree> m_shipElevations;
+	std::vector<degree> m_shipAzimuths;
+	std::vector<degree> m_shipRolls;
+	std::vector<metrePerSecond> m_shipSpeeds;
+};
+
+
+class ShipPlatform : public Platform
+{
+public:
+	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, const std::vector<degree> &instrumentElevationsShipRelative, const std::vector<degree> &instrumentAzimuthsShipRelative, const std::vector<degree> &instrumentRollsShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
+		:Platform(name, pt_moving, dm_sea, { altitude }, latitudes, longitudes, locationKeywords)
+	{
+		m_times = times;
+		m_shipAzimuths = shipAzimuths;
+		m_shipCourses = shipCourses;
+		m_shipSpeeds = shipSpeeds;
+
+
+		m_instrumentElevationsAbsolute = std::vector<degree>(times.size(), degree(0.0));
+		m_instrumentAzimuthsAbsolute = std::vector<degree>(times.size(), degree(0.0));
+		m_instrumentRollsAbsolute = std::vector<degree>(times.size(), degree(0.0));
+
+		for (size_t i = 0; i < m_times.size(); ++i)
+		{
+			//We can calculate the elevation and azimuth of the instrument
+			//in absolute terms by taking the elevation and azimuth in ship terms
+			//and correcting that for the ship attitude
+			::correctDirection(instrumentElevationsShipRelative[i],
+				instrumentAzimuthsShipRelative[i],
+				sci::sin(shipElevations[i]),
+				sci::sin(shipAzimuths[i]),
+				sci::sin(shipRolls[i]),
+				sci::cos(shipElevations[i]),
+				sci::cos(shipAzimuths[i]),
+				sci::cos(shipRolls[i]),
+				m_instrumentElevationsAbsolute[i],
+				m_instrumentAzimuthsAbsolute[i]);
+			//roll is a bit more tricky. To calculate roll we find the absolute
+			//direction that is up relative to the instrument and convert it to
+			//ship coordinates. Then we convert it to absolute coordinates.
+			//We then take the absolute elevation and azimuth of the instrument
+			//and add 90 degrees to the elevation. This gives the direction of
+			//up relative to the instrument if there was no absolute roll.
+			//The absolute roll is the angle between these two directions which
+			//we find useing the spherical trig cosine rule.
+			degree upElevation;
+			degree upAzimuth;
+			::correctDirection(degree(90.0),
+				degree(0.0),
+				sci::sin(instrumentElevationsShipRelative[i]),
+				sci::sin(instrumentAzimuthsShipRelative[i]),
+				sci::sin(instrumentRollsShipRelative[i]),
+				sci::cos(instrumentElevationsShipRelative[i]),
+				sci::cos(instrumentAzimuthsShipRelative[i]),
+				sci::cos(instrumentRollsShipRelative[i]),
+				upElevation,
+				upAzimuth);
+			::correctDirection(upElevation,
+				upAzimuth,
+				sci::sin(shipElevations[i]),
+				sci::sin(shipAzimuths[i]),
+				sci::sin(shipRolls[i]),
+				sci::cos(shipElevations[i]),
+				sci::cos(shipAzimuths[i]),
+				sci::cos(shipRolls[i]),
+				upElevation,
+				upAzimuth);
+			degree upElevationNoRoll = m_instrumentElevationsAbsolute[i] + degree(90.0);
+			degree upAzimuthNoRoll = m_instrumentAzimuthsAbsolute[i];
+			m_instrumentRollsAbsolute[i] = angleBetweenDirections(upElevationNoRoll, upAzimuthNoRoll, upElevation, upAzimuth);
+		}
+	}
+	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationShipRelative, degree instrumentAzimuthShipRelative, degree instrumentRollShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
+		:Platform(name, pt_moving, dm_sea, { altitude }, latitudes, longitudes, locationKeywords)
+	{
+		m_times = times;
+		m_shipAzimuths = shipAzimuths;
+		m_shipCourses = shipCourses;
+		m_shipSpeeds = shipSpeeds;
+
+		//We can save some calculations by doing these outside of the loop
+		unitless sinE = sci::sin(instrumentElevationShipRelative);
+		unitless sinA = sci::sin(instrumentAzimuthShipRelative);
+		unitless sinR = sci::sin(instrumentRollShipRelative);
+		unitless cosE = sci::cos(instrumentElevationShipRelative);
+		unitless cosA = sci::cos(instrumentAzimuthShipRelative);
+		unitless cosR = sci::cos(instrumentRollShipRelative);
+
+		for (size_t i = 0; i < m_times.size(); ++i)
+		{
+			//We can calculate the elevation and azimuth of the instrument
+			//in absolute terms by taking the elevation and azimuth in ship terms
+			//and correcting that for the ship attitude
+			::correctDirection(instrumentElevationShipRelative,
+				instrumentAzimuthShipRelative,
+				sci::sin(shipElevations[i]),
+				sci::sin(shipAzimuths[i]),
+				sci::sin(shipRolls[i]),
+				sci::cos(shipElevations[i]),
+				sci::cos(shipAzimuths[i]),
+				sci::cos(shipRolls[i]),
+				m_instrumentElevationsAbsolute[i],
+				m_instrumentAzimuthsAbsolute[i]);
+			//roll is a bit more tricky. To calculate roll we find the absolute
+			//direction that is up relative to the instrument and convert it to
+			//ship coordinates. Then we convert it to absolute coordinates.
+			//We then take the absolute elevation and azimuth of the instrument
+			//and add 90 degrees to the elevation. This gives the direction of
+			//up relative to the instrument if there was no absolute roll.
+			//The absolute roll is the angle between these two directions which
+			//we find useing the spherical trig cosine rule.
+			degree upElevation;
+			degree upAzimuth;
+			::correctDirection(degree(90.0),
+				degree(0.0),
+				sinE,
+				sinA,
+				sinR,
+				cosE,
+				cosA,
+				cosR,
+				upElevation,
+				upAzimuth);
+			::correctDirection(upElevation,
+				upAzimuth,
+				sci::sin(shipElevations[i]),
+				sci::sin(shipAzimuths[i]),
+				sci::sin(shipRolls[i]),
+				sci::cos(shipElevations[i]),
+				sci::cos(shipAzimuths[i]),
+				sci::cos(shipRolls[i]),
+				upElevation,
+				upAzimuth);
+			degree upElevationNoRoll = m_instrumentElevationsAbsolute[i] + degree(90.0);
+			degree upAzimuthNoRoll = m_instrumentAzimuthsAbsolute[i];
+			m_instrumentRollsAbsolute[i] = angleBetweenDirections(upElevationNoRoll, upAzimuthNoRoll, upElevation, upAzimuth);
+		}
+	}
+private:
+	std::vector<sci::UtcTime> m_times;
+	std::vector<degree> m_instrumentElevationsAbsolute;
+	std::vector<degree> m_instrumentAzimuthsAbsolute;
+	std::vector<degree> m_instrumentRollsAbsolute;
+	std::vector<degree> m_shipCourses;
+	std::vector<degree> m_shipAzimuths;
+	std::vector<metrePerSecond> m_shipSpeeds;
 };
 
 template <class T>

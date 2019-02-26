@@ -24,6 +24,11 @@ void correctDirection(degree measuredElevation, degree measuredAzimuth, unitless
 	correctedAzimuth = sci::atan2(correctedX, correctedY);
 }
 
+degree angleBetweenDirections(degree elevation1, degree azimuth1, degree elevation2, degree azimuth2)
+{
+	return sci::acos(sci::cos(degree(90) - elevation1)*sci::cos(degree(90) - elevation2) + sci::sin(degree(90) - elevation1)*sin(degree(90) - elevation2)*sci::cos(azimuth2 - azimuth1));
+}
+
 sci::string getFormattedDateTime(const sci::UtcTime &time, sci::string dateSeparator, sci::string timeSeparator, sci::string dateTimeSeparator)
 {
 	sci::ostringstream timeString;
@@ -247,14 +252,15 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(dataInfo)));
-	if (std::isnan(platform.getPlatformInfo().altitude))
+	sci::assertThrow(platform.getPlatformInfo().altitudes.size() > 0, sci::err(sci::SERR_USER, 0, "Attempting to output platform info for a platform with no altitude information."));
+	if (platform.getPlatformInfo().altitudes.size()>1)
 	{
 		write(sci::NcAttribute(sU("platform_altitude"), sci::string(sU("Not Applicable"))));
 	}
 	else
 	{
 		sci::stringstream altitudeString;
-		altitudeString << platform.getPlatformInfo().altitude;
+		altitudeString << platform.getPlatformInfo().altitudes[0];
 		write(sci::NcAttribute(sU("platform_altitude"), altitudeString.str()));
 	}
 	sci::stringstream locationKeywords;

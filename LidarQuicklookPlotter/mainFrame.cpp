@@ -78,7 +78,7 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 	CalibrationInfo calibrationInfo = { sU("Calibrated by nasa for a big range."), sci::UtcTime::now(), sU("someurl.org")};
 	DataInfo dataInfo = { second(10.0), second(5.0), 0, ft_timeSeriesPoint, degree(0.0), degree(0.0), degree(0), degree(360), sci::UtcTime::now(), sci::UtcTime::now(), sU("Another go"), true, sU("Moon data"), {} };
 	ProjectInfo projectInfo{ sU("Apolo"), {sU("Nixon"), sU("nixon@thewhitehouse.org"), sU("none"), sU("US government")} };
-	PlatformInfo platformInfo{ sU("Saturn"), pt_moving, dm_air, metre(1.0e6), {sU("Moon"), sU("Cape Canavral")} };
+	PlatformInfo platformInfo{ sU("Saturn"), pt_moving, dm_air, {metre(1.0e6)}, {sU("Moon"), sU("Cape Canavral")} };
 	sci::string comment = sU("Fingers crossed");
 	/*try
 	{
