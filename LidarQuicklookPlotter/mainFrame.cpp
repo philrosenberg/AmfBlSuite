@@ -289,8 +289,8 @@ void mainFrame::process()
 	leedsHaloCalibrationInfo.certificateUrl = sU("Not available");
 	leedsHaloCalibrationInfo.calibrationDescription = sU("Calibrated to manufacturers standard:: 0 to 19 ms-1");
 
-	m_processingLevel = 1;
-	m_reasonForProcessing = sU("Testing");
+	m_processingLevel = -1; //use -1 for beta release
+	m_reasonForProcessing = sU("");
 
 	std::shared_ptr<OrientationGrabber>orientationGrabber(new StaticOrientationGrabber(degree(0.0), degree(0.0), degree(0.0)));
 
