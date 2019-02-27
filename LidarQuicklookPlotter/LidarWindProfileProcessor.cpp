@@ -266,7 +266,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	AmfNcVariable<degree> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), degree(0), degree(360.0));
 	AmfNcFlagVariable windFlagVariable(sU("wind_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
-	file.writeTimeAndLocationData();
+	file.writeTimeAndLocationData(platform);
 
 	if (m_profiles.size() > 0 && m_profiles[0].m_heights.size() > 0)
 	{

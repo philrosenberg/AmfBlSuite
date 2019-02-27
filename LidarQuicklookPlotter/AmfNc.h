@@ -97,7 +97,8 @@ struct PlatformInfo
 	sci::string name;
 	PlatformType platformType;
 	DeploymentMode deploymentMode;
-	std::vector <metre> altitudes; //Use nan for varying altitude airborne
+	std::vector<sci::UtcTime>times;
+	std::vector <metre> altitudes;
 	std::vector<sci::string> locationKeywords;
 	std::vector<degree> latitudes; //would have just one element for a static platform
 	std::vector<degree>longitudes; //would have just one element for a static platform
@@ -122,15 +123,23 @@ void correctDirection( T measuredX, T measuredY, T measuredZ, unitless sinInstru
 
 void correctDirection(degree measuredElevation, degree measuredAzimuth, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, degree &correctedElevation, degree &correctedAzimuth);
 degree angleBetweenDirections(degree elevation1, degree azimuth1, degree elevation2, degree azimuth2);
+template<class U>
+U interpolate(sci::UtcTime x, sci::UtcTime x1, sci::UtcTime x2, U y1, U y2)
+{
+	auto m = (y2 - y1) / second(x2 - x1);
+	return m * second(x - x1) + y1;
+}
 
 class Platform
 {
 public:
-	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, std::vector<metre> altitudes, std::vector<degree> latitudes, std::vector<degree> longitudes, std::vector<sci::string> locationKeywords)
+	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, std::vector<sci::UtcTime> times, std::vector<metre> altitudes, std::vector<degree> latitudes, std::vector<degree> longitudes, std::vector<sci::string> locationKeywords)
 	{
+		m_previousLowerIndex = 0;
 		m_platformInfo.name = name;
 		m_platformInfo.platformType = platformType;
 		m_platformInfo.deploymentMode = deploymentMode;
+		m_platformInfo.times = times;
 		m_platformInfo.altitudes = altitudes;
 		m_platformInfo.latitudes = latitudes;
 		m_platformInfo.longitudes = longitudes;
@@ -169,7 +178,41 @@ public:
 	}
 	virtual void getInstrumentVelocity(sci::UtcTime time, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const = 0;
 	virtual void getInstrumentTrigAttitudes(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const = 0;
+	virtual void getLocation(sci::UtcTime time, degree &latitude, degree &longitude) const
+	{
+		size_t lowerIndex = findLowerIndex(time);
+		if (lowerIndex > m_platformInfo.times.size() - 2)
+		{
+			latitude = std::numeric_limits<degree>::quiet_NaN();
+			longitude = std::numeric_limits<degree>::quiet_NaN();
+			return;
+		}
+		
+		latitude = interpolate(time, m_platformInfo.times[lowerIndex], m_platformInfo.times[lowerIndex + 1], m_platformInfo.latitudes[lowerIndex], m_platformInfo.latitudes[lowerIndex + 1]);
+		longitude = interpolate(time, m_platformInfo.times[lowerIndex], m_platformInfo.times[lowerIndex + 1], m_platformInfo.longitudes[lowerIndex], m_platformInfo.longitudes[lowerIndex + 1]);
+	}
+	virtual void getMotion(sci::UtcTime time, metrePerSecond &speed, degree &course, degree & azimuth) const = 0;
+	virtual void getInstrumentAttitudes(sci::UtcTime time, degree &elevation, degree &azimuth, degree &roll) const = 0;
+	size_t findLowerIndex(sci::UtcTime time) const
+	{
+		if (time > m_platformInfo.times.back() || time < m_platformInfo.times[0])
+			return -1;
+		size_t result = std::max(size_t(1), m_previousLowerIndex); // we use this to keep track of the last place we found - usually we are iterating forward in time so it is a useful optimisation
+		if (m_platformInfo.times[result] > time)
+			result = 1;
+		for (; result < m_platformInfo.times.size(); ++result)
+		{
+			if (m_platformInfo.times[result] >= time)
+			{
+				--result;
+				break;
+			}
+		}
+		m_previousLowerIndex = result;
+		return result;
+	}
 private:
+	mutable size_t m_previousLowerIndex;
 	PlatformInfo m_platformInfo;
 };
 
@@ -177,8 +220,10 @@ class StationaryPlatform : public Platform
 {
 public:
 	StationaryPlatform(sci::string name, metre altitude, degree latitude, degree longitude, std::vector<sci::string> locationKeywords, degree instrumentElevation, degree instrumentAzimuth, degree instrumentRoll)
-		:Platform(name, pt_stationary, dm_land, { altitude }, { latitude }, { longitude }, locationKeywords)
+		:Platform(name, pt_stationary, dm_land, { sci::UtcTime(0,1,1,0,0,0) }, { altitude }, { latitude }, { longitude }, locationKeywords)
 	{
+		m_latitude = latitude;
+		m_longitude = longitude;
 		m_sinInstrumentElevation = sci::sin(instrumentElevation);
 		m_sinInstrumentAzimuth = sci::sin(instrumentAzimuth);
 		m_sinInstrumentRoll = sci::sin(instrumentRoll);
@@ -201,7 +246,29 @@ public:
 		cosInstrumentAzimuth = m_cosInstrumentAzimuth;
 		cosInstrumentRoll = m_cosInstrumentRoll;
 	}
+	virtual void getLocation(sci::UtcTime time, degree &latitude, degree &longitude) const
+	{
+		latitude = m_latitude;
+		longitude = m_longitude;
+	}
+	virtual void getMotion(sci::UtcTime time, metrePerSecond &speed, degree &course, degree & azimuth) const
+	{
+		speed = metrePerSecond(0);
+		course = std::numeric_limits<degree>::quiet_NaN();
+		azimuth = std::numeric_limits<degree>::quiet_NaN();
+	}
+	virtual void getInstrumentAttitudes(sci::UtcTime time, degree &elevation, degree &azimuth, degree &roll) const
+	{
+		elevation = m_elevation;
+		azimuth = m_azimuth;
+		roll = m_roll;
+	}
 private:
+	degree m_latitude;
+	degree m_longitude;
+	degree m_elevation;
+	degree m_azimuth;
+	degree m_roll;
 	unitless m_sinInstrumentElevation;
 	unitless m_sinInstrumentAzimuth;
 	unitless m_sinInstrumentRoll;
@@ -210,52 +277,52 @@ private:
 	unitless m_cosInstrumentRoll;
 };
 
-class MovingLevelPlatform : public Platform
-{
-	MovingLevelPlatform(sci::string name, DeploymentMode deploymentMode, std::vector<metre> altitudes, std::vector<degree> latitudes, std::vector<degree> longitudes, std::vector<sci::string> locationKeywords, degree instrumentElevation, degree instrumentAzimuth, degree instrumentRoll)
-		:Platform(name, pt_stationary, deploymentMode, altitudes, latitudes, longitudes, locationKeywords)
-	{
+//class MovingLevelPlatform : public Platform
+//{
+//	MovingLevelPlatform(sci::string name, DeploymentMode deploymentMode, std::vector<metre> altitudes, std::vector<degree> latitudes, std::vector<degree> longitudes, std::vector<sci::string> locationKeywords, degree instrumentElevation, degree instrumentAzimuth, degree instrumentRoll)
+//		:Platform(name, pt_stationary, deploymentMode, altitudes, latitudes, longitudes, locationKeywords)
+//	{
+//
+//	}
+//};
 
-	}
-};
-
-class ShipRelativePlatform : public Platform
-{
-public:
-	ShipRelativePlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationsShipRelative, degree instrumentAzimuthsShipRelative, degree instrumentRollsShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
-		:Platform(name, pt_moving, dm_sea, { altitude }, latitudes, longitudes, locationKeywords)
-	{
-		m_times = times;
-		m_instrumentAzimuthsShipRelative = std::vector<degree>(times.size(), instrumentAzimuthsShipRelative);
-		m_instrumentElevationsShipRelative = std::vector<degree>(times.size(), instrumentElevationsShipRelative);
-		m_instrumentRollsShipRelative = std::vector<degree>(times.size(), instrumentRollsShipRelative);
-		m_shipAzimuths = shipAzimuths;
-		m_shipCourses = shipCourses;
-		m_shipElevations = shipElevations;
-		m_shipRolls = shipRolls;
-		m_shipSpeeds = shipSpeeds;
-	}
-private:
-	std::vector<sci::UtcTime> m_times;
-	std::vector<degree> m_instrumentElevationsAbsolute;
-	std::vector<degree> m_instrumentAzimuthsAbsolute;
-	std::vector<degree> m_instrumentRollsAbsolute;
-	std::vector<degree> m_instrumentElevationsShipRelative;
-	std::vector<degree> m_instrumentAzimuthsShipRelative;
-	std::vector<degree> m_instrumentRollsShipRelative;
-	std::vector<degree> m_shipCourses;
-	std::vector<degree> m_shipElevations;
-	std::vector<degree> m_shipAzimuths;
-	std::vector<degree> m_shipRolls;
-	std::vector<metrePerSecond> m_shipSpeeds;
-};
+//class ShipRelativePlatform : public Platform
+//{
+//public:
+//	ShipRelativePlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationsShipRelative, degree instrumentAzimuthsShipRelative, degree instrumentRollsShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
+//		:Platform(name, pt_moving, dm_sea, { altitude }, latitudes, longitudes, locationKeywords)
+//	{
+//		m_times = times;
+//		m_instrumentAzimuthsShipRelative = std::vector<degree>(times.size(), instrumentAzimuthsShipRelative);
+//		m_instrumentElevationsShipRelative = std::vector<degree>(times.size(), instrumentElevationsShipRelative);
+//		m_instrumentRollsShipRelative = std::vector<degree>(times.size(), instrumentRollsShipRelative);
+//		m_shipAzimuths = shipAzimuths;
+//		m_shipCourses = shipCourses;
+//		m_shipElevations = shipElevations;
+//		m_shipRolls = shipRolls;
+//		m_shipSpeeds = shipSpeeds;
+//	}
+//private:
+//	std::vector<sci::UtcTime> m_times;
+//	std::vector<degree> m_instrumentElevationsAbsolute;
+//	std::vector<degree> m_instrumentAzimuthsAbsolute;
+//	std::vector<degree> m_instrumentRollsAbsolute;
+//	std::vector<degree> m_instrumentElevationsShipRelative;
+//	std::vector<degree> m_instrumentAzimuthsShipRelative;
+//	std::vector<degree> m_instrumentRollsShipRelative;
+//	std::vector<degree> m_shipCourses;
+//	std::vector<degree> m_shipElevations;
+//	std::vector<degree> m_shipAzimuths;
+//	std::vector<degree> m_shipRolls;
+//	std::vector<metrePerSecond> m_shipSpeeds;
+//};
 
 
 class ShipPlatform : public Platform
 {
 public:
 	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, const std::vector<degree> &instrumentElevationsShipRelative, const std::vector<degree> &instrumentAzimuthsShipRelative, const std::vector<degree> &instrumentRollsShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
-		:Platform(name, pt_moving, dm_sea, { altitude }, latitudes, longitudes, locationKeywords)
+		:Platform(name, pt_moving, dm_sea, times, { altitude }, latitudes, longitudes, locationKeywords)
 	{
 		m_times = times;
 		m_shipAzimuths = shipAzimuths;
@@ -266,6 +333,12 @@ public:
 		m_instrumentElevationsAbsolute = std::vector<degree>(times.size(), degree(0.0));
 		m_instrumentAzimuthsAbsolute = std::vector<degree>(times.size(), degree(0.0));
 		m_instrumentRollsAbsolute = std::vector<degree>(times.size(), degree(0.0));
+		m_sinInstrumentElevationsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_sinInstrumentAzimuthsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_sinInstrumentRollsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_cosInstrumentElevationsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_cosInstrumentAzimuthsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_cosInstrumentRollsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
 
 		for (size_t i = 0; i < m_times.size(); ++i)
 		{
@@ -315,15 +388,32 @@ public:
 			degree upElevationNoRoll = m_instrumentElevationsAbsolute[i] + degree(90.0);
 			degree upAzimuthNoRoll = m_instrumentAzimuthsAbsolute[i];
 			m_instrumentRollsAbsolute[i] = angleBetweenDirections(upElevationNoRoll, upAzimuthNoRoll, upElevation, upAzimuth);
+
+			m_sinInstrumentElevationsAbsolute[i] = sci::sin(m_instrumentElevationsAbsolute[i]);
+			m_sinInstrumentAzimuthsAbsolute[i] = sci::sin(m_instrumentAzimuthsAbsolute[i]);
+			m_sinInstrumentRollsAbsolute[i] = sci::sin(m_instrumentRollsAbsolute[i]);
+			m_cosInstrumentElevationsAbsolute[i] = sci::cos(m_instrumentElevationsAbsolute[i]);
+			m_cosInstrumentAzimuthsAbsolute[i] = sci::cos(m_instrumentAzimuthsAbsolute[i]);
+			m_cosInstrumentRollsAbsolute[i] = sci::cos(m_instrumentRollsAbsolute[i]);
 		}
 	}
 	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationShipRelative, degree instrumentAzimuthShipRelative, degree instrumentRollShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
-		:Platform(name, pt_moving, dm_sea, { altitude }, latitudes, longitudes, locationKeywords)
+		:Platform(name, pt_moving, dm_sea, times, { altitude }, latitudes, longitudes, locationKeywords)
 	{
 		m_times = times;
 		m_shipAzimuths = shipAzimuths;
 		m_shipCourses = shipCourses;
 		m_shipSpeeds = shipSpeeds;
+
+		m_instrumentElevationsAbsolute = std::vector<degree>(times.size(), degree(0.0));
+		m_instrumentAzimuthsAbsolute = std::vector<degree>(times.size(), degree(0.0));
+		m_instrumentRollsAbsolute = std::vector<degree>(times.size(), degree(0.0));
+		m_sinInstrumentElevationsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_sinInstrumentAzimuthsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_sinInstrumentRollsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_cosInstrumentElevationsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_cosInstrumentAzimuthsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_cosInstrumentRollsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
 
 		//We can save some calculations by doing these outside of the loop
 		unitless sinE = sci::sin(instrumentElevationShipRelative);
@@ -381,7 +471,84 @@ public:
 			degree upElevationNoRoll = m_instrumentElevationsAbsolute[i] + degree(90.0);
 			degree upAzimuthNoRoll = m_instrumentAzimuthsAbsolute[i];
 			m_instrumentRollsAbsolute[i] = angleBetweenDirections(upElevationNoRoll, upAzimuthNoRoll, upElevation, upAzimuth);
+
+			m_sinInstrumentElevationsAbsolute[i] = sci::sin(m_instrumentElevationsAbsolute[i]);
+			m_sinInstrumentAzimuthsAbsolute[i] = sci::sin(m_instrumentAzimuthsAbsolute[i]);
+			m_sinInstrumentRollsAbsolute[i] = sci::sin(m_instrumentRollsAbsolute[i]);
+			m_cosInstrumentElevationsAbsolute[i] = sci::cos(m_instrumentElevationsAbsolute[i]);
+			m_cosInstrumentAzimuthsAbsolute[i] = sci::cos(m_instrumentAzimuthsAbsolute[i]);
+			m_cosInstrumentRollsAbsolute[i] = sci::cos(m_instrumentRollsAbsolute[i]);
 		}
+	}
+	virtual void getInstrumentVelocity(sci::UtcTime time, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const override
+	{
+		upwardVelocity = metrePerSecond(0.0);
+
+		size_t lowerIndex = findLowerIndex(time);
+		if (lowerIndex > getPlatformInfo().times.size() - 2)
+		{
+			eastwardVelocity = std::numeric_limits<metrePerSecond>::quiet_NaN();
+			northwardVelocity = std::numeric_limits<metrePerSecond>::quiet_NaN();
+			return;
+		}
+
+		metrePerSecond speed = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_shipSpeeds[lowerIndex], m_shipSpeeds[lowerIndex + 1]);
+		degree course = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_shipCourses[lowerIndex], m_shipCourses[lowerIndex + 1]);
+
+		northwardVelocity = sci::cos(course)*speed;
+		eastwardVelocity = sci::sin(course)*speed;
+
+	}
+	virtual void getMotion(sci::UtcTime time, metrePerSecond &speed, degree &course, degree & azimuth) const override
+	{
+		size_t lowerIndex = findLowerIndex(time);
+		if (lowerIndex > getPlatformInfo().times.size() - 2)
+		{
+			speed = std::numeric_limits<metrePerSecond>::quiet_NaN();
+			course = std::numeric_limits<degree>::quiet_NaN();
+			azimuth = std::numeric_limits<degree>::quiet_NaN();
+			return;
+		}
+
+		speed = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_shipSpeeds[lowerIndex], m_shipSpeeds[lowerIndex + 1]);
+		course = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_shipCourses[lowerIndex], m_shipCourses[lowerIndex + 1]);
+		azimuth = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_shipAzimuths[lowerIndex], m_shipAzimuths[lowerIndex + 1]);
+	}
+	virtual void getInstrumentAttitudes(sci::UtcTime time, degree &elevation, degree &azimuth, degree &roll) const override
+	{
+		size_t lowerIndex = findLowerIndex(time);
+		if (lowerIndex > getPlatformInfo().times.size() - 2)
+		{
+			elevation = std::numeric_limits<degree>::quiet_NaN();
+			azimuth = std::numeric_limits<degree>::quiet_NaN();
+			roll = std::numeric_limits<degree>::quiet_NaN();
+			return;
+		}
+
+		elevation = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_instrumentElevationsAbsolute[lowerIndex], m_instrumentElevationsAbsolute[lowerIndex + 1]);
+		azimuth = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_instrumentAzimuthsAbsolute[lowerIndex], m_instrumentAzimuthsAbsolute[lowerIndex + 1]);
+		roll = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_instrumentRollsAbsolute[lowerIndex], m_instrumentRollsAbsolute[lowerIndex + 1]);
+	}
+	virtual void getInstrumentTrigAttitudes(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
+	{
+		size_t lowerIndex = findLowerIndex(time);
+		if (lowerIndex > getPlatformInfo().times.size() - 2)
+		{
+			sinInstrumentElevation = std::numeric_limits<unitless>::quiet_NaN();
+			sinInstrumentAzimuth = std::numeric_limits<unitless>::quiet_NaN();
+			sinInstrumentRoll = std::numeric_limits<unitless>::quiet_NaN();
+			cosInstrumentElevation = std::numeric_limits<unitless>::quiet_NaN();
+			cosInstrumentAzimuth = std::numeric_limits<unitless>::quiet_NaN();
+			cosInstrumentRoll = std::numeric_limits<unitless>::quiet_NaN();
+			return;
+		}
+		sinInstrumentElevation = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_sinInstrumentElevationsAbsolute[lowerIndex], m_sinInstrumentElevationsAbsolute[lowerIndex + 1]);
+		sinInstrumentAzimuth = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_sinInstrumentAzimuthsAbsolute[lowerIndex], m_sinInstrumentAzimuthsAbsolute[lowerIndex + 1]);
+		sinInstrumentRoll = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_sinInstrumentRollsAbsolute[lowerIndex], m_sinInstrumentRollsAbsolute[lowerIndex + 1]);
+		cosInstrumentElevation = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_cosInstrumentElevationsAbsolute[lowerIndex], m_cosInstrumentElevationsAbsolute[lowerIndex + 1]);
+		cosInstrumentAzimuth = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_cosInstrumentAzimuthsAbsolute[lowerIndex], m_cosInstrumentAzimuthsAbsolute[lowerIndex + 1]);
+		cosInstrumentRoll = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_cosInstrumentRollsAbsolute[lowerIndex], m_cosInstrumentRollsAbsolute[lowerIndex + 1]);
+
 	}
 private:
 	std::vector<sci::UtcTime> m_times;
@@ -391,6 +558,13 @@ private:
 	std::vector<degree> m_shipCourses;
 	std::vector<degree> m_shipAzimuths;
 	std::vector<metrePerSecond> m_shipSpeeds;
+
+	std::vector<unitless> m_sinInstrumentElevationsAbsolute;
+	std::vector<unitless> m_sinInstrumentAzimuthsAbsolute;
+	std::vector<unitless> m_sinInstrumentRollsAbsolute;
+	std::vector<unitless> m_cosInstrumentElevationsAbsolute;
+	std::vector<unitless> m_cosInstrumentAzimuthsAbsolute;
+	std::vector<unitless> m_cosInstrumentRollsAbsolute;
 };
 
 template <class T>
@@ -483,7 +657,9 @@ class AmfNcTimeVariable : public AmfNcVariable<double>
 public:
 	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
 		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("seconds since 1970-01-01 00:00:00"), 0, std::numeric_limits<double>::max())
-	{}
+	{
+		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
+	}
 	static std::vector<double> convertToSeconds(const std::vector<sci::UtcTime> &times)
 	{
 		std::vector<double> secondsAfterEpoch(times.size());
@@ -498,14 +674,18 @@ class AmfNcLongitudeVariable : public AmfNcVariable<double>
 public:
 	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
 		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("degrees_north"), -360.0, 360.0)
-	{}
+	{
+		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
+	}
 };
 class AmfNcLatitudeVariable : public AmfNcVariable<double>
 {
 public:
 	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
 		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("degrees_east"), -90.0, 90.0)
-	{}
+	{
+		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
+	}
 };
 
 
@@ -526,7 +706,7 @@ public:
 		degree latitude,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions= std::vector<sci::NcDimension *>(0));
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
-	void writeTimeAndLocationData();
+	void writeTimeAndLocationData( const Platform &platform );
 	static double getFillValue() { return -1e20; }
 private:
 	sci::NcDimension m_timeDimension;
@@ -541,9 +721,15 @@ private:
 	std::unique_ptr<AmfNcVariable<int32_t>> m_minuteVariable;
 	std::unique_ptr<AmfNcVariable<double>> m_secondVariable;
 
+	//only used for moving platforms
+	std::unique_ptr<AmfNcVariable<degree>> m_courseVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_orientationVariable;
+	std::unique_ptr<AmfNcVariable<metrePerSecond>> m_speedVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawVariable;
+
 	std::vector<sci::UtcTime> m_times;
-	degree m_longitude;
-	degree m_latitude;
 };
 
 

@@ -68,18 +68,33 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &inpu
 	m_projectInfo.principalInvestigatorInfo.institution = sU("University of Leeds");
 	m_projectInfo.principalInvestigatorInfo.orcidUrl = sU("https://orcid.org/0000-0002-5051-1322");
 
-	m_platform.reset(new StationaryPlatform(sU("Neverland"), metre(0.0), degree(0.0), degree(0.0), { sU("Dummy") }, degree(0.0), degree(180.0), degree(0.0)));
+	//m_platform.reset(new StationaryPlatform(sU("Neverland"), metre(0.0), degree(0.0), degree(0.0), { sU("Dummy") }, degree(0.0), degree(180.0), degree(0.0)));
+	size_t n = 1000;
+	std::vector<sci::UtcTime>times(n, sci::UtcTime(2018, 9, 20, 0, 0, 0));
+	std::vector<degree> latitudes(n, degree(0));
+	std::vector<degree> longitudes(n, degree(0));
+	std::vector<degree> headings(n, degree(0));
+	std::vector<degree> courses(n, degree(0));
+	std::vector<metrePerSecond> speeds(n, metrePerSecond(0.0));
+	std::vector<degree> pitches(n, degree(0));
+	std::vector<degree> rolls(n, degree(0));
+	for(size_t i=1; i<n; ++i)
+	{
+		times[i] = times[i - 1] + 5.0 * 60.0;
+	}
+
+	m_platform.reset(new ShipPlatform(sU("OdenTest"), metre(0.0), times, latitudes, longitudes, { sU("Dummy") }, degree(0), degree(0), degree(0), courses, speeds, pitches, headings, rolls));
 
 	m_comment = sU("This is a test file. It should not be used for scientific work.");
 
-	InstrumentInfo instrumentInfo = { sU("saturn_v"), sU("Rocket"), sU("NASA"), sU("Saturn"), sU("V"), sU("Amstrad"), sU("1512") };
-	PersonInfo author = { sU("Neil"), sU("armstrong@nans.org"), sU("armsrong.orchid.org"), sU("NASA") };
-	ProcessingSoftwareInfo processingsoftwareInfo = { sU("http://mycode.git"), sU("1001") };
-	CalibrationInfo calibrationInfo = { sU("Calibrated by nasa for a big range."), sci::UtcTime::now(), sU("someurl.org")};
-	DataInfo dataInfo = { second(10.0), second(5.0), 0, ft_timeSeriesPoint, degree(0.0), degree(0.0), degree(0), degree(360), sci::UtcTime::now(), sci::UtcTime::now(), sU("Another go"), true, sU("Moon data"), {} };
-	ProjectInfo projectInfo{ sU("Apolo"), {sU("Nixon"), sU("nixon@thewhitehouse.org"), sU("none"), sU("US government")} };
-	PlatformInfo platformInfo{ sU("Saturn"), pt_moving, dm_air, {metre(1.0e6)}, {sU("Moon"), sU("Cape Canavral")} };
-	sci::string comment = sU("Fingers crossed");
+	//InstrumentInfo instrumentInfo = { sU("saturn_v"), sU("Rocket"), sU("NASA"), sU("Saturn"), sU("V"), sU("Amstrad"), sU("1512") };
+	//PersonInfo author = { sU("Neil"), sU("armstrong@nans.org"), sU("armsrong.orchid.org"), sU("NASA") };
+	//ProcessingSoftwareInfo processingsoftwareInfo = { sU("http://mycode.git"), sU("1001") };
+	//CalibrationInfo calibrationInfo = { sU("Calibrated by nasa for a big range."), sci::UtcTime::now(), sU("someurl.org")};
+	//DataInfo dataInfo = { second(10.0), second(5.0), 0, ft_timeSeriesPoint, degree(0.0), degree(0.0), degree(0), degree(360), sci::UtcTime::now(), sci::UtcTime::now(), sU("Another go"), true, sU("Moon data"), {} };
+	//ProjectInfo projectInfo{ sU("Apolo"), {sU("Nixon"), sU("nixon@thewhitehouse.org"), sU("none"), sU("US government")} };
+	//PlatformInfo platformInfo{ sU("Saturn"), pt_moving, dm_air, {metre(1.0e6)}, {sU("Moon"), sU("Cape Canavral")} };
+	//sci::string comment = sU("Fingers crossed");
 	/*try
 	{
 		OutputAmfNcFile test(sU(""), instrumentInfo, author, processingsoftwareInfo,

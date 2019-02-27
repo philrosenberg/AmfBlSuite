@@ -121,7 +121,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	degree longitude,
 	degree latitude,
 	const std::vector<sci::NcDimension *> &nonTimeDimensions)
-	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times), m_longitude(longitude), m_latitude(latitude)
+	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 {
 	//construct the title for the dataset
 	//add the instument name
@@ -295,9 +295,10 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	//Now add the time dimension
 	write(m_timeDimension);
 	//we also need to add a lat and lon dimension, although we don't actually use them
-	//this helps indexing
-	sci::NcDimension longitudeDimension(sU("longitude"), 1);
-	sci::NcDimension latitudeDimension(sU("latitude"), 1);
+	//this helps indexing. They have size 1 for stationary platforms or same as time
+	//for moving platforms.
+	sci::NcDimension longitudeDimension(sU("longitude"), platform.getPlatformInfo().platformType==pt_stationary ? 1 : times.size());
+	sci::NcDimension latitudeDimension(sU("latitude"), platform.getPlatformInfo().platformType == pt_stationary ? 1 : times.size());
 	write(longitudeDimension);
 	write(latitudeDimension);
 	//and any other dimensions
@@ -318,6 +319,13 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU("1"), 0, 59));
 	m_secondVariable.reset(new AmfNcVariable<double>(sU("second"), *this, getTimeDimension(), sU("Second"), sU("1"), 0.0, 60*(1.0-std::numeric_limits<double>::epsilon())));
 
+	m_courseVariable.reset(new AmfNcVariable<degree>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), degree(-180), degree(180)));
+	m_speedVariable.reset(new AmfNcVariable<metrePerSecond>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), std::numeric_limits<metrePerSecond>::min(), std::numeric_limits<metrePerSecond>::max()));
+	m_orientationVariable.reset(new AmfNcVariable<degree>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), degree(-180), degree(180)));
+	m_instrumentPitchVariable.reset(new AmfNcVariable<degree>(sU("instrument_pitch_angle"), *this, getTimeDimension(), sU("Instrument Pitch Angle"), degree(-90), degree(90)));
+	m_instrumentYawVariable.reset(new AmfNcVariable<degree>(sU("instrument_yaw_angle"), *this, getTimeDimension(), sU("Instrument Yaw Angle"), degree(-180), degree(180)));
+	m_instrumentRollVariable.reset(new AmfNcVariable<degree>(sU("instrument_roll_angle"), *this, getTimeDimension(), sU("Instrument Roll Angle"), degree(-180), degree(180)));
+
 	//and the time variable
 	/*std::vector<double> secondsAfterEpoch(times.size());
 	sci::UtcTime epoch(1970, 1, 1, 0, 0, 0.0);
@@ -328,7 +336,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	
 }
 
-void OutputAmfNcFile::writeTimeAndLocationData()
+void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 {
 	std::vector<double> secondsAfterEpoch(m_times.size());
 	std::vector<double> dayOfYear(m_times.size());
@@ -362,8 +370,42 @@ void OutputAmfNcFile::writeTimeAndLocationData()
 	write(*m_minuteVariable, minute);
 	write(*m_secondVariable, second);
 
-	write(*m_latitudeVariable, std::vector<double>(1, m_latitude.value<degree>()));
-	write(*m_longitudeVariable, std::vector<double>(1, m_latitude.value<degree>()));
+	if (platform.getPlatformInfo().platformType == pt_stationary)
+	{
+		std::vector<degree> latitudes(1, degree(0.0));
+		std::vector<degree> longitudes(1, degree(0.0));
+		//get the location for the middle time - it should be irrelevant anyway as it is stationary
+		platform.getLocation(m_times[m_times.size() / 2], latitudes[0], longitudes[0]);
+		write(*m_latitudeVariable, sci::physicalsToValues<degree>(latitudes));
+		write(*m_longitudeVariable, sci::physicalsToValues<degree>(longitudes));
+	}
+	else
+	{
+		//get the lat and lon and all the other movement variables at the appropriate time
+		std::vector<degree> latitudes(m_times.size(), degree(0.0));
+		std::vector<degree> longitudes(m_times.size(), degree(0.0));
+		std::vector<degree> courses(m_times.size(), degree(0.0));
+		std::vector<degree> orientations(m_times.size(), degree(0.0));
+		std::vector<metrePerSecond> speeds(m_times.size(), metrePerSecond(0.0));
+		std::vector<degree> pitches(m_times.size(), degree(0.0));
+		std::vector<degree> rolls(m_times.size(), degree(0.0));
+		std::vector<degree> yaws(m_times.size(), degree(0.0));
+
+		for (size_t i = 0; i < m_times.size(); ++i)
+		{
+			platform.getLocation(m_times[i], latitudes[i], longitudes[i]);
+			platform.getMotion(m_times[i], speeds[i], courses[i], orientations[i]);
+			platform.getInstrumentAttitudes(m_times[i], pitches[i], yaws[i], rolls[i]);
+		}
+		write(*m_latitudeVariable, sci::physicalsToValues<degree>(latitudes));
+		write(*m_longitudeVariable, sci::physicalsToValues<degree>(longitudes));
+		write(*m_courseVariable, courses);
+		write(*m_speedVariable, speeds);
+		write(*m_orientationVariable, orientations);
+		write(*m_instrumentPitchVariable, pitches);
+		write(*m_instrumentYawVariable, yaws);
+		write(*m_instrumentRollVariable, rolls);
+	}
 }
 
 /*OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,
