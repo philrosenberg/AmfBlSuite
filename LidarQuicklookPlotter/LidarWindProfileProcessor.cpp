@@ -101,7 +101,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 			}
 
 			//now read the hpl file
-			progressReporter << sU("Reading matching ray data file ") << hplFilenames[i] << sU("\n");
+			progressReporter << sU("Reading matching ray data file\n");
 			thisProfile.m_VadProcessor.readData({ hplFilenames[i] }, platform, progressReporter, parent);
 
 			//check that we actually found some VAD data
