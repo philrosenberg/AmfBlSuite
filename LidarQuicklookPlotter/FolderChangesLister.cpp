@@ -13,23 +13,23 @@ void FolderChangesLister::clearSnapshotFile()
 }
 
 
-std::vector<sci::string> FolderChangesLister::listFolderContents(const InstrumentProcessor &processor) const
+std::vector<sci::string> FolderChangesLister::listFolderContents(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const
 {
 	wxArrayString files;
 	wxDir::GetAllFiles(sci::nativeUnicode(m_directory), &files);
 	std::vector<sci::string> result(files.size());
 	for (size_t i = 0; i < files.size(); ++i)
 		result[i] = sci::fromWxString(files[i]);
-	result = processor.selectRelevantFiles(result);
+	result = processor.selectRelevantFiles(result, startTime, endTime);
 	return result;
 }
 
-std::vector<sci::string> ExistedFolderChangesLister::getChanges(const InstrumentProcessor &processor) const
+std::vector<sci::string> ExistedFolderChangesLister::getChanges(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const
 {
 	//find all the previously existing files that match the filespec
-	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(processor);
+	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(processor, startTime, endTime);
 	//Find all the files in the input directory that match the filespec
-	std::vector<sci::string> allFiles = listFolderContents(processor);
+	std::vector<sci::string> allFiles = listFolderContents(processor, startTime, endTime);
 
 	//Sort the files in alphabetical order
 	if (allFiles.size() > 0)
@@ -57,7 +57,7 @@ std::vector<sci::string> ExistedFolderChangesLister::getChanges(const Instrument
 	return newFiles;
 }
 
-std::vector<sci::string>  ExistedFolderChangesLister::getPreviouslyExistingFiles(const InstrumentProcessor &processor) const
+std::vector<sci::string>  ExistedFolderChangesLister::getPreviouslyExistingFiles(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const
 {
 	std::vector<sci::string> previouslyExistingFiles;
 	std::fstream fin;
@@ -71,7 +71,7 @@ std::vector<sci::string>  ExistedFolderChangesLister::getPreviouslyExistingFiles
 	}
 	fin.close();
 
-	return processor.selectRelevantFiles(previouslyExistingFiles);
+	return processor.selectRelevantFiles(previouslyExistingFiles, startTime, endTime);
 }
 
 std::vector<sci::string>  ExistedFolderChangesLister::getAllPreviouslyExistingFiles() const
@@ -99,12 +99,12 @@ void ExistedFolderChangesLister::updateSnapshotFile(const sci::string &changedFi
 	fout.close();
 }
 
-std::vector<sci::string> AlphabeticallyLastCouldHaveChangedChangesLister::getChanges(const InstrumentProcessor &processor) const
+std::vector<sci::string> AlphabeticallyLastCouldHaveChangedChangesLister::getChanges(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const
 {
 	//find all the previously existing files that match the filespec
-	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(processor);
+	std::vector<sci::string> previouslyExistingFiles = getPreviouslyExistingFiles(processor, startTime, endTime);
 	//Find all the files in the input directory that match the filespec
-	std::vector<sci::string> allFiles = listFolderContents(processor);
+	std::vector<sci::string> allFiles = listFolderContents(processor, startTime, endTime);
 
 	//Sort the files in alphabetical order
 	if (allFiles.size() > 0)
@@ -156,4 +156,16 @@ void AlphabeticallyLastCouldHaveChangedChangesLister::updateSnapshotFile(const s
 		if (changedFile == previouslyExistingFiles[i])
 			return;
 	ExistedFolderChangesLister::updateSnapshotFile(changedFile);
+}
+
+std::vector<sci::string> AssumeAllChangedChangesLister::getChanges(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const
+{
+	//Find all the files in the input directory that match the filespec
+	std::vector<sci::string> allFiles = listFolderContents(processor, startTime, endTime);
+
+	//Sort the files in alphabetical order
+	if (allFiles.size() > 0)
+		std::sort(allFiles.begin(), allFiles.end());
+
+	return allFiles;
 }

@@ -110,8 +110,7 @@ public:
 	{}
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const Platform &platform, int processingLevel, sci::string reasonForProcessing,
-		const sci::string &comment, ProgressReporter &progressReporter) override;
+		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
 };
 
 class LidarStareProcessor : public LidarBackscatterDopplerProcessor
@@ -121,9 +120,9 @@ public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const Platform &platform, int processingLevel, sci::string reasonForProcessing,
-		const sci::string &comment, ProgressReporter &progressReporter) override;
+		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 };
 
 class LidarCopolarisedStareProcessor : public LidarStareProcessor
@@ -146,6 +145,7 @@ public:
 	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber, sU("[/\\\\]RHI_.._........_......\\.hpl$")) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("rhi") }; }
 };
 
@@ -170,6 +170,7 @@ class LidarVadProcessor : public ConicalScanningProcessor
 public:
 	LidarVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber, sU("[/\\\\]VAD_.._........_......\\.hpl$"), nSegmentsMin) {}
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("ppi") }; }
 private:
 	size_t m_nSegmentsMin;
@@ -180,6 +181,7 @@ class LidarWindVadProcessor : public ConicalScanningProcessor
 public:
 	LidarWindVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber, sU("[/\\\\]Wind_Profile_.._........_......\\.hpl$"), nSegmentsMin) {}
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("wind ppi") }; }
 private:
 	size_t m_nSegmentsMin;
@@ -191,6 +193,7 @@ public:
 	LidarUserProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber, sci::string fileSearchRegEx) : LidarScanningProcessor(instrumentInfo, calibrationInfo, orientationGrabber, fileSearchRegEx) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 private:
 	sci::string m_userNumber;
 };
@@ -238,12 +241,12 @@ public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const Platform &platform, int processingLevel, sci::string reasonForProcessing,
-		const sci::string &comment, ProgressReporter &progressReporter) override;
+		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
 	virtual bool hasData() const override { return m_hasData; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
 	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 private:
 	bool m_hasData;
 	struct Profile

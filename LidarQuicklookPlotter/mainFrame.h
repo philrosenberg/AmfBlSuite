@@ -28,7 +28,7 @@ public:
 	static const int ID_CHECK_DATA_TIMER;
 	static const int ID_INSTANT_CHECK_DATA_TIMER;
 
-	mainFrame(wxFrame *frame, const wxString& title, const wxString &inputDirectory, const wxString &outputDirectory, bool runImmediately);
+	mainFrame(wxFrame *frame, const wxString& title, const wxString &settingsFile);
 	~mainFrame();
 private:
 	void OnExit(wxCommandEvent& event);
@@ -43,9 +43,6 @@ private:
 	wxTimer *m_checkForNewDataTimer;
 	wxTimer *m_instantCheckTimer;
 
-	sci::string m_inputDirectory;
-	sci::string m_outputDirectory;
-
 	bool m_plotting;
 	std::unique_ptr<TextCtrlProgressReporter> m_progressReporter;
 
@@ -53,9 +50,10 @@ private:
 	ProcessingSoftwareInfo m_processingSoftwareInfo;
 	ProjectInfo m_projectInfo;
 	std::shared_ptr<Platform> m_platform;
-	sci::string m_comment;
-	int m_processingLevel;
-	sci::string m_reasonForProcessing;
+	InstrumentInfo m_lidarInfo;
+	CalibrationInfo m_lidarCalibrationInfo;
+	ProcessingOptions m_processingOptions;
+	//int m_processingLevel;
 
 
 	void start();
@@ -64,7 +62,7 @@ private:
 	void process(InstrumentProcessor &processor, sci::string processorName);
 	void readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 		const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const Platform &platform, const sci::string &comment, InstrumentProcessor &processor, sci::string processorName);
+		const Platform &platform, const ProcessingOptions &processingOptions, InstrumentProcessor &processor, sci::string processorName);
 	void checkDirectoryStructue();
 
 	DECLARE_EVENT_TABLE();

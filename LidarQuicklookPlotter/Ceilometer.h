@@ -70,7 +70,7 @@ public:
 	{}
 	static void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
 		sci::string directory, const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo,
-		const ProjectInfo &projectInfo, const Platform &platform, const sci::string &comment);
+		const ProjectInfo &projectInfo, const Platform &platform, const ProcessingOptions &processingOptions);
 
 	void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename,
 		const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
@@ -83,10 +83,10 @@ public:
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const Platform &platform, int processingLevel, sci::string reasonForProcessing,
-		const sci::string &comment, ProgressReporter &progressReporter) override;
+		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
 	virtual bool hasData() const override { return m_hasData; }
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 private:
 	std::vector<CampbellCeilometerProfile> m_allData;
 	CampbellHeader m_firstHeaderCampbell;

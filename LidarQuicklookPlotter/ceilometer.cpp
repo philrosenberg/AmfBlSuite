@@ -31,18 +31,17 @@ std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 
 void CeilometerProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const Platform &platform, int processingLevel, sci::string reasonForProcessing,
-	const sci::string &comment, ProgressReporter &progressReporter)
+	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
 	if (!hasData())
 		throw(sU("Attempted to write ceilometer data to netcdf when it has not been read"));
 
-	writeToNc(m_firstHeaderHpl, m_allData, directory, author, processingSoftwareInfo, projectInfo, platform, comment);
+	writeToNc(m_firstHeaderHpl, m_allData, directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions);
 }
 
 void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string directory,
 	const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const Platform &platform, const sci::string &comment)
+	const Platform &platform, const ProcessingOptions &processingOptions)
 {
 	InstrumentInfo ceilometerInfo;
 	ceilometerInfo.name = sU("ncas-ceilometer-3");
@@ -135,7 +134,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	nonTimeDimensions.push_back(&gateDimension);
 	//create the file and dimensions. The time variable is added automatically
 	OutputAmfNcFile ceilometerFile(directory, ceilometerInfo, author, processingSoftwareInfo, ceilometerCalibrationInfo, dataInfo,
-		projectInfo, platform, comment, times, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
+		projectInfo, platform, times, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
 
 	//add the data variables
 
@@ -416,4 +415,9 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 std::vector<std::vector<sci::string>> CeilometerProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
 	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 0);
+}
+
+bool CeilometerProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
+{
+	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 0, -1, -1, -1, second(86399));
 }

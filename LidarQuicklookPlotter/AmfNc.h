@@ -25,6 +25,21 @@ struct InstrumentInfo
 	sci::string operatingSoftware;
 	sci::string operatingSoftwareVersion;
 };
+struct ProcessingOptions
+{
+	sci::string inputDirectory;
+	sci::string outputDirectory;
+	sci::string comment;
+	sci::string reasonForProcessing;
+	bool beta;
+	sci::UtcTime startTime;
+	sci::UtcTime endTime;
+	bool startImmediately;
+	bool checkForNewFiles;
+	bool onlyProcessNewFiles;
+	bool generateQuicklooks;
+	bool generateNetCdf;
+};
 
 struct ProcessingSoftwareInfo
 {
@@ -69,6 +84,7 @@ struct DataInfo
 	bool continuous; // set to true if the measurements are continuously made over a moderate period of false if it is a one-off (e.g. a sonde)
 	sci::string productName;
 	std::vector<sci::string> options;
+	ProcessingOptions processingOptions;
 };
 
 struct ProjectInfo
@@ -102,6 +118,9 @@ struct PlatformInfo
 	std::vector<sci::string> locationKeywords;
 	std::vector<degree> latitudes; //would have just one element for a static platform
 	std::vector<degree>longitudes; //would have just one element for a static platform
+	std::vector<degree> elevations;
+	std::vector<degree> azimuths;
+	std::vector<degree> rolls;
 };
 
 template< class T >
@@ -178,18 +197,20 @@ public:
 	}
 	virtual void getInstrumentVelocity(sci::UtcTime time, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const = 0;
 	virtual void getInstrumentTrigAttitudes(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const = 0;
-	virtual void getLocation(sci::UtcTime time, degree &latitude, degree &longitude) const
+	virtual void getLocation(sci::UtcTime time, degree &latitude, degree &longitude, metre &altitude) const
 	{
 		size_t lowerIndex = findLowerIndex(time);
 		if (lowerIndex > m_platformInfo.times.size() - 2)
 		{
 			latitude = std::numeric_limits<degree>::quiet_NaN();
 			longitude = std::numeric_limits<degree>::quiet_NaN();
+			altitude = std::numeric_limits<metre>::quiet_NaN();
 			return;
 		}
 		
 		latitude = interpolate(time, m_platformInfo.times[lowerIndex], m_platformInfo.times[lowerIndex + 1], m_platformInfo.latitudes[lowerIndex], m_platformInfo.latitudes[lowerIndex + 1]);
 		longitude = interpolate(time, m_platformInfo.times[lowerIndex], m_platformInfo.times[lowerIndex + 1], m_platformInfo.longitudes[lowerIndex], m_platformInfo.longitudes[lowerIndex + 1]);
+		altitude = interpolate(time, m_platformInfo.times[lowerIndex], m_platformInfo.times[lowerIndex + 1], m_platformInfo.altitudes[lowerIndex], m_platformInfo.altitudes[lowerIndex + 1]);
 	}
 	virtual void getMotion(sci::UtcTime time, metrePerSecond &speed, degree &course, degree & azimuth) const = 0;
 	virtual void getInstrumentAttitudes(sci::UtcTime time, degree &elevation, degree &azimuth, degree &roll) const = 0;
@@ -224,6 +245,7 @@ public:
 	{
 		m_latitude = latitude;
 		m_longitude = longitude;
+		m_altitude = altitude;
 		m_sinInstrumentElevation = sci::sin(instrumentElevation);
 		m_sinInstrumentAzimuth = sci::sin(instrumentAzimuth);
 		m_sinInstrumentRoll = sci::sin(instrumentRoll);
@@ -246,18 +268,19 @@ public:
 		cosInstrumentAzimuth = m_cosInstrumentAzimuth;
 		cosInstrumentRoll = m_cosInstrumentRoll;
 	}
-	virtual void getLocation(sci::UtcTime time, degree &latitude, degree &longitude) const
+	virtual void getLocation(sci::UtcTime time, degree &latitude, degree &longitude, metre &altitude) const override
 	{
 		latitude = m_latitude;
 		longitude = m_longitude;
+		altitude = m_altitude;
 	}
-	virtual void getMotion(sci::UtcTime time, metrePerSecond &speed, degree &course, degree & azimuth) const
+	virtual void getMotion(sci::UtcTime time, metrePerSecond &speed, degree &course, degree & azimuth) const override
 	{
 		speed = metrePerSecond(0);
 		course = std::numeric_limits<degree>::quiet_NaN();
 		azimuth = std::numeric_limits<degree>::quiet_NaN();
 	}
-	virtual void getInstrumentAttitudes(sci::UtcTime time, degree &elevation, degree &azimuth, degree &roll) const
+	virtual void getInstrumentAttitudes(sci::UtcTime time, degree &elevation, degree &azimuth, degree &roll) const override
 	{
 		elevation = m_elevation;
 		azimuth = m_azimuth;
@@ -266,6 +289,7 @@ public:
 private:
 	degree m_latitude;
 	degree m_longitude;
+	metre m_altitude;
 	degree m_elevation;
 	degree m_azimuth;
 	degree m_roll;
@@ -479,6 +503,21 @@ public:
 			m_cosInstrumentAzimuthsAbsolute[i] = sci::cos(m_instrumentAzimuthsAbsolute[i]);
 			m_cosInstrumentRollsAbsolute[i] = sci::cos(m_instrumentRollsAbsolute[i]);
 		}
+	}
+	virtual void getLocation(sci::UtcTime time, degree &latitude, degree &longitude, metre &altitude) const
+	{
+		size_t lowerIndex = findLowerIndex(time);
+		if (lowerIndex > getPlatformInfo().times.size() - 2)
+		{
+			latitude = std::numeric_limits<degree>::quiet_NaN();
+			longitude = std::numeric_limits<degree>::quiet_NaN();
+			altitude = std::numeric_limits<metre>::quiet_NaN();
+			return;
+		}
+
+		latitude = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], getPlatformInfo().latitudes[lowerIndex], getPlatformInfo().latitudes[lowerIndex + 1]);
+		longitude = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], getPlatformInfo().longitudes[lowerIndex], getPlatformInfo().longitudes[lowerIndex + 1]);
+		altitude = getPlatformInfo().altitudes[0];
 	}
 	virtual void getInstrumentVelocity(sci::UtcTime time, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const override
 	{
@@ -700,7 +739,6 @@ public:
 		const DataInfo &dataInfo,
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
-		const sci::string &comment,
 		const std::vector<sci::UtcTime> &times,
 		degree longitude,
 		degree latitude,

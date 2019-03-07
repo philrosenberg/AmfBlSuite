@@ -116,7 +116,6 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const DataInfo &dataInfo,
 	const ProjectInfo &projectInfo,
 	const Platform &platform,
-	const sci::string &comment,
 	const std::vector<sci::UtcTime> &times,
 	degree longitude,
 	degree latitude,
@@ -206,7 +205,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 
 	//Now construct the final filename
 	sci::ostringstream filenameStream;
-	filenameStream << baseFilename << prevVersion + 1 << (dataInfo.processingLevel==-1 ? sU("beta") : sU("")) << sU(".nc");
+	filenameStream << baseFilename << prevVersion + 1 << (dataInfo.processingOptions.beta ? sU("beta") : sU("")) << sU(".nc");
 	sci::string filename = filenameStream.str();
 
 	//create the new file
@@ -270,7 +269,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		locationKeywords << ", " << platform.getPlatformInfo().locationKeywords[i];
 	write(sci::NcAttribute(sU("location_keywords"), locationKeywords.str()));
 	write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/tree/v0.2.3"))));
-	write(sci::NcAttribute(sU("comment"), comment + sci::string(dataInfo.processingLevel == -1 ? sU("\nBeta release - not to be used in published science."): sU(""))));
+	write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science."): sU(""))));
 
 	
 
@@ -288,7 +287,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	history << existingHistory + sU("\n") + getFormattedDateTime(now, sU("-"), sU(":"), sU("T")) + sU(" - v") << prevVersion + 1 << sU(" ") + processingReason;
 	write(sci::NcAttribute(sU("history"), history.str()));
 	sci::ostringstream versionString;
-	versionString << sU("v") << prevVersion + 1 << (dataInfo.processingLevel == -1 ? sU("beta") : sU(""));
+	versionString << sU("v") << prevVersion + 1 << (dataInfo.processingOptions.beta ? sU("beta") : sU(""));
 	write(sci::NcAttribute(sU("product_version"), versionString.str()));
 	write(sci::NcAttribute(sU("last_revised_date"), getFormattedDateTime(now, sU("-"), sU(":"), sU("T"))));
 
@@ -374,8 +373,9 @@ void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 	{
 		std::vector<degree> latitudes(1, degree(0.0));
 		std::vector<degree> longitudes(1, degree(0.0));
+		metre altitude;
 		//get the location for the middle time - it should be irrelevant anyway as it is stationary
-		platform.getLocation(m_times[m_times.size() / 2], latitudes[0], longitudes[0]);
+		platform.getLocation(m_times[m_times.size() / 2], latitudes[0], longitudes[0], altitude);
 		write(*m_latitudeVariable, sci::physicalsToValues<degree>(latitudes));
 		write(*m_longitudeVariable, sci::physicalsToValues<degree>(longitudes));
 	}
@@ -393,7 +393,8 @@ void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 
 		for (size_t i = 0; i < m_times.size(); ++i)
 		{
-			platform.getLocation(m_times[i], latitudes[i], longitudes[i]);
+			metre altitude;
+			platform.getLocation(m_times[i], latitudes[i], longitudes[i], altitude);
 			platform.getMotion(m_times[i], speeds[i], courses[i], orientations[i]);
 			platform.getInstrumentAttitudes(m_times[i], pitches[i], yaws[i], rolls[i]);
 		}

@@ -1,0 +1,82 @@
+<amfEntity version="1">
+  <!--This file contains data that is used to describe projects, platforms data authors, etc for use in AMF netcdf files-->
+  
+  <!--People-->
+  <person id="1">
+    <name>Phil Rosenberg</name>
+    <email>p.d.rosenberg@leeds.ac.uk</email>
+    <orcidUrl>https://orcid.org/0000-0002-6920-0559</orcidUrl>
+    <institution>University of Leeds</institution>
+  </person>
+  <person id="2">
+    <name>Ian Brooks</name>
+    <email>i.m.brooks@leeds.ac.uk</email>
+    <orcidUrl>https://orcid.org/0000-0002-5051-1322</orcidUrl>
+    <institution>University of Leeds</institution>
+  </person>
+  
+  <!--Projects-->
+  <project id="1">
+    <name>MOCCHA</name>
+    <!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
+    <principalInvestigator type="amfEntity/person" id="2"></principalInvestigator>
+  </project>
+  
+  <!--Platforms-->
+  <!--Note that the different platforms have slightly different structures or meanings
+      of the elements - see examples for descriptions-->
+  
+  <!--This is an example of a ship platform-->
+  <platform id="1">
+    <name>Oden</name>
+    <type>moving</type>
+    <deploymentMode>sea</deploymentMode>
+    <!--AltitudeMetres is the altitude relative to the sea line of the ship-->
+    <altitudeMetres>0</altitudeMetres>
+    <!--The attitude variables are of the instrument relative to the ship-->
+    <elevationDegree>0</elevationDegree>
+    <azimuthDegree>180</azimuthDegree>
+    <rollDegree> 0</rollDegree>
+    <locationKeywords>Arctic;Sweden;Norway</locationKeywords>
+    <locationFile>OdenLocationData.csv</locationFile>
+  </platform>
+
+  <!--This is an example of a stationary platform-->
+  <platform id="2">
+    <name>Oden_Ship_Relative</name>
+    <type>stationary</type>
+    <deploymentMode>sea</deploymentMode>
+    <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->
+    <altitudeMetres>0</altitudeMetres>
+    <elevationDegree>0</elevationDegree>
+    <azimuthDegree>180</azimuthDegree>
+    <rollDegree> 0</rollDegree>
+    <locationKeywords>Arctic;Sweden;Norway</locationKeywords>
+  </platform>
+  
+  <!--Instruments-->
+  <instrument id="1">
+    <name>NCAS Doppler Aerosol Lidar unit 1</name>
+    <description>NCAS Doppler Aerosol Lidar unit 1</description>
+    <manufacturer>HALO Photonics</manufacturer>
+    <model>StreamLine</model>
+    <serial>1210-18</serial>
+    <operatingSoftware>StreamLine</operatingSoftware>
+    <operatingSoftwareVersion>v9</operatingSoftwareVersion>
+  </instrument>
+  
+  <!--Calibration Info-->
+  <calibrationInfo id ="1">
+    <calibrationDescription>Calibrated to manufacturers standard:: 0 to 19 ms-1</calibrationDescription>
+    <certificationDate>
+      <year>0</year>
+      <month>1</month>
+      <day>1</day>
+      <hour>0</hour>
+      <minute>0</minute>
+      <second>0</second>
+    </certificationDate>
+    <certificateUrl>Not available</certificateUrl>
+  </calibrationInfo>
+  
+</amfEntity>

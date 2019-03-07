@@ -111,7 +111,30 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 		//correct for instrument misalignment
 		degree windElevation;
 		for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
-			platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_windDirections[i], degree(0.0), thisProfile.m_windDirections[j], windElevation);
+		{
+			platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_windDirections[j], degree(0.0), thisProfile.m_windDirections[j], windElevation);
+			if (thisProfile.m_windDirections[j] < degree(0.0))
+				thisProfile.m_windDirections[j] += degree(360.0);
+		}
+		//correct for instrument height
+		degree latitude;
+		degree longitude;
+		metre altitude;
+		platform.getLocation(thisProfile.m_VadProcessor.getTimesUtcTime()[0], latitude, longitude, altitude);
+		thisProfile.m_heights += altitude;
+		//correct for instrument speed
+		metrePerSecond platformSpeed;
+		degree platformDirection;
+		degree platformHeading;
+		platform.getMotion(thisProfile.m_VadProcessor.getTimesUtcTime()[0], platformSpeed, platformDirection, platformHeading);
+		for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
+		{
+			metrePerSecond u = thisProfile.m_windSpeeds[j] * sci::sin(thisProfile.m_windDirections[j]) + platformSpeed * sci::sin(platformDirection);
+			metrePerSecond v = thisProfile.m_windSpeeds[j] * sci::cos(thisProfile.m_windDirections[j]) + platformSpeed * sci::cos(platformDirection);
+			thisProfile.m_windSpeeds[j] = sci::root<2>(sci::pow<2>(u) + sci::pow<2>(v));
+		}
+
+
 
 		//set up the flags;
 		//note that we only get a max of 1000 wind profiles it seems, the rest are zero, so flag them out
@@ -199,8 +222,7 @@ void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, cons
 
 void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const Platform &platform, int processingLevel, sci::string reasonForProcessing,
-	const sci::string &comment, ProgressReporter &progressReporter)
+	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
 	dataInfo.averagingPeriod = second(OutputAmfNcFile::getFillValue());
@@ -219,9 +241,9 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	dataInfo.maxLon = platform.getPlatformInfo().longitudes[0];
 	dataInfo.minLon = platform.getPlatformInfo().longitudes[0];
 	dataInfo.options = std::vector<sci::string>(0);
-	dataInfo.processingLevel = processingLevel;
+	dataInfo.processingLevel = 2;
 	dataInfo.productName = sU("mean winds profile");
-	dataInfo.reasonForProcessing = reasonForProcessing;
+	dataInfo.processingOptions = processingOptions;
 
 	//get the start and end time for each wind profile retrieval
 	std::vector<sci::UtcTime> scanStartTimes(m_profiles.size());
@@ -258,7 +280,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	nonTimeDimensions.push_back(&indexDimension);
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platform, comment, scanStartTimes, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
+		projectInfo, platform, scanStartTimes, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU(""), metre(0), metre(20000.0));
 	altitudeVariable.addAttribute(sci::NcAttribute(sU("Note:"), sU("Altitude is above instrument, not referenced to sea level or any geoid and not compensated for instrument platform height.")), file);
@@ -309,4 +331,9 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 std::vector<std::vector<sci::string>> LidarWindProfileProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
 	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 26);
+}
+
+bool LidarWindProfileProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
+{
+	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 26, 35, 37, 39, second(0));
 }

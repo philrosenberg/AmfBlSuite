@@ -220,8 +220,7 @@ void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::
 
 void LidarScanningProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const Platform &platform, int processingLevel, sci::string reasonForProcessing,
-	const sci::string &comment, ProgressReporter &progressReporter)
+	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
 	dataInfo.continuous = true;
@@ -235,9 +234,9 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	dataInfo.maxLon = sci::max<degree>(platform.getPlatformInfo().longitudes);
 	dataInfo.minLon = sci::min<degree>(platform.getPlatformInfo().longitudes);
 	dataInfo.options = getProcessingOptions();
-	dataInfo.processingLevel = processingLevel;
+	dataInfo.processingLevel = 1;
 	dataInfo.productName = sU("backscatter radial winds");
-	dataInfo.reasonForProcessing = reasonForProcessing;
+	dataInfo.processingOptions = processingOptions;
 
 	//build up our data arrays. We must account for the fact that the user could change
 	//the number of profiles in a scan pattern or the range of the instruemnt during a day
@@ -421,7 +420,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platform, comment, scanStartTimes, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
+		projectInfo, platform, scanStartTimes, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), metre(0), metre(10000.0));
 	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head azimuth angle"), degree(0), degree(360.0));

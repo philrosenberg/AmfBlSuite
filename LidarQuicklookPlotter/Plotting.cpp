@@ -80,6 +80,46 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, s
 	progressReporter << sU("Plot rendered to ") << filename << sU("\n");
 }
 
+bool InstrumentProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime, size_t dateStartCharacter, size_t hourStartCharacter, size_t minuteStartCharacter, size_t secondStartCharacter, second fileDuration)
+{
+	sci::string fileNameToSplit = sci::fromWxString(wxFileName(sci::nativeUnicode(fileName)).GetFullName());
+	int year;
+	unsigned int month;
+	unsigned int day;
+	unsigned int hour = 0;
+	unsigned int minute = 0;
+	double second = 0;
+	sci::istringstream stream;
+	stream.str(fileNameToSplit.substr(dateStartCharacter, 4));
+	stream >> year;
+	stream.clear();
+	stream.str(fileNameToSplit.substr(dateStartCharacter + 4, 2));
+	stream >> month;
+	stream.clear();
+	stream.str(fileNameToSplit.substr(dateStartCharacter+6, 2));
+	stream >> day;
+	if (hourStartCharacter != size_t(-1))
+	{
+		stream.clear();
+		stream.str(fileNameToSplit.substr(hourStartCharacter, 2));
+		stream >> hour;
+	}
+	if (minuteStartCharacter != size_t(-1))
+	{
+		stream.clear();
+		stream.str(fileNameToSplit.substr(minuteStartCharacter, 2));
+		stream >> minute;
+	}
+	if (secondStartCharacter != size_t(-1))
+	{
+		stream.clear();
+		stream.str(fileNameToSplit.substr(secondStartCharacter, 2));
+		stream >> second;
+	}
+	sci::UtcTime fileStartTime(year, month, day, hour, minute, second);
+	return fileStartTime < endTime && (fileStartTime + fileDuration.value<::second>()) >= startTime;
+}
+
 std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter)
 {
 	//Here we grab the date from each file based on it starting at the given character in the filename (path removed)

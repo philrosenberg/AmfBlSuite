@@ -3,6 +3,7 @@
 #include<vector>
 #include<wx/dir.h>
 #include<svector/sstring.h>
+#include<svector/time.h>
 
 class InstrumentProcessor;
 
@@ -18,10 +19,10 @@ public:
 	void setSnapshotFile(const sci::string &snapshotFile) { m_snapshotFile = snapshotFile; }
 	const sci::string &getDirectory() const { return m_directory; }
 	const sci::string &getSnapshotFile() const { return m_snapshotFile; }
-	virtual std::vector<sci::string> getChanges(const InstrumentProcessor &processor) const = 0;
+	virtual std::vector<sci::string> getChanges(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const = 0;
 	virtual void updateSnapshotFile( const sci::string &changedFile) const = 0;
 	virtual void clearSnapshotFile();
-	std::vector<sci::string> listFolderContents(const InstrumentProcessor &processor) const;
+	std::vector<sci::string> listFolderContents(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const;
 	virtual ~FolderChangesLister() {}
 private:
 	sci::string m_directory;
@@ -36,10 +37,10 @@ public:
 	ExistedFolderChangesLister(const sci::string &directory, const sci::string snapshotFile)
 		:FolderChangesLister(directory, snapshotFile)
 	{}
-	std::vector<sci::string> getChanges(const InstrumentProcessor &processor) const override;
+	std::vector<sci::string> getChanges(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 	void updateSnapshotFile(const sci::string &changedFile) const override;
 	virtual ~ExistedFolderChangesLister() {}
-	std::vector<sci::string> getPreviouslyExistingFiles(const InstrumentProcessor &processor) const;
+	std::vector<sci::string> getPreviouslyExistingFiles(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const;
 	std::vector<sci::string> getAllPreviouslyExistingFiles() const;
 };
 
@@ -51,7 +52,16 @@ public:
 	AlphabeticallyLastCouldHaveChangedChangesLister(const sci::string &directory, const sci::string snapshotFile)
 		:ExistedFolderChangesLister(directory, snapshotFile)
 	{}
-	std::vector<sci::string> getChanges(const InstrumentProcessor &processor) const override;
+	std::vector<sci::string> getChanges(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 	void updateSnapshotFile(const sci::string &changedFile) const override;
 	virtual ~AlphabeticallyLastCouldHaveChangedChangesLister() {}
+};
+
+class AssumeAllChangedChangesLister: public ExistedFolderChangesLister
+{
+public:
+	AssumeAllChangedChangesLister(const sci::string &directory, const sci::string snapshotFile)
+		:ExistedFolderChangesLister(directory, snapshotFile)
+	{}
+	std::vector<sci::string> getChanges(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 };

@@ -50,10 +50,14 @@ std::vector<std::vector<sci::string>> LidarStareProcessor::groupFilesPerDayForRe
 	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 9);
 }
 
+bool LidarStareProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
+{
+	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 9, 18, -1, -1, second(3599));
+}
+
 void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const Platform &platform, int processingLevel, sci::string reasonForProcessing,
-	const sci::string &comment, ProgressReporter &progressReporter)
+	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
 	dataInfo.continuous = true;
@@ -66,10 +70,10 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.minLat = sci::min<degree>(platform.getPlatformInfo().latitudes);
 	dataInfo.maxLon = sci::max<degree>(platform.getPlatformInfo().longitudes);
 	dataInfo.minLon = sci::min<degree>(platform.getPlatformInfo().longitudes);
+	dataInfo.processingLevel = 1;
 	dataInfo.options = getProcessingOptions();
-	dataInfo.processingLevel = processingLevel;
 	dataInfo.productName = sU("backscatter radial winds");
-	dataInfo.reasonForProcessing = reasonForProcessing;
+	dataInfo.processingOptions = processingOptions;
 
 	//build up our data arrays.
 	std::vector<sci::UtcTime> times = getTimesUtcTime();
@@ -130,7 +134,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platform, comment, times, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
+		projectInfo, platform, times, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
 
 	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), metre(0), metre(10000.0));
 	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), degree(0), degree(360.0));

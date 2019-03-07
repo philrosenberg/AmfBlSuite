@@ -50,3 +50,8 @@ std::vector<std::vector<sci::string>> LidarUserProcessor::groupFilesPerDayForRep
 {
 	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 9);
 }
+
+bool LidarUserProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
+{
+	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 9, 18, 20, 22, second(0));
+}
