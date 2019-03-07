@@ -13,18 +13,12 @@ void LidarBackscatterDopplerProcessor::readData(const std::vector<sci::string> &
 {
 	for (size_t i = 0; i < inputFilenames.size(); ++i)
 	{
-		readData(inputFilenames[i], progressReporter, parent, i == 0);
-	}
-
-	//correct azimuths and elevations for platform orientation
-	m_correctedAzimuths.resize(m_profiles.size(), degree(0.0));
-	m_correctedElevations.resize(m_profiles.size(), degree(0.0));
-	for (size_t i = 0; i < m_profiles.size(); ++i)
-	{
-		platform.correctDirection(m_profiles[i].getTime<sci::UtcTime>(), m_profiles[i].getAzimuth(), m_profiles[i].getElevation(), m_correctedAzimuths[i], m_correctedElevations[i]);
+		readData(inputFilenames[i], platform, progressReporter, parent, i == 0);
+		if (progressReporter.shouldStop())
+			break;
 	}
 }
-void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clear)
+void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent, bool clear)
 {
 	if (clear)
 	{
@@ -60,6 +54,12 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 		++nRead;
 		if (readingOkay)
 		{
+
+			//correct azimuths and elevations for platform orientation
+			m_correctedAzimuths.resize(m_profiles.size(), degree(0.0));
+			m_correctedElevations.resize(m_profiles.size(), degree(0.0));
+			platform.correctDirection(m_profiles.back().getTime<sci::UtcTime>(), m_profiles.back().getAzimuth(), m_profiles.back().getElevation(), m_correctedAzimuths.back(), m_correctedElevations.back());
+			
 			m_headerIndex.push_back(m_hplHeaders.size() - 1);//record which header this profile is linked to
 			std::vector<uint8_t> dopplerVelocityFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
 			std::vector<uint8_t> betaFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
@@ -107,6 +107,7 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 				sci::assertThrow(false, sci::err(sci::SERR_USER, 0, error.str()));
 			}
 	}
+
 	m_hasData = true;
 }
 
