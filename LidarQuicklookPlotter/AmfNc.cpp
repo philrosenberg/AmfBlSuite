@@ -164,8 +164,9 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	//It is worth checking that the ansi version of the filename doesn't get corrupted
 	bool usedReplacement;
 	std::string ansiBaseFilename = sci::nativeCodepage(baseFilename, '?', usedReplacement);
-	if (usedReplacement)
-		throw("The filename contains Unicode characters that cannot be represented with an ANSI string. Please complain to NetCDF that their Windows library does not support Unicode filenames. The file cannot be created.");
+	sci::ostringstream message;
+	message << sU("The filename ") << baseFilename << sU(" contains Unicode characters that cannot be represented with an ANSI string. Please complain to NetCDF that their Windows library does not support Unicode filenames. The file cannot be created.");
+	sci::assertThrow(!usedReplacement, sci::err(sci::SERR_USER, 0, message.str()));
 #endif
 
 	//Check if there is an existing file and get its history
@@ -181,10 +182,8 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 				sci::InputNcFile previous(existingFiles[i]);
 				sci::string thisExistingHistory = previous.getGlobalAttribute<sci::string>(sU("history"));
 				sci::string previousVersionString = previous.getGlobalAttribute<sci::string>(sU("product_version"));
-				if (previousVersionString.length() < 2 || previousVersionString[0] != 'v')
-				{
-					throw("Previous version of the file has an ill formatted product version.");
-				}
+				sci::assertThrow(previousVersionString.length() > 1 && previousVersionString[0] == 'v', sci::err(sci::SERR_USER, 0, sU("Previous version of the file has an ill formatted product version.")));
+				
 				int thisPrevVersion;
 				sci::istringstream versionStream(previousVersionString.substr(1));
 				versionStream >> thisPrevVersion;

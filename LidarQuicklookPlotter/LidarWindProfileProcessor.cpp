@@ -55,99 +55,117 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 	for (size_t i=0; i<processedFilenames.size(); ++i)
 	{
 		Profile thisProfile(getInstrumentInfo(), getCalibrationInfo(), m_orientationGrabber);
-		progressReporter << sU("Reading file ") << processedFilenames[i] << sU("\n");
-		std::fstream fin;
-		fin.open(sci::nativeUnicode(processedFilenames[i]), std::ios::in);
-		if (!fin.is_open())
-			throw(sU("Could not open file ") + processedFilenames[i]);
-
-		size_t nPoints;
-		fin >> nPoints;
-
-		thisProfile.m_heights.resize(nPoints);
-		thisProfile.m_windDirections.resize(nPoints);
-		thisProfile.m_windSpeeds.resize(nPoints);
-
-		for (size_t j = 0; j < nPoints; ++j)
+		bool readProfileWithoutErrors = true;
+		try
 		{
-			double windDirectionDegrees;
-			fin >> thisProfile.m_heights[j] >> windDirectionDegrees >> thisProfile.m_windSpeeds[j];
-			thisProfile.m_windDirections[j] = degree(windDirectionDegrees);
-			if (fin.fail())
+			progressReporter << sU("Reading file ") << processedFilenames[i] << sU("\n");
+			std::fstream fin;
+			fin.open(sci::nativeUnicode(processedFilenames[i]), std::ios::in);
+			sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Could not open file ") + processedFilenames[i]));
+
+			size_t nPoints;
+			fin >> nPoints;
+
+			thisProfile.m_heights.resize(nPoints);
+			thisProfile.m_windDirections.resize(nPoints);
+			thisProfile.m_windSpeeds.resize(nPoints);
+
+			for (size_t j = 0; j < nPoints; ++j)
 			{
-				throw(sU("When opening file ") + processedFilenames[i] + sU(" some lines were missing."));
+				double windDirectionDegrees;
+				fin >> thisProfile.m_heights[j] >> windDirectionDegrees >> thisProfile.m_windSpeeds[j];
+				thisProfile.m_windDirections[j] = degree(windDirectionDegrees);
+				sci::assertThrow(!fin.fail(), sci::err(sci::SERR_USER, 0, sU("When opening file ") + processedFilenames[i] + sU(" some lines were missing.")));
+
+				//get the time from the filename.
+				/*int year;
+				unsigned int month;
+				unsigned int day;
+				unsigned int hour;
+				unsigned int minute;
+				double second;
+				size_t dateStart = processedFilenames[i].length() - 19;
+				sci::istringstream(processedFilenames[i].substr(dateStart, 4)) >> year;
+				sci::istringstream(processedFilenames[i].substr(dateStart + 4, 2)) >> month;
+				sci::istringstream(processedFilenames[i].substr(dateStart + 6, 2)) >> day;
+				sci::istringstream(processedFilenames[i].substr(dateStart + 9, 2)) >> hour;
+				sci::istringstream(processedFilenames[i].substr(dateStart + 11, 2)) >> minute;
+				sci::istringstream(processedFilenames[i].substr(dateStart + 13, 2)) >> second;
+				m_profiles[i].m_time = sci::UtcTime(year, month, day, hour, minute, second);*/
+			}
+			fin.close();
+			if (progressReporter.shouldStop())
+			{
+				progressReporter << sU("Stopped reading at the request of the user.\n");
+				break;
 			}
 
-			//get the time from the filename.
-			/*int year;
-			unsigned int month;
-			unsigned int day;
-			unsigned int hour;
-			unsigned int minute;
-			double second;
-			size_t dateStart = processedFilenames[i].length() - 19;
-			sci::istringstream(processedFilenames[i].substr(dateStart, 4)) >> year;
-			sci::istringstream(processedFilenames[i].substr(dateStart + 4, 2)) >> month;
-			sci::istringstream(processedFilenames[i].substr(dateStart + 6, 2)) >> day;
-			sci::istringstream(processedFilenames[i].substr(dateStart + 9, 2)) >> hour;
-			sci::istringstream(processedFilenames[i].substr(dateStart + 11, 2)) >> minute;
-			sci::istringstream(processedFilenames[i].substr(dateStart + 13, 2)) >> second;
-			m_profiles[i].m_time = sci::UtcTime(year, month, day, hour, minute, second);*/
+			//now read the hpl file
+			progressReporter << sU("Reading matching ray data file ") << hplFilenames[i] << sU("\n");
+			thisProfile.m_VadProcessor.readData({ hplFilenames[i] }, platform, progressReporter, parent);
+
+			//check that we actually found some VAD data
+			sci::assertThrow(thisProfile.m_VadProcessor.getTimesUtcTime().size() > 0, sci::err(sci::SERR_USER, 0, "Could not read VAD data to accompany wind profile data. Aborting read."));
+
+
+			//correct for instrument misalignment
+			degree windElevation;
+			for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
+			{
+				platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_windDirections[j], degree(0.0), thisProfile.m_windDirections[j], windElevation);
+				if (thisProfile.m_windDirections[j] < degree(0.0))
+					thisProfile.m_windDirections[j] += degree(360.0);
+			}
+			//correct for instrument height
+			degree latitude;
+			degree longitude;
+			metre altitude;
+			platform.getLocation(thisProfile.m_VadProcessor.getTimesUtcTime()[0], latitude, longitude, altitude);
+			thisProfile.m_heights += altitude;
+			//correct for instrument speed
+			metrePerSecond platformSpeed;
+			degree platformDirection;
+			degree platformHeading;
+			platform.getMotion(thisProfile.m_VadProcessor.getTimesUtcTime()[0], platformSpeed, platformDirection, platformHeading);
+			for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
+			{
+				metrePerSecond u = thisProfile.m_windSpeeds[j] * sci::sin(thisProfile.m_windDirections[j]) + platformSpeed * sci::sin(platformDirection);
+				metrePerSecond v = thisProfile.m_windSpeeds[j] * sci::cos(thisProfile.m_windDirections[j]) + platformSpeed * sci::cos(platformDirection);
+				thisProfile.m_windSpeeds[j] = sci::root<2>(sci::pow<2>(u) + sci::pow<2>(v));
+			}
+
+
+
+			//set up the flags;
+			//note that we only get a max of 1000 wind profiles it seems, the rest are zero, so flag them out
+			thisProfile.m_windFlags.resize(std::min(thisProfile.m_heights.size(), size_t(1000)), lidarGoodDataFlag);
+			thisProfile.m_windFlags.resize(thisProfile.m_heights.size(), lidarNoDataFlag);
+			std::vector<std::vector<uint8_t>> vadFlags = thisProfile.m_VadProcessor.getDopplerFlags();
+			for (size_t j = 0; j < vadFlags.size(); ++j)
+			{
+				for (size_t k = 0; k < vadFlags[j].size(); ++k)
+					thisProfile.m_windFlags[k] = std::max(thisProfile.m_windFlags[k], vadFlags[j][k]);
+			}
 		}
-		fin.close();
-		progressReporter << sU("Done.\n");
-		if (progressReporter.shouldStop())
+		catch (sci::err err)
 		{
-			progressReporter << sU("Stopped reading at the request of the user.");
+			WarningSetter setter(&progressReporter);
+			progressReporter << sU("File not included in processing\n") << err.getErrorMessage() << "\n";
+			readProfileWithoutErrors = false;
 		}
-		
-		//now read the hpl file
-		thisProfile.m_VadProcessor.readData({ hplFilenames[i] }, platform, progressReporter, parent);
-
-		//check that we actually found some VAD data
-		sci::assertThrow(thisProfile.m_VadProcessor.getTimesUtcTime().size() > 0, sci::err(sci::SERR_USER, 0, "Could not read VAD data to accompany wind profile data. Aborting read."));
-
-
-		//correct for instrument misalignment
-		degree windElevation;
-		for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
+		catch (std::exception err)
 		{
-			platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_windDirections[j], degree(0.0), thisProfile.m_windDirections[j], windElevation);
-			if (thisProfile.m_windDirections[j] < degree(0.0))
-				thisProfile.m_windDirections[j] += degree(360.0);
+			WarningSetter setter(&progressReporter);
+			progressReporter << sU("File not included in processing\n") <<  sci::fromCodepage(err.what()) << "\n";
+			readProfileWithoutErrors = false;
 		}
-		//correct for instrument height
-		degree latitude;
-		degree longitude;
-		metre altitude;
-		platform.getLocation(thisProfile.m_VadProcessor.getTimesUtcTime()[0], latitude, longitude, altitude);
-		thisProfile.m_heights += altitude;
-		//correct for instrument speed
-		metrePerSecond platformSpeed;
-		degree platformDirection;
-		degree platformHeading;
-		platform.getMotion(thisProfile.m_VadProcessor.getTimesUtcTime()[0], platformSpeed, platformDirection, platformHeading);
-		for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
+		if(readProfileWithoutErrors)
+			m_profiles.push_back(thisProfile);
+		else
 		{
-			metrePerSecond u = thisProfile.m_windSpeeds[j] * sci::sin(thisProfile.m_windDirections[j]) + platformSpeed * sci::sin(platformDirection);
-			metrePerSecond v = thisProfile.m_windSpeeds[j] * sci::cos(thisProfile.m_windDirections[j]) + platformSpeed * sci::cos(platformDirection);
-			thisProfile.m_windSpeeds[j] = sci::root<2>(sci::pow<2>(u) + sci::pow<2>(v));
+			WarningSetter setter(&progressReporter);
+			progressReporter << sU("Profile omitted from processing.\n");
 		}
-
-
-
-		//set up the flags;
-		//note that we only get a max of 1000 wind profiles it seems, the rest are zero, so flag them out
-		thisProfile.m_windFlags.resize(std::min(thisProfile.m_heights.size(), size_t(1000)), lidarGoodDataFlag);
-		thisProfile.m_windFlags.resize(thisProfile.m_heights.size(), lidarNoDataFlag);
-		std::vector<std::vector<uint8_t>> vadFlags = thisProfile.m_VadProcessor.getDopplerFlags();
-		for (size_t j = 0; j < vadFlags.size(); ++j)
-		{
-			for (size_t k = 0; k < vadFlags[j].size(); ++k)
-				thisProfile.m_windFlags[k] = std::max(thisProfile.m_windFlags[k], vadFlags[j][k]);
-		}
-
-		m_profiles.push_back(thisProfile);
 	}
 
 	m_hasData = true;

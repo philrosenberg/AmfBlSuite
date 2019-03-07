@@ -2,6 +2,7 @@
 #include"HplProfile.h"
 #include"HplHeader.h"
 #include<cmath>
+#include<svector/serr.h>
 
 bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 {
@@ -26,11 +27,8 @@ bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 	m_time = header.startTime;
 	m_time.setTime(hour, minute, second);
 
-	if (minute > 59)
-		throw("Found a minute value bigger than 59, the file may be corrupt or be incorrectly formatted.");
-
-	if (second >= 60.0)
-		throw("Found a second value greater than or equal to 60, the file may be corrupt or be incorrectly formatted.");
+	sci::assertThrow(minute<60, sci::err(sci::SERR_USER, 0, sU("Found a minute value bigger than 59, the file may be corrupt or be incorrectly formatted.")));
+	sci::assertThrow(second < 60.0, sci::err(sci::SERR_USER, 0, sU("Found a second value greater than or equal to 60, the file may be corrupt or be incorrectly formatted.")));
 
 	size_t nGates = header.nGates;
 	m_gates.resize(nGates);

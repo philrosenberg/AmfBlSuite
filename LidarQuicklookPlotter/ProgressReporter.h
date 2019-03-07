@@ -7,7 +7,9 @@ class ProgressReporter
 public:
 	ProgressReporter()
 	{
-		setNormalMode();
+		m_normalMode = true;
+		m_warningMode = false;
+		m_errorMode = false;
 	}
 	virtual void reportProgress(const sci::string &progress) = 0;
 	virtual bool shouldStop() = 0;
@@ -16,18 +18,21 @@ public:
 		m_normalMode = true;
 		m_warningMode = false;
 		m_errorMode = false;
+		setNormalModeFormat();
 	}
 	void setWarningMode()
 	{
 		m_normalMode = false;
 		m_warningMode = true;
 		m_errorMode = false;
+		setWarningModeFormat();
 	}
 	void setErrorMode()
 	{
 		m_normalMode = false;
 		m_warningMode = false;
 		m_errorMode = true;
+		setErrorModeFormat();
 	}
 	bool isNormalMode()
 	{

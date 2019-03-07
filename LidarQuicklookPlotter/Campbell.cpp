@@ -5,6 +5,7 @@
 #include<string>
 #include<sstream>
 #include<cmath>
+#include<svector/serr.h>
 
 
 // ----------------------------------------------------
@@ -51,7 +52,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	{
 		std::ostringstream message;
 		message << "Expected Campbell header to start with character '" << m_startOfHeaderCharacter << "', but attempting to read a header beginning with '" << commonHeader[0] << "'.";
-		throw(message.str());
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 	}
 
 	//check what type of message we have
@@ -65,7 +66,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	{
 		std::ostringstream message;
 		message << "Found a Campbell message with an unknown type: " << commonHeader[1] << ". Only CS, CL and CT are supported.";
-		throw(message.str());
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 	}
 
 	//grab the id and the OS
@@ -86,7 +87,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 
 			std::ostringstream message;
 			message << "Found an invalid Campbell message number: " << messageNumberText << ". This should be a number from 000-999.";
-			throw(message.str());
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 		}
 		m_messageNumber = std::atoi(messageNumberText);
 	}
@@ -117,7 +118,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 			{
 				std::ostringstream message;
 				message << "Found an invalid Campbell CL Samples value. The value shoud be a number form 0-5, but we found the character '" << messageNumberText[1] << "'.";
-				throw(message.str());
+				sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 			}
 		}
 		else if (messageNumberText[0] == '2')
@@ -138,14 +139,14 @@ void CampbellHeader::readHeader(std::istream &stream)
 			{
 				std::ostringstream message;
 				message << "Found an invalid Campbell CL Samples value. The value shoud be a number form 0-5, but we found the character '" << messageNumberText[1] << "'.";
-				throw(message.str());
+				sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 			}
 		}
 		else
 		{
 			std::ostringstream message;
 			message << "Found an invalid Campbell CL header. The character after the OS shoud always be '1' or '2'. Here we found '" << messageNumberText[0] << "'.";
-			throw(message.str());
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 		}
 		m_messageNumber = std::atoi(messageNumberText);
 	}
@@ -164,7 +165,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 		{
 			std::ostringstream message;
 			message << "Found an invalid Campbell CT header. The characters after the OS should be \"10\". Here we found \"" << shouldBeOne << shouldBeZero << "\".";
-			throw(message.str());
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 		}
 	}
 
@@ -177,13 +178,13 @@ void CampbellHeader::readHeader(std::istream &stream)
 	{
 		std::ostringstream message;
 		message << "Found an invalid Campbell header. Expected to find the start of text character '" << m_startOfTextCharacter << "', but found '" << headerEnd[0] << "'.";
-		throw(message.str());
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 	}
 	if (headerEnd[1] != char(13) || headerEnd[2] != char(10))
 	{
 		std::ostringstream message;
 		message << "Found an invalid Campbell header. Expected the header to end with the carriage return and line feed characters, but it did not.";
-		throw(message.str());
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 	}
 	m_initialised = true;
 }
@@ -199,9 +200,8 @@ int hexCharToNumber(char hexChar)
 		return int(hexChar) - int(48);
 	else if (hexChar > char(96) && hexChar < char(103))
 		return int(hexChar) - int(87);
-
 	else
-		throw("Recieved a non hex number to parse.");
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Recieved a non hex number to parse.")));
 }
 
 int hexTextToNumber(char* textHex)
@@ -230,7 +230,7 @@ campbellAlarmStatus parseAlarmStatus(char text)
 		return cas_alarm;
 
 	//If we haven't returned by this point we have an invalid character
-	throw("Received an invalid character when determining the ceilometer alarm status.");
+	sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Received an invalid character when determining the ceilometer alarm status.")));
 }
 
 ceilometerMessageStatus parseMessageStatus(char text)
@@ -244,7 +244,7 @@ ceilometerMessageStatus parseMessageStatus(char text)
 		return cms_rawDataMissingOrSuspect;
 
 	//If we haven't returned by this point we have an invalid character
-	throw("Received an invalid character when determining the ceilometer message status.");
+	sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Received an invalid character when determining the ceilometer message status.")));
 }
 
 void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)

@@ -33,8 +33,7 @@ void CeilometerProcessor::writeToNc(const sci::string &directory, const PersonIn
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
-	if (!hasData())
-		throw(sU("Attempted to write ceilometer data to netcdf when it has not been read"));
+	sci::assertThrow(hasData(), sci::err(sci::SERR_USER, 0, sU("Attempted to write ceilometer data to netcdf when it has not been read")));
 
 	writeToNc(m_firstHeaderHpl, m_allData, directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions);
 }
@@ -102,11 +101,10 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 		}
 		else
 		{
-			if(resolution != profiles[i].getResolution())
-				throw("Found a change in the resolution during a day. Cannot process this day.");
+			sci::assertThrow(resolution == profiles[i].getResolution(), sci::err(sci::SERR_USER, 0, sU("Found a change in the resolution during a day. Cannot process this day.")));
+
 			for (size_t j = 0; j < gates.size(); ++i)
-				if (gates[j] != profiles[i].getGates()[j])
-					throw("Found a change in the gates during a day. Cannot process this day.");
+				sci::assertThrow(gates[j] == profiles[i].getGates()[j], sci::err(sci::SERR_USER, 0, sU("Found a change in the gates during a day. Cannot process this day.")));
 		}
 
 		//assign the flags
@@ -205,8 +203,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 	{
 		std::fstream fin;
 		fin.open(sci::nativeUnicode(inputFilename), std::ios::in | std::ios::binary);
-		if (!fin.is_open())
-			throw("Could not open file");
+		sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Could not ope file ") + inputFilename + sU(".")));
 
 		progressReporter << sU("Reading file ") << inputFilename << sU("\n");
 
@@ -227,11 +224,6 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 				timeDate = timeDate + sci::utf8ToUtf16(std::string(&character, (&character) + 1));
 				fin.read(&character, 1);
 			}
-			//if (counter == 50)
-			//{
-			//	fin.close();
-			//	throw("Failed to find the comma after the timestamp in a ceilometer file. Reading aborted.");
-			//}
 			if (fin.eof())
 				break;
 			size_t firstDash = timeDate.find_first_of('-');
@@ -270,7 +262,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 				}
 				else if (nRead > 1 && m_allData.back().getTime() > getCeilometerTime(timeDate))
 				{
-					throw("Time jumps backwards in this file, it cannot be processed.");
+					sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Time jumps backwards in this file, it cannot be processed.")));
 				}
 				CampbellHeader header;
 				header.readHeader(fin);
@@ -322,9 +314,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 
 void CeilometerProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
-	if (!hasData())
-		throw(sU("Attempted to plot Ceilometer data when it has not been read"));
-
+	sci::assertThrow(hasData(), sci::err(sci::SERR_USER, 0, sU("Attempted to plot Ceilometer data when it has not been read")));
 	
 	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{
@@ -386,8 +376,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	{
 		std::vector<size_t> gates = profiles[i].getGates();
 		for (size_t j = 0; j < gates.size(); ++j)
-			if (gates[j] != j)
-				throw("The plotting code currently assumes gates go 0, 1, 2, 3, ... but it found a profile where this was not the case.");
+			sci::assertThrow(gates[j] == j, sci::err(sci::SERR_USER, 0, sU("The plotting code currently assumes gates go 0, 1, 2, 3, ... but it found a profile where this was not the case.")));
 	}
 
 	xs[0] = second(profiles[0].getTime().getUnixTime());

@@ -31,7 +31,7 @@ private:
 	}
 	void setWarningModeFormat() override
 	{
-		m_textControl->SetDefaultStyle(wxTextAttr(wxColour(0, 0, 128)));
+		m_textControl->SetDefaultStyle(wxTextAttr(wxColour(0, 128, 128)));
 		reportProgress(sU("Warning: "));
 	}
 	void setErrorModeFormat() override

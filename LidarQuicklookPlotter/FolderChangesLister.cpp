@@ -7,8 +7,7 @@ void FolderChangesLister::clearSnapshotFile()
 {
 	std::fstream fin;
 	fin.open(sci::nativeUnicode(m_snapshotFile), std::ios::out);
-	if (!fin.is_open())
-		throw(sU("Could not clear the snapshot file ") + m_snapshotFile + sU("."));
+	sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Could not clear the snapshot file ") + m_snapshotFile + sU(".")));
 	fin.close();
 }
 

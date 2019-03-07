@@ -1,5 +1,7 @@
+#define NOMINMAX
 #include "HplHeader.h"
 #include<sstream>
+#include<svector/serr.h>
 
 //Used for setting colon to be treated like a space 
 struct ColonIsSpace : std::ctype<char>
@@ -116,8 +118,7 @@ void readHeaderLine(std::istream &stream, T &variable, const std::string &name)
 	}
 	std::string foundName = tempString.substr(0, colonPosition);
 	std::string foundVariable = tempString.substr(valueStartPosition);
-	if (foundName != name)
-		throw("Could not find the variable " + name + " in the file header at the expected location");
+	sci::assertThrow(foundName == name, sci::err(sci::SERR_USER, 0, "Could not find the variable " + name + " in the file header at the expected location"));
 
 	std::istringstream varStream;
 	varStream.str(foundVariable);
@@ -133,7 +134,7 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 	catch (...)
 	{
 		//throw a sightly different error if we don't find the first variable
-		throw("The file is not a lidar profile. Lidar profile files should start with a \"Filename:\" parameter.");
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("The file is not a lidar profile. Lidar profile files should start with a \"Filename:\" parameter.")));
 	}
 
 	readHeaderLine(stream, hplHeader.systemId, "System ID");
@@ -150,28 +151,28 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 	std::string tempString;
 
 	std::getline(stream, tempString);
-	if (tempString != "Altitude of measurement (center of gate) = (range gate + 0.5) * Gate length")
-		throw("Did not find the expected altitude of measurement equation. Incorrect file format.");
+	sci::assertThrow(tempString == "Altitude of measurement (center of gate) = (range gate + 0.5) * Gate length",
+		sci::err(sci::SERR_USER, 0, sU("Did not find the expected altitude of measurement equation. Incorrect file format.")));
+	
+	std::getline(stream, tempString);
+	sci::assertThrow(tempString == "Data line 1: Decimal time (hours)  Azimuth (degrees)  Elevation (degrees) Pitch (degrees) Roll (degrees)",
+		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 descriptor. Incorrect file format.")));
 
 	std::getline(stream, tempString);
-	if (tempString != "Data line 1: Decimal time (hours)  Azimuth (degrees)  Elevation (degrees) Pitch (degrees) Roll (degrees)")
-		throw("Did not find the expected data line 1 descriptor. Incorrect file format.");
+	sci::assertThrow(tempString == "f9.6,1x,f6.2,1x,f6.2",
+		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 format. Incorrect file format.")));
 
 	std::getline(stream, tempString);
-	if (tempString != "f9.6,1x,f6.2,1x,f6.2")
-		throw("Did not find the expected data line 1 format. Incorrect file format.");
+	sci::assertThrow(tempString == "Data line 2: Range Gate  Doppler (m/s)  Intensity (SNR + 1)  Beta (m-1 sr-1)",
+		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 descriptor. Incorrect file format.")));
 
 	std::getline(stream, tempString);
-	if (tempString != "Data line 2: Range Gate  Doppler (m/s)  Intensity (SNR + 1)  Beta (m-1 sr-1)")
-		throw("Did not find the expected data line 2 descriptor. Incorrect file format.");
-
+	sci::assertThrow(tempString == "i3,1x,f6.4,1x,f8.6,1x,e12.6 - repeat for no. gates",
+		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 format. Incorrect file format.")));
+	
 	std::getline(stream, tempString);
-	if (tempString != "i3,1x,f6.4,1x,f8.6,1x,e12.6 - repeat for no. gates")
-		throw("Did not find the expected data line 2 format. Incorrect file format.");
-
-	std::getline(stream, tempString);
-	if (tempString != "****")
-		throw("Did not find the expected **** header ending. Incorrect file format.");
+	sci::assertThrow(tempString == "****",
+		sci::err(sci::SERR_USER, 0, sU("Did not find the expected **** header ending. Incorrect file format.")));
 
 	return stream;
 }

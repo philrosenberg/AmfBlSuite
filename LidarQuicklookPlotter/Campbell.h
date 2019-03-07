@@ -4,6 +4,7 @@
 #include<string>
 #include<vector>
 #include"Units.h"
+#include<svector/serr.h>
 
 enum campbellMessageType
 {
@@ -38,11 +39,11 @@ public:
 	void readHeader(std::istream &stream);
 	char getStartOfHeaderCharacter() const { return m_startOfHeaderCharacter; }
 	char getStartOfTextCharacter() const { return m_startOfTextCharacter; }
-	campbellMessageType getMessageType() const { if (!m_initialised) throw("Attempted to get the message type for an uninitialised CampbellHeader object."); return m_messageType; }
-	std::string getOs() const { if (!m_initialised) throw("Attempted to get the OS for an uninitialised CampbellHeader object."); return m_os; }
-	short getMessageNumber() const { if (!m_initialised) throw("Attempted to get the message number for an uninitialised CampbellHeader object."); return m_messageNumber; }
-	char getId() const { if (!m_initialised) throw("Attempted to get the ID for an uninitialised CampbellHeader object."); return m_id; }
-	const std::vector<char>& getBytes() const { if (!m_initialised) throw("Attempted to get the bytes for an uninitialised CampbellHeader object."); return m_bytes; }
+	campbellMessageType getMessageType() const { sci::assertThrow(m_initialised,sci::err(sci::SERR_USER, 0, sU("Attempted to get the message type for an uninitialised CampbellHeader object."))); return m_messageType; }
+	std::string getOs() const { sci::assertThrow(m_initialised, sci::err(sci::SERR_USER, 0, sU("Attempted to get the OS for an uninitialised CampbellHeader object."))); return m_os; }
+	short getMessageNumber() const { sci::assertThrow(m_initialised, sci::err(sci::SERR_USER, 0, sU("Attempted to get the message number for an uninitialised CampbellHeader object."))); return m_messageNumber; }
+	char getId() const { sci::assertThrow(m_initialised, sci::err(sci::SERR_USER, 0, sU("Attempted to get the ID for an uninitialised CampbellHeader object."))); return m_id; }
+	const std::vector<char>& getBytes() const { sci::assertThrow(m_initialised, sci::err(sci::SERR_USER, 0, sU("Attempted to get the bytes for an uninitialised CampbellHeader object."))); return m_bytes; }
 	bool isInitialised() const { return m_initialised; }
 	CampbellHeader(const CampbellHeader&) = default;
 private:

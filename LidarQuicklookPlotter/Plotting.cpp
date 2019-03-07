@@ -59,7 +59,7 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, s
 	{
 		sci::ostringstream message;
 		message << sU("The output directory ") << directory << sU("does not exist and could not be created.");
-		throw (message.str());
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 	}
 
 	sci::string lastFourChars = filename.length() < 4 ? sU("") : filename.substr(filename.length() - 4, sci::string::npos);
@@ -75,7 +75,7 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, s
 	{
 		sci::ostringstream message;
 		message << sU("The output file ") << filename << sU(" could not be created.");
-		throw (message.str());
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 	}
 	progressReporter << sU("Plot rendered to ") << filename << sU("\n");
 }

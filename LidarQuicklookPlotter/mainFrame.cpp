@@ -97,9 +97,15 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &sett
 		{
 			setup(sci::fromWxString(settingsFile), sU("info.xml"), *m_progressReporter, m_processingOptions, m_author, m_projectInfo, m_platform, m_lidarInfo, m_lidarCalibrationInfo);
 		}
-		catch (...)
+		catch (sci::err err)
 		{
-			(*m_progressReporter) << "Error parsing input file\n\n";
+			ErrorSetter setter(m_progressReporter.get());
+			(*m_progressReporter) << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
+		}
+		catch (std::exception err)
+		{
+			ErrorSetter setter(m_progressReporter.get());
+			(*m_progressReporter) << err.what() << "\n";
 		}
 	}
 
@@ -181,11 +187,10 @@ void mainFrame::start()
 		wxMessageBox("Although you have requested plotting to stop, the software is just waiting for code to finish execution before it can do so. Please wait for the current processing to halt before trying to restart.");
 	}
 	m_progressReporter->setShouldStop(false);
-	m_logText->AppendText("Starting\n");
+	m_logText->AppendText("Starting\n\n");
 	m_checkForNewDataTimer->Start(600000);//Use this timer to check for new data every 5 mins
 	m_instantCheckTimer->StartOnce(1);//Use this timer to check for new data now
 
-	(*m_progressReporter) << sU("Parsing processing settings\n");
 }
 
 void mainFrame::stop()
@@ -269,7 +274,7 @@ void mainFrame::process()
 
 void mainFrame::process(InstrumentProcessor &processor, sci::string processorName)
 {
-
+	(*m_progressReporter) << sU("Beginning processing with the ") << processorName << sU("\n\n");
 	//Check that the input/output diectories are actually there
 	checkDirectoryStructue();
 
@@ -297,59 +302,20 @@ void mainFrame::process(InstrumentProcessor &processor, sci::string processorNam
 	{
 		if (!m_progressReporter->shouldStop())
 		{
-			//Ensure all our directoris are as
 			readDataThenPlotThenNc(*(plotChangesLister.get()), *(ncChangesLister.get()), m_author, m_processingSoftwareInfo, m_projectInfo, *m_platform, m_processingOptions, processor, processorName);
 			if (!m_progressReporter->shouldStop())
-				(*m_progressReporter) << sU("Processed all files matching filter ") << processorName << sU("\n");
+				(*m_progressReporter) << sU("Processed all files for ") << processorName << sU("\n\n\n");
 		}
 	}
 	catch (sci::err err)
 	{
-		wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-		m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-		std::ostream stream(m_logText);
-		stream << "Error: " << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
-		m_logText->SetDefaultStyle(originalStyle);
+		ErrorSetter setter(m_progressReporter.get());
+		(*m_progressReporter) << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
 	}
-	catch (char *errMessage)
+	catch (std::exception err)
 	{
-		wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-		m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-		std::ostream stream(m_logText);
-		stream << "Error: " << errMessage << "\n";
-		m_logText->SetDefaultStyle(originalStyle);
-	}
-	catch (std::string errMessage)
-	{
-		wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-		m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-		std::ostream stream(m_logText);
-		stream << "Error: " << errMessage << "\n";
-		m_logText->SetDefaultStyle(originalStyle);
-	}
-	catch (wxString errMessage)
-	{
-		wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-		m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-		std::ostream stream(m_logText);
-		stream << "Error: " << errMessage << "\n";
-		m_logText->SetDefaultStyle(originalStyle);
-	}
-	catch (sci::string errMessage)
-	{
-		wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-		m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-		std::ostream stream(m_logText);
-		stream << sU("Error: ") << sci::nativeUnicode(errMessage) << sU("\n");
-		m_logText->SetDefaultStyle(originalStyle);
-	}
-	catch (...)
-	{
-		wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-		m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-		std::ostream stream(m_logText);
-		stream << "Error: Unknown\n";
-		m_logText->SetDefaultStyle(originalStyle);
+		ErrorSetter setter(m_progressReporter.get());
+		(*m_progressReporter) << err.what() << "\n";
 	}
 }
 
@@ -370,7 +336,7 @@ void mainFrame::checkDirectoryStructue()
 	{
 		sci::ostringstream message;
 		message << sU("The output directory ") << m_processingOptions.outputDirectory << sU(" does not exist and could not be created.");
-		throw(message.str());
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 	}
 
 	//check the input directory exists
@@ -378,7 +344,7 @@ void mainFrame::checkDirectoryStructue()
 	{
 		sci::ostringstream message;
 		message << sU("The input directory ") << m_processingOptions.inputDirectory << sU(" does not exist.");
-		throw(message.str());
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, message.str()));
 	}
 }
 
@@ -438,51 +404,13 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 			}
 			catch (sci::err err)
 			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
+				ErrorSetter setter(m_progressReporter.get());
+				(*m_progressReporter) << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
 			}
-			catch (char *errMessage)
+			catch (std::exception err)
 			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (std::string errMessage)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (sci::string errMessage)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << sci::nativeUnicode(errMessage) << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (wxString errMessage)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (...)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: Unknown\n";
-				m_logText->SetDefaultStyle(originalStyle);
+				ErrorSetter setter(m_progressReporter.get());
+				(*m_progressReporter) << err.what() << "\n";
 			}
 
 			if (m_progressReporter->shouldStop())
@@ -497,15 +425,16 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 	if (processingOptions.generateNetCdf)
 	{
 		//check for new files
-		(*m_progressReporter) << sU("Looking for data files to process.\n");
+		(*m_progressReporter) << sU("Looking for data files to process into netcdf format.\n");
 		std::vector<sci::string> newNcFiles = ncChangesLister.getChanges(processor, m_processingOptions.startTime, m_processingOptions.endTime);
 		std::vector<sci::string> allFiles = ncChangesLister.listFolderContents(processor, m_processingOptions.startTime, m_processingOptions.endTime);
 		std::vector<std::vector<sci::string>> dayFileSets = processor.groupFilesPerDayForReprocessing(newNcFiles, allFiles);
 		for (size_t i = 0; i < dayFileSets.size(); ++i)
 		{
-			(*m_progressReporter) << sU("Processing\n");
+			(*m_progressReporter) << sU("Day ") << i+1 << sU(": Found the following files:\n");
 			for (size_t j = 0; j < dayFileSets[i].size(); ++j)
 				(*m_progressReporter) << dayFileSets[i][j] << sU("\n");
+			(*m_progressReporter) << sU("\nReading...\n\n");
 			try
 			{
 				processor.readData(dayFileSets[i], platform, *m_progressReporter, this);
@@ -518,6 +447,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 
 				if (processor.hasData())
 				{
+					(*m_progressReporter) << sU("read one day of data - writing to netcdf\n\n");
 					processor.writeToNc(m_processingOptions.outputDirectory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, *m_progressReporter);
 
 					if (m_progressReporter->shouldStop())
@@ -530,46 +460,21 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 					for (size_t j = 0; j < dayFileSets[i].size(); ++j)
 						ncChangesLister.updateSnapshotFile(dayFileSets[i][j]);
 				}
+				else
+				{
+					WarningSetter setter(m_progressReporter.get());
+					(*m_progressReporter) << sU("No valid data found for this day, not netcdf will be written\n\n");;
+				}
 			}
 			catch (sci::err err)
 			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
+				ErrorSetter setter(m_progressReporter.get());
+				(*m_progressReporter) << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
 			}
-			catch (char *errMessage)
+			catch (std::exception err)
 			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (std::string errMessage)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (wxString errMessage)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: " << errMessage << "\n";
-				m_logText->SetDefaultStyle(originalStyle);
-			}
-			catch (...)
-			{
-				wxTextAttr originalStyle = m_logText->GetDefaultStyle();
-				m_logText->SetDefaultStyle(wxTextAttr(*wxRED));
-				std::ostream stream(m_logText);
-				stream << "Error: Unknown\n";
-				m_logText->SetDefaultStyle(originalStyle);
+				ErrorSetter setter(m_progressReporter.get());
+				(*m_progressReporter) << err.what() << "\n";
 			}
 
 			if (m_progressReporter->shouldStop())

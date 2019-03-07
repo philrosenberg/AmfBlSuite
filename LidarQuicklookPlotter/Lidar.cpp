@@ -39,9 +39,9 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 	std::fstream fin;
 	fin.open(sci::nativeUnicode(inputFilename), std::ios::in);
 	if (!fin.is_open())
-		throw(sU("Could not open lidar file ") + inputFilename + sU("."));
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Could not open lidar file ") + inputFilename + sU(".")));
 
-	progressReporter << sU("Reading file.\n");
+	progressReporter << sU("Reading file ") << inputFilename << sU(".\n");
 
 	//Read the HPL header from the top of the file
 	m_hplHeaders.resize(m_hplHeaders.size() + 1);
@@ -93,7 +93,7 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 		return;
 
 	}
-	progressReporter << sU(", reading done.\n");
+	progressReporter << sU(", Reading done.\n");
 
 	bool gatesGood = true;
 	for (size_t i = m_profiles.size()-nRead; i < m_profiles.size(); ++i)
@@ -104,7 +104,7 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 			{
 				sci::ostringstream error;
 				error << sU("The plotting code currently assumes gates go 0, 1, 2, 3, ... but profile ") << i << sU(" (0 indexed) in file ") << inputFilename << sU(" did not have this layout.");
-				throw(error.str());
+				sci::assertThrow(false, sci::err(sci::SERR_USER, 0, error.str()));
 			}
 	}
 	m_hasData = true;

@@ -395,11 +395,11 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node)
 		if (deploymentMode == sU("land"))
 			return std::shared_ptr<Platform>(new StationaryPlatform(name, metre(altitude_m), degree(latitude_degree), degree(longitude_degree), locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree)));
 		else if( deploymentMode == sU("sea"))
-			throw("The software is not yet set up for stationary sea deployments");
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for stationary sea deployments"));
 		else if (deploymentMode == sU("air"))
-			throw("The software is not yet set up for stationary air deployments");
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for stationary air deployments"));
 		else
-			throw("Found an unrecognised deployment mode when parsing platform info. Valid values are land, sea, air");
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "Found an unrecognised deployment mode when parsing platform info. Valid values are land, sea, air"));
 	}
 	else if (platformType == sU("moving"))
 	{
@@ -433,14 +433,14 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node)
 		if (deploymentMode == sU("sea"))
 			return std::shared_ptr<Platform>(new ShipPlatform(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
 		else if (deploymentMode == sU("land"))
-			throw("The software is not yet set up for moving land deployments");
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for moving land deployments"));
 		else if (deploymentMode == sU("air"))
-			throw("The software is not yet set up for moving air deployments");
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for moving air deployments"));
 		else
-			throw("Found an unrecognised deployment mode when parsing platform info. Valid values are land, sea, air");
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "Found an unrecognised deployment mode when parsing platform info. Valid values are land, sea, air"));
 	}
 	else
-		throw(sci::string(sU("Found an unrecognised platform type. Accepted values are moving, stationary (case sensitive).")));
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Found an unrecognised platform type. Accepted values are moving, stationary (case sensitive).")));
 
 }
 
@@ -508,16 +508,10 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 		}
 		child = child->GetNext();
 	}
-	if (!gotAuthor)
-		throw"Did not find the author element in the settings xml file.";
-	if (!gotProjectInfo)
-		throw"Did not find the project element in the settings xml file.";
-	if (!gotPlatform)
-		throw"Did not find the platform element in the settings xml file.";
-	if (!gotAtLeastOneInstrument)
-		throw"Did not find any instrument elements in the settings xml file.";
-	if (gotLidarInfo && !gotLidarCalibrationInfo)
-		throw"Found a lidarInstrument element, but no lidarCalibration element in the settings xml file.";
-	if (!gotLidarInfo && gotLidarCalibrationInfo)
-		throw"Found a lidarCalibration element, but no lidarInstrument element in the settings xml file.";
+	sci::assertThrow(gotAuthor, sci::err(sci::SERR_USER, 0, "Did not find the author element in the settings xml file."));
+	sci::assertThrow(gotProjectInfo, sci::err(sci::SERR_USER, 0, "Did not find the project element in the settings xml file."));
+	sci::assertThrow(gotPlatform, sci::err(sci::SERR_USER, 0, "Did not find the platform element in the settings xml file."));
+	sci::assertThrow(gotAtLeastOneInstrument, sci::err(sci::SERR_USER, 0, "Did not find any instrument elements in the settings xml file."));
+	sci::assertThrow((!gotLidarInfo && !gotLidarCalibrationInfo) || (gotLidarInfo && gotLidarCalibrationInfo), sci::err(sci::SERR_USER, 0, sU("The setings file must either have both lidarInfo and lidarCalibrationInfo or neither of them. Found just one of these while parsing the settings xml.")));
+
 }
