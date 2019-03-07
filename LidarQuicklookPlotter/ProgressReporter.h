@@ -5,8 +5,49 @@
 class ProgressReporter
 {
 public:
+	ProgressReporter()
+	{
+		setNormalMode();
+	}
 	virtual void reportProgress(const sci::string &progress) = 0;
 	virtual bool shouldStop() = 0;
+	void setNormalMode()
+	{
+		m_normalMode = true;
+		m_warningMode = false;
+		m_errorMode = false;
+	}
+	void setWarningMode()
+	{
+		m_normalMode = false;
+		m_warningMode = true;
+		m_errorMode = false;
+	}
+	void setErrorMode()
+	{
+		m_normalMode = false;
+		m_warningMode = false;
+		m_errorMode = true;
+	}
+	bool isNormalMode()
+	{
+		return m_normalMode;
+	}
+	bool isWarningMode()
+	{
+		return m_warningMode;
+	}
+	bool isErrorMode()
+	{
+		return m_errorMode;
+	}
+private:
+	virtual void setNormalModeFormat() = 0;
+	virtual void setWarningModeFormat() = 0;
+	virtual void setErrorModeFormat() = 0;
+	bool m_normalMode;
+	bool m_warningMode;
+	bool m_errorMode;
 };
 
 template <class T>
@@ -23,4 +64,41 @@ class NullProgressReporter : public ProgressReporter
 public:
 	void reportProgress(const sci::string &progress) override {}
 	bool shouldStop() override { return false; }
+	void setNormalModeFormat() override{}
+	void setWarningModeFormat() override{}
+	void setErrorModeFormat() override{}
+};
+
+class WarningSetter
+{
+public:
+	WarningSetter(ProgressReporter* progressReporter)
+	{
+		m_progressReporter = progressReporter;
+		progressReporter->setWarningMode();
+	}
+	~WarningSetter()
+	{
+		m_progressReporter->setNormalMode();
+		
+	}
+private:
+	ProgressReporter* m_progressReporter;
+};
+
+class ErrorSetter
+{
+public:
+	ErrorSetter(ProgressReporter* progressReporter)
+	{
+		m_progressReporter = progressReporter;
+		progressReporter->setErrorMode();
+	}
+	~ErrorSetter()
+	{
+		m_progressReporter->setNormalMode();
+
+	}
+private:
+	ProgressReporter* m_progressReporter;
 };
