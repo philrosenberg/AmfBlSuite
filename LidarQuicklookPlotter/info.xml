@@ -39,11 +39,27 @@
     <rollDegree> 0</rollDegree>
     <locationKeywords>Arctic;Sweden;Norway</locationKeywords>
     <locationFile>OdenLocationData.csv</locationFile>
+    <platformRelative>false</platformRelative>
+  </platform>
+  
+  <platform id="2">
+    <name>OdenPlatformRelative</name>
+    <type>moving</type>
+    <deploymentMode>sea</deploymentMode>
+    <!--AltitudeMetres is the altitude relative to the sea line of the ship-->
+    <altitudeMetres>0</altitudeMetres>
+    <!--The attitude variables are of the instrument relative to the ship-->
+    <elevationDegree>0</elevationDegree>
+    <azimuthDegree>180</azimuthDegree>
+    <rollDegree> 0</rollDegree>
+    <locationKeywords>Arctic;Sweden;Norway</locationKeywords>
+    <locationFile>OdenLocationData.csv</locationFile>
+    <platformRelative>true</platformRelative>
   </platform>
 
   <!--This is an example of a stationary platform-->
-  <platform id="2">
-    <name>Oden_Ship_Relative</name>
+  <platform id="3">
+    <name>OdenFakeStationary</name>
     <type>stationary</type>
     <deploymentMode>sea</deploymentMode>
     <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->

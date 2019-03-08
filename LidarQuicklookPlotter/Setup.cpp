@@ -420,6 +420,15 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node)
 			allRead &= iter->m_read;
 		sci::assertThrow(allRead, sci::err(sci::SERR_USER, 0, "Could not find the fixed altitude (altitude_m) or ship relative elevation, azimuth and roll (elevation_degree, azimuth_degree, elevation_degree) when parsing a ship (moving/sea) platform information."));
 		sci::assertThrow(locationFile.length() > 0, sci::err(sci::SERR_USER, 0, "Could not find the name of the location file when parsing a moving platform information"));
+		
+		bool platformRelative;
+		std::vector<nameVarPair<bool>> boolLinks
+		{
+			nameVarPair<bool>(sU("platformRelative"), &platformRelative)
+		};
+		parseXmlNode(node, boolLinks.begin(), boolLinks.end());
+		sci::assertThrow(boolLinks.begin()->m_read, sci::err(sci::SERR_USER, 0, "Could not find the platformRelative parameter when parsing a moving platform."));
+		
 		std::vector<sci::UtcTime> times;
 		std::vector<degree> latitudes;
 		std::vector<degree> longitudes;
@@ -431,7 +440,12 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node)
 		std::vector<metrePerSecond> speeds;
 		readLocationData(locationFile, times, latitudes, longitudes, altitudes, elevations, azimuths, rolls, courses, speeds);
 		if (deploymentMode == sU("sea"))
+		{
+			if(platformRelative)
+				return std::shared_ptr<Platform>(new ShipPlatformShipRelativeCorrected(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
+			else
 			return std::shared_ptr<Platform>(new ShipPlatform(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
+		}
 		else if (deploymentMode == sU("land"))
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for moving land deployments"));
 		else if (deploymentMode == sU("air"))

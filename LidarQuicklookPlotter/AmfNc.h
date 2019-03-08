@@ -178,7 +178,7 @@ public:
 		unitless cosInstrumentElevation;
 		unitless cosInstrumentAzimuth;
 		unitless cosInstrumentRoll;
-		getInstrumentTrigAttitudes(time, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
+		getInstrumentTrigAttitudesForDirectionCorrection(time, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
 		
 		::correctDirection(instrumentRelativeElevation, instrumentRelativeAzimuth, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedElevation, correctedAzimuth);
 	}
@@ -191,12 +191,12 @@ public:
 		unitless cosInstrumentElevation;
 		unitless cosInstrumentAzimuth;
 		unitless cosInstrumentRoll;
-		getInstrumentTrigAttitudes(time, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
+		getInstrumentTrigAttitudesForDirectionCorrection(time, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
 
 		::correctDirection(measuredX, measuredY, measuredZ, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedX, correctedY, correctedZ);
 	}
 	virtual void getInstrumentVelocity(sci::UtcTime time, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const = 0;
-	virtual void getInstrumentTrigAttitudes(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const = 0;
+	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const = 0;
 	virtual void getLocation(sci::UtcTime time, degree &latitude, degree &longitude, metre &altitude) const
 	{
 		size_t lowerIndex = findLowerIndex(time);
@@ -259,7 +259,7 @@ public:
 		northwardVelocity = metrePerSecond(0.0);
 		upwardVelocity = metrePerSecond(0.0);
 	}
-	virtual void getInstrumentTrigAttitudes(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
+	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
 	{
 		sinInstrumentElevation = m_sinInstrumentElevation;
 		sinInstrumentAzimuth = m_sinInstrumentAzimuth;
@@ -568,7 +568,7 @@ public:
 		azimuth = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_instrumentAzimuthsAbsolute[lowerIndex], m_instrumentAzimuthsAbsolute[lowerIndex + 1]);
 		roll = interpolate(time, getPlatformInfo().times[lowerIndex], getPlatformInfo().times[lowerIndex + 1], m_instrumentRollsAbsolute[lowerIndex], m_instrumentRollsAbsolute[lowerIndex + 1]);
 	}
-	virtual void getInstrumentTrigAttitudes(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
+	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
 	{
 		size_t lowerIndex = findLowerIndex(time);
 		if (lowerIndex > getPlatformInfo().times.size() - 2)
@@ -606,24 +606,56 @@ private:
 	std::vector<unitless> m_cosInstrumentRollsAbsolute;
 };
 
+class ShipPlatformShipRelativeCorrected : public ShipPlatform
+{
+public:
+	ShipPlatformShipRelativeCorrected(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationShipRelative, degree instrumentAzimuthShipRelative, degree instrumentRollShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
+		: ShipPlatform(name, altitude, times, latitudes, longitudes, locationKeywords, instrumentElevationShipRelative, instrumentAzimuthShipRelative, instrumentRollShipRelative, shipCourses, shipSpeeds, shipElevations, shipAzimuths, shipRolls)
+	{
+		m_sinInstrumentElevation = sci::sin(instrumentElevationShipRelative);
+		m_sinInstrumentAzimuth = sci::sin(instrumentAzimuthShipRelative);
+		m_sinInstrumentRoll = sci::sin(instrumentRollShipRelative);
+		m_cosInstrumentElevation = sci::cos(instrumentElevationShipRelative);
+		m_cosInstrumentAzimuth = sci::cos(instrumentAzimuthShipRelative);
+		m_cosInstrumentRoll = sci::cos(instrumentRollShipRelative);
+	}
+	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime time, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
+	{
+		sinInstrumentElevation = m_sinInstrumentElevation;
+		sinInstrumentAzimuth = m_sinInstrumentAzimuth;
+		sinInstrumentRoll = m_sinInstrumentRoll;
+		cosInstrumentElevation = m_cosInstrumentElevation;
+		cosInstrumentAzimuth = m_cosInstrumentAzimuth;
+		cosInstrumentRoll = m_cosInstrumentRoll;
+	}
+private:
+	unitless m_sinInstrumentElevation;
+	unitless m_sinInstrumentAzimuth;
+	unitless m_sinInstrumentRoll;
+	unitless m_cosInstrumentElevation;
+	unitless m_cosInstrumentAzimuth;
+	unitless m_cosInstrumentRoll;
+};
+
 template <class T>
 class AmfNcVariable : public sci::NcVariable<T>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &units, T validMin, T validMax, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimension)
 	{
-		setAttributes(ncFile, longName, units, validMin, validMax, comment);
+		setAttributes(ncFile, longName, standardName, units, validMin, validMax, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &units, T validMin, T validMax, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimensions)
 	{
-		setAttributes(ncFile, longName, units, validMin, validMax, comment);
+		setAttributes(ncFile, longName, standardName, units, validMin, validMax, comment);
 	}
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &units, T validMin, T validMax, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
+		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), units);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax);
@@ -634,6 +666,8 @@ private:
 		addAttribute(validMaxAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
+		if (standardName.length() > 0)
+			addAttribute(standardNameAttribute, ncFile);
 	}
 };
 
@@ -661,15 +695,15 @@ template <class T>
 class AmfNcVariable<sci::Physical<T>> : public sci::NcVariable<sci::Physical<T>>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::Physical<T> validMin, sci::Physical<T> validMax, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T>>(name, ncFile, dimension)
 	{
-		setAttributes(ncFile, longName, validMin, validMax);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, sci::Physical<T> validMin, sci::Physical<T> validMax, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T>>(name, ncFile, dimensions)
 	{
-		setAttributes(ncFile, longName, validMin, validMax);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
 	}
 	template <class U>
 	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<T>(physicals))
@@ -678,16 +712,20 @@ public:
 	}
 
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, sci::Physical<T> validMin, sci::Physical<T> validMax)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<T> validMin, sci::Physical<T> validMax, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
-		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getShortUnitString());
-		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>() );
-		sci::NcAttribute validMaxAttribute(sU("valid_min"), validMax.value<T>() );
+		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
+		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>());
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<T>());
+		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
-		addAttribute(unitsAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
+		if (comment.length() > 0)
+			addAttribute(commentAttribute, ncFile);
+		if (standardName.length() > 0)
+			addAttribute(standardNameAttribute, ncFile);
 	}
 };
 
@@ -695,9 +733,10 @@ class AmfNcTimeVariable : public AmfNcVariable<double>
 {
 public:
 	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("seconds since 1970-01-01 00:00:00"), 0, std::numeric_limits<double>::max())
+		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), 0, std::numeric_limits<double>::max())
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
+		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);
 	}
 	static std::vector<double> convertToSeconds(const std::vector<sci::UtcTime> &times)
 	{
@@ -712,7 +751,7 @@ class AmfNcLongitudeVariable : public AmfNcVariable<double>
 {
 public:
 	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("degrees_north"), -360.0, 360.0)
+		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_north"), -360.0, 360.0)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
@@ -721,7 +760,7 @@ class AmfNcLatitudeVariable : public AmfNcVariable<double>
 {
 public:
 	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("degrees_east"), -90.0, 90.0)
+		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_east"), -90.0, 90.0)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}

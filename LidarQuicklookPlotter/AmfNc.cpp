@@ -309,20 +309,20 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension()));
 	m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension));
 	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension));
-	m_dayOfYearVariable.reset(new AmfNcVariable<double>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU("1"), 0.0, 366.0));
-	m_yearVariable.reset(new AmfNcVariable<int>(sU("year"), *this, getTimeDimension(), sU("Year"), sU("1"), std::numeric_limits<int>::min(), std::numeric_limits<int>::max()));
-	m_monthVariable.reset(new AmfNcVariable<int>(sU("month"), *this, getTimeDimension(), sU("Month"), sU("1"), 1, 12));
-	m_dayVariable.reset(new AmfNcVariable<int>(sU("day"), *this, getTimeDimension(), sU("Day"), sU("1"), 1, 31));
-	m_hourVariable.reset(new AmfNcVariable<int>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU("1"), 0, 23));
-	m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU("1"), 0, 59));
-	m_secondVariable.reset(new AmfNcVariable<double>(sU("second"), *this, getTimeDimension(), sU("Second"), sU("1"), 0.0, 60*(1.0-std::numeric_limits<double>::epsilon())));
+	m_dayOfYearVariable.reset(new AmfNcVariable<double>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU(""), sU("1"), 0.0, 366.0));
+	m_yearVariable.reset(new AmfNcVariable<int>(sU("year"), *this, getTimeDimension(), sU("Year"), sU(""), sU("1"), std::numeric_limits<int>::min(), std::numeric_limits<int>::max()));
+	m_monthVariable.reset(new AmfNcVariable<int>(sU("month"), *this, getTimeDimension(), sU("Month"), sU(""), sU("1"), 1, 12));
+	m_dayVariable.reset(new AmfNcVariable<int>(sU("day"), *this, getTimeDimension(), sU("Day"), sU(""), sU("1"), 1, 31));
+	m_hourVariable.reset(new AmfNcVariable<int>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU(""), sU("1"), 0, 23));
+	m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU(""), sU("1"), 0, 59));
+	m_secondVariable.reset(new AmfNcVariable<double>(sU("second"), *this, getTimeDimension(), sU("Second"), sU(""), sU("1"), 0.0, 60*(1.0-std::numeric_limits<double>::epsilon())));
 
-	m_courseVariable.reset(new AmfNcVariable<degree>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), degree(-180), degree(180)));
-	m_speedVariable.reset(new AmfNcVariable<metrePerSecond>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), std::numeric_limits<metrePerSecond>::min(), std::numeric_limits<metrePerSecond>::max()));
-	m_orientationVariable.reset(new AmfNcVariable<degree>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), degree(-180), degree(180)));
-	m_instrumentPitchVariable.reset(new AmfNcVariable<degree>(sU("instrument_pitch_angle"), *this, getTimeDimension(), sU("Instrument Pitch Angle"), degree(-90), degree(90)));
-	m_instrumentYawVariable.reset(new AmfNcVariable<degree>(sU("instrument_yaw_angle"), *this, getTimeDimension(), sU("Instrument Yaw Angle"), degree(-180), degree(180)));
-	m_instrumentRollVariable.reset(new AmfNcVariable<degree>(sU("instrument_roll_angle"), *this, getTimeDimension(), sU("Instrument Roll Angle"), degree(-180), degree(180)));
+	m_courseVariable.reset(new AmfNcVariable<degree>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), degree(-180), degree(180)));
+	m_speedVariable.reset(new AmfNcVariable<metrePerSecond>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), std::numeric_limits<metrePerSecond>::min(), std::numeric_limits<metrePerSecond>::max()));
+	m_orientationVariable.reset(new AmfNcVariable<degree>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), sU("platform_orientation"), degree(-180), degree(180)));
+	m_instrumentPitchVariable.reset(new AmfNcVariable<degree>(sU("instrument_pitch_angle"), *this, getTimeDimension(), sU("Instrument Pitch Angle"), sU(""), degree(-90), degree(90)));
+	m_instrumentYawVariable.reset(new AmfNcVariable<degree>(sU("instrument_yaw_angle"), *this, getTimeDimension(), sU("Instrument Yaw Angle"), sU(""), degree(-180), degree(180)));
+	m_instrumentRollVariable.reset(new AmfNcVariable<degree>(sU("instrument_roll_angle"), *this, getTimeDimension(), sU("Instrument Roll Angle"), sU(""), degree(-180), degree(180)));
 
 	//and the time variable
 	/*std::vector<double> secondsAfterEpoch(times.size());
