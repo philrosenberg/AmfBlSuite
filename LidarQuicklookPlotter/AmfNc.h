@@ -732,8 +732,8 @@ private:
 class AmfNcTimeVariable : public AmfNcVariable<double>
 {
 public:
-	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), 0, std::numeric_limits<double>::max())
+	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, sci::UtcTime minTime, sci::UtcTime maxTime)
+		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), minTime-sci::UtcTime(1970, 1, 1, 0, 0, 0), maxTime - sci::UtcTime(1970, 1, 1, 0, 0, 0))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
 		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);
@@ -750,8 +750,8 @@ public:
 class AmfNcLongitudeVariable : public AmfNcVariable<double>
 {
 public:
-	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_north"), -360.0, 360.0)
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, degree min, degree max)
+		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_north"), min.value<degree>(), max.value<degree>())
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
@@ -759,8 +759,8 @@ public:
 class AmfNcLatitudeVariable : public AmfNcVariable<double>
 {
 public:
-	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension)
-		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_east"), -90.0, 90.0)
+	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, degree min, degree max)
+		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_east"), min.value<degree>(), max.value<degree>())
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
@@ -805,6 +805,15 @@ private:
 	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawVariable;
 
 	std::vector<sci::UtcTime> m_times;
+	std::vector<int> m_years;
+	std::vector<int> m_months;
+	std::vector<int> m_dayOfMonths;
+	std::vector<double> m_dayOfYears;
+	std::vector<int> m_hours;
+	std::vector<int> m_minutes;
+	std::vector<double> m_seconds;
+	std::vector<degree> m_latitudes;
+	std::vector<degree> m_longitudes;
 };
 
 

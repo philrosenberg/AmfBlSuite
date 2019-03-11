@@ -75,36 +75,17 @@ sci::string getFormattedTimeOnly(const sci::UtcTime &time, sci::string separator
 //	result << 
 //}
 
-sci::string getBoundsString(const std::vector<sci::UtcTime> & times, const Platform &platform)
+sci::string getBoundsString(const std::vector<degree> & latitudes, const std::vector<degree> &longitudes)
 {
 	sci::stringstream result;
-	if (platform.getPlatformInfo().platformType == pt_stationary)
+	if (latitudes.size()==1)
 	{
-		degree longitude;
-		degree latitude;
-		metre altitude;
-		platform.getLocation(times[times.size() / 2], latitude, longitude, altitude);
-		result << latitude.value<degree>() << sU(" N ") << longitude.value<degree>() << sU(" E");
+		result << latitudes[0].value<degree>() << sU(" N ") << longitudes[0].value<degree>() << sU(" E");
 	}
 	else
 	{
-		degree minLatitude(std::numeric_limits<degree>::infinity());
-		degree maxLatitude(-std::numeric_limits<degree>::infinity());
-		degree minLongitude(std::numeric_limits<degree>::infinity());
-		degree maxLongitude(-std::numeric_limits<degree>::infinity());
-		degree longitude;
-		degree latitude;
-		metre altitude;
-		for (auto time = times.begin(); time != times.end(); ++time)
-		{
-			platform.getLocation(*time, latitude, longitude, altitude);
-			maxLatitude = std::max(latitude, maxLatitude);
-			minLatitude = std::min(latitude, minLatitude);
-			maxLongitude = std::max(longitude, maxLongitude);
-			minLongitude = std::min(longitude, minLongitude);
-		}
-		result << minLatitude.value<degree>() << " N " << minLongitude.value<degree>() << " E, "
-			<< maxLatitude.value<degree>() << " N " << maxLongitude.value<degree>() << " E";
+		result << sci::min<degree>(latitudes).value<degree>() << " N " << sci::min<degree>(longitudes).value<degree>() << " E, "
+			<< sci::max<degree>(latitudes).value<degree>() << " N " << sci::min<degree>(longitudes).value<degree>() << " E";
 	}
 
 	return result.str();
@@ -122,6 +103,45 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const std::vector<sci::NcDimension *> &nonTimeDimensions)
 	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 {
+	//construct the position and time variables;
+	m_years.resize(m_times.size());
+	m_months.resize(m_times.size());
+	m_dayOfMonths.resize(m_times.size());
+	m_dayOfYears.resize(m_times.size());
+	m_hours.resize(m_times.size());
+	m_minutes.resize(m_times.size());
+	m_seconds.resize(m_times.size());
+	for (size_t i=0; i<times.size(); ++i)
+	{
+		m_years[i] = times[i].getYear();
+		m_months[i] = times[i].getMonth();
+		m_dayOfMonths[i] = times[i].getDayOfMonth();
+		m_dayOfYears[i] = std::floor((sci::UtcTime((int)m_years[i], (unsigned int)m_months[i], (unsigned int)m_dayOfMonths[i], 0, 0, 0) - sci::UtcTime((int)m_years[i], 1, 1, 0, 0, 0)) / 60.0 / 60.0 / 24.0);
+		m_hours[i] = times[i].getHour();
+		m_minutes[i] = times[i].getMinute();
+		m_seconds[i] = times[i].getSecond();
+	}
+	//sort out the longitude data
+	if (platform.getPlatformInfo().platformType == pt_stationary)
+	{
+		degree longitude;
+		degree latitude;
+		metre altitude;
+		platform.getLocation(times[times.size() / 2], latitude, longitude, altitude);
+		m_longitudes = { longitude };
+		m_latitudes = { latitude };
+	}
+	else
+	{
+		m_longitudes.resize(m_times.size(), degree(0));
+		m_latitudes.resize(m_times.size(), degree(0));
+		metre altitude;
+		for (size_t i = 0; i < m_times.size(); ++i)
+		{
+			platform.getLocation(m_times[i], m_latitudes[i], m_longitudes[i], altitude);
+		}
+	}
+
 	//construct the title for the dataset
 	//add the instument name
 	sci::string title = instrumentInfo.name;
@@ -249,7 +269,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings[ dataInfo.featureType ] ));
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
-	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(times, platform)));
+	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(m_latitudes, m_longitudes)));
 	sci::assertThrow(platform.getPlatformInfo().altitudes.size() > 0, sci::err(sci::SERR_USER, 0, "Attempting to output platform info for a platform with no altitude information."));
 	if (platform.getPlatformInfo().altitudes.size()>1)
 	{
@@ -304,17 +324,17 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 
 	//create the time variables, but do not write the data as we need to stay in define mode
 	//so the user can add other variables
+	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension(), m_times.front(), m_times.back()));
+	m_dayOfYearVariable.reset(new AmfNcVariable<double>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU(""), sU("1"), sci::min<double>(m_dayOfYears), sci::max<double>(m_dayOfYears)));
+	m_yearVariable.reset(new AmfNcVariable<int>(sU("year"), *this, getTimeDimension(), sU("Year"), sU(""), sU("1"), sci::min<int>(m_years), sci::max<int>(m_years)));
+	m_monthVariable.reset(new AmfNcVariable<int>(sU("month"), *this, getTimeDimension(), sU("Month"), sU(""), sU("1"), sci::min<int>(m_months), sci::max<int>(m_months)));
+	m_dayVariable.reset(new AmfNcVariable<int>(sU("day"), *this, getTimeDimension(), sU("Day"), sU(""), sU("1"), sci::min<int>(m_dayOfMonths), sci::max<int>(m_dayOfMonths)));
+	m_hourVariable.reset(new AmfNcVariable<int>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU(""), sU("1"), sci::min<int>(m_hours), sci::max<int>(m_hours)));
+	m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU(""), sU("1"), sci::min<int>(m_minutes), sci::max<int>(m_minutes)));
+	m_secondVariable.reset(new AmfNcVariable<double>(sU("second"), *this, getTimeDimension(), sU("Second"), sU(""), sU("1"), sci::min<double>(m_seconds), sci::max<double>(m_seconds)));
 
-	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension()));
-	m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension));
-	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension));
-	m_dayOfYearVariable.reset(new AmfNcVariable<double>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU(""), sU("1"), 0.0, 366.0));
-	m_yearVariable.reset(new AmfNcVariable<int>(sU("year"), *this, getTimeDimension(), sU("Year"), sU(""), sU("1"), std::numeric_limits<int>::min(), std::numeric_limits<int>::max()));
-	m_monthVariable.reset(new AmfNcVariable<int>(sU("month"), *this, getTimeDimension(), sU("Month"), sU(""), sU("1"), 1, 12));
-	m_dayVariable.reset(new AmfNcVariable<int>(sU("day"), *this, getTimeDimension(), sU("Day"), sU(""), sU("1"), 1, 31));
-	m_hourVariable.reset(new AmfNcVariable<int>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU(""), sU("1"), 0, 23));
-	m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU(""), sU("1"), 0, 59));
-	m_secondVariable.reset(new AmfNcVariable<double>(sU("second"), *this, getTimeDimension(), sU("Second"), sU(""), sU("1"), 0.0, 60*(1.0-std::numeric_limits<double>::epsilon())));
+	m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, sci::min<degree>(m_longitudes), sci::max<degree>(m_longitudes)));
+	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, sci::min<degree>(m_latitudes), sci::max<degree>(m_latitudes)));
 
 	m_courseVariable.reset(new AmfNcVariable<degree>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), degree(-180), degree(180)));
 	m_speedVariable.reset(new AmfNcVariable<metrePerSecond>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), std::numeric_limits<metrePerSecond>::min(), std::numeric_limits<metrePerSecond>::max()));
@@ -336,75 +356,24 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 {
 	std::vector<double> secondsAfterEpoch(m_times.size());
-	std::vector<double> dayOfYear(m_times.size());
-	std::vector<int> year(m_times.size());
-	std::vector<int> month(m_times.size());
-	std::vector<int> day(m_times.size());
-	std::vector<int> hour(m_times.size());
-	std::vector<int> minute(m_times.size());
-	std::vector<double> second(m_times.size());
 
 	sci::UtcTime epoch(1970, 1, 1, 0, 0, 0.0);
 	for (size_t i = 0; i < m_times.size(); ++i)
 	{
 		secondsAfterEpoch[i] = m_times[i] - epoch;
-		year[i] = m_times[i].getYear();
-		month[i] = m_times[i].getMonth();
-		day[i] = m_times[i].getDayOfMonth();
-		hour[i] = m_times[i].getHour();
-		minute[i] = m_times[i].getMinute();
-		second[i] = m_times[i].getSecond();
-		sci::UtcTime startOfYear(year[i], 1, 1, 0, 0, 0);
-		dayOfYear[i] = (m_times[i] - startOfYear) / 60.0 / 60.0 / 24.0;
 	}
 
 	write(*m_timeVariable, secondsAfterEpoch);
-	write(*m_dayOfYearVariable, dayOfYear);
-	write(*m_yearVariable, year);
-	write(*m_monthVariable, month);
-	write(*m_dayVariable, day);
-	write(*m_hourVariable, hour);
-	write(*m_minuteVariable, minute);
-	write(*m_secondVariable, second);
+	write(*m_dayOfYearVariable, m_dayOfYears);
+	write(*m_yearVariable, m_years);
+	write(*m_monthVariable, m_months);
+	write(*m_dayVariable, m_dayOfMonths);
+	write(*m_hourVariable, m_hours);
+	write(*m_minuteVariable, m_minutes);
+	write(*m_secondVariable, m_seconds);
 
-	if (platform.getPlatformInfo().platformType == pt_stationary)
-	{
-		std::vector<degree> latitudes(1, degree(0.0));
-		std::vector<degree> longitudes(1, degree(0.0));
-		metre altitude;
-		//get the location for the middle time - it should be irrelevant anyway as it is stationary
-		platform.getLocation(m_times[m_times.size() / 2], latitudes[0], longitudes[0], altitude);
-		write(*m_latitudeVariable, sci::physicalsToValues<degree>(latitudes));
-		write(*m_longitudeVariable, sci::physicalsToValues<degree>(longitudes));
-	}
-	else
-	{
-		//get the lat and lon and all the other movement variables at the appropriate time
-		std::vector<degree> latitudes(m_times.size(), degree(0.0));
-		std::vector<degree> longitudes(m_times.size(), degree(0.0));
-		std::vector<degree> courses(m_times.size(), degree(0.0));
-		std::vector<degree> orientations(m_times.size(), degree(0.0));
-		std::vector<metrePerSecond> speeds(m_times.size(), metrePerSecond(0.0));
-		std::vector<degree> pitches(m_times.size(), degree(0.0));
-		std::vector<degree> rolls(m_times.size(), degree(0.0));
-		std::vector<degree> yaws(m_times.size(), degree(0.0));
-
-		for (size_t i = 0; i < m_times.size(); ++i)
-		{
-			metre altitude;
-			platform.getLocation(m_times[i], latitudes[i], longitudes[i], altitude);
-			platform.getMotion(m_times[i], speeds[i], courses[i], orientations[i]);
-			platform.getInstrumentAttitudes(m_times[i], pitches[i], yaws[i], rolls[i]);
-		}
-		write(*m_latitudeVariable, sci::physicalsToValues<degree>(latitudes));
-		write(*m_longitudeVariable, sci::physicalsToValues<degree>(longitudes));
-		write(*m_courseVariable, courses);
-		write(*m_speedVariable, speeds);
-		write(*m_orientationVariable, orientations);
-		write(*m_instrumentPitchVariable, pitches);
-		write(*m_instrumentYawVariable, yaws);
-		write(*m_instrumentRollVariable, rolls);
-	}
+	write(*m_latitudeVariable, sci::physicalsToValues<degree>(m_latitudes));
+	write(*m_longitudeVariable, sci::physicalsToValues<degree>(m_longitudes));
 }
 
 /*OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,
