@@ -254,10 +254,6 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		dataInfo.endTime = m_profiles.back().m_VadProcessor.getTimesUtcTime()[0];
 	}
 	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.maxLat = platform.getPlatformInfo().latitudes[0];
-	dataInfo.minLat = platform.getPlatformInfo().latitudes[0];
-	dataInfo.maxLon = platform.getPlatformInfo().longitudes[0];
-	dataInfo.minLon = platform.getPlatformInfo().longitudes[0];
 	dataInfo.options = std::vector<sci::string>(0);
 	dataInfo.processingLevel = 2;
 	dataInfo.productName = sU("mean winds profile");

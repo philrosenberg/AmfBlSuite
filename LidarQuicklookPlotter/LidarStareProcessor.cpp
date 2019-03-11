@@ -66,10 +66,6 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
 	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.maxLat = sci::max<degree>(platform.getPlatformInfo().latitudes);
-	dataInfo.minLat = sci::min<degree>(platform.getPlatformInfo().latitudes);
-	dataInfo.maxLon = sci::max<degree>(platform.getPlatformInfo().longitudes);
-	dataInfo.minLon = sci::min<degree>(platform.getPlatformInfo().longitudes);
 	dataInfo.processingLevel = 1;
 	dataInfo.options = getProcessingOptions();
 	dataInfo.productName = sU("backscatter radial winds");

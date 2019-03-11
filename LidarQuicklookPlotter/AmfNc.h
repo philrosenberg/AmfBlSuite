@@ -74,10 +74,10 @@ struct DataInfo
 	second averagingPeriod;
 	int processingLevel;
 	FeatureType featureType;
-	degree minLat;//for point measurements set min and max the same or set one to nan
+	/*degree minLat;//for point measurements set min or max to nan
 	degree maxLat;
 	degree minLon;
-	degree maxLon;
+	degree maxLon;*/
 	sci::UtcTime startTime;
 	sci::UtcTime endTime;
 	sci::string reasonForProcessing; // This string is put in the history. Add any special reason for processing if there is any e.g. Reprocessing due to x error or initial processing to be updated later for y reason

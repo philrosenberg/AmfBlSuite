@@ -75,34 +75,36 @@ sci::string getFormattedTimeOnly(const sci::UtcTime &time, sci::string separator
 //	result << 
 //}
 
-sci::string getBoundsString(const DataInfo &dataInfo)
+sci::string getBoundsString(const std::vector<sci::UtcTime> & times, const Platform &platform)
 {
-	bool hasLatNan = std::isnan(dataInfo.minLat) || std::isnan(dataInfo.maxLat);
-	bool hasLonNan = std::isnan(dataInfo.minLon) || std::isnan(dataInfo.maxLon);
-	bool hasLatValue = !std::isnan(dataInfo.minLat) || !std::isnan(dataInfo.maxLat);
-	bool hasLonValue = !std::isnan(dataInfo.minLon) || !std::isnan(dataInfo.maxLon);
-	bool valid = hasLatValue && hasLonValue //must have at least one value for lat/lon
-		&& (hasLatNan == hasLonNan); //either both are flagged as points or neither are
-
-	bool isPoint = hasLatNan || (dataInfo.minLat == dataInfo.maxLat && dataInfo.minLon == dataInfo.maxLon);
-
 	sci::stringstream result;
-	if (isPoint)
+	if (platform.getPlatformInfo().platformType == pt_stationary)
 	{
-		if (!std::isnan(dataInfo.minLat))
-			result << dataInfo.minLat << " N ";
-		else
-			result << dataInfo.maxLat << " N ";
-
-		if (!std::isnan(dataInfo.minLon))
-			result << dataInfo.minLon << " E";
-		else
-			result << dataInfo.maxLon << " E";
+		degree longitude;
+		degree latitude;
+		metre altitude;
+		platform.getLocation(times[times.size() / 2], latitude, longitude, altitude);
+		result << latitude.value<degree>() << sU(" N ") << longitude.value<degree>() << sU(" E");
 	}
 	else
 	{
-		result << dataInfo.minLat << " N " << dataInfo.minLon << " E, "
-			<< dataInfo.maxLat << " N " << dataInfo.maxLon << " E";
+		degree minLatitude(std::numeric_limits<degree>::infinity());
+		degree maxLatitude(-std::numeric_limits<degree>::infinity());
+		degree minLongitude(std::numeric_limits<degree>::infinity());
+		degree maxLongitude(-std::numeric_limits<degree>::infinity());
+		degree longitude;
+		degree latitude;
+		metre altitude;
+		for (auto time = times.begin(); time != times.end(); ++time)
+		{
+			platform.getLocation(*time, latitude, longitude, altitude);
+			maxLatitude = std::max(latitude, maxLatitude);
+			minLatitude = std::min(latitude, minLatitude);
+			maxLongitude = std::max(longitude, maxLongitude);
+			minLongitude = std::min(longitude, minLongitude);
+		}
+		result << minLatitude.value<degree>() << " N " << minLongitude.value<degree>() << " E, "
+			<< maxLatitude.value<degree>() << " N " << maxLongitude.value<degree>() << " E";
 	}
 
 	return result.str();
@@ -247,7 +249,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings[ dataInfo.featureType ] ));
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
-	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(dataInfo)));
+	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(times, platform)));
 	sci::assertThrow(platform.getPlatformInfo().altitudes.size() > 0, sci::err(sci::SERR_USER, 0, "Attempting to output platform info for a platform with no altitude information."));
 	if (platform.getPlatformInfo().altitudes.size()>1)
 	{
@@ -267,7 +269,6 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("location_keywords"), locationKeywords.str()));
 	write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/tree/v0.2.3"))));
 	write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science."): sU(""))));
-
 	
 
 	sci::string processingReason = dataInfo.reasonForProcessing;
