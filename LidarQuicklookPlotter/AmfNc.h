@@ -684,7 +684,7 @@ public:
 			flagValues[i] = flagDefinitions[i].first;
 			flagDescriptions[i] = flagDefinitions[i].second;
 		}
-		addAttribute(sci::NcAttribute(sU("long name"), sU("Data Quality Flag")), ncFile);
+		addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag")), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptions), ncFile);
 	}
