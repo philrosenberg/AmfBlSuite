@@ -296,12 +296,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
 		projectInfo, platform, scanStartTimes, nonTimeDimensions);
 
-	AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), metre(0), metre(20000.0));
-	AmfNcVariable<metrePerSecond> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), metrePerSecond(0), metrePerSecond(20.0));
-	AmfNcVariable<degree> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), degree(0), degree(360.0));
-	AmfNcFlagVariable windFlagVariable(sU("wind_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
-	file.writeTimeAndLocationData(platform);
 
 	if (m_profiles.size() > 0 && m_profiles[0].m_heights.size() > 0)
 	{
@@ -333,6 +328,13 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 			windDirections[i].resize(maxLevels, degree(OutputAmfNcFile::getFillValue()));
 			windFlags[i].resize(maxLevels, lidarNoDataFlag);
 		}
+
+		AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), sci::min<metre>(altitudes), sci::max<metre>(altitudes));
+		AmfNcVariable<metrePerSecond> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), sci::min<metrePerSecond>(windSpeeds), sci::max<metrePerSecond>(windSpeeds));
+		AmfNcVariable<degree> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), sci::min<degree>(windDirections), sci::max<degree>(windDirections));
+		AmfNcFlagVariable windFlagVariable(sU("wind_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
+
+		file.writeTimeAndLocationData(platform);
 
 		file.write(altitudeVariable, altitudes);
 		file.write(windSpeedVariable, windSpeeds);
