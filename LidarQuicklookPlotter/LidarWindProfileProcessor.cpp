@@ -139,7 +139,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 			//set up the flags;
 			//note that we only get a max of 1000 wind profiles it seems, the rest are zero, so flag them out
 			thisProfile.m_windFlags.resize(std::min(thisProfile.m_heights.size(), size_t(1000)), lidarGoodDataFlag);
-			thisProfile.m_windFlags.resize(thisProfile.m_heights.size(), lidarNoDataFlag);
+			thisProfile.m_windFlags.resize(thisProfile.m_heights.size(), lidarClippedWindProfileFlag);
 			std::vector<std::vector<uint8_t>> vadFlags = thisProfile.m_VadProcessor.getDopplerFlags();
 			for (size_t j = 0; j < vadFlags.size(); ++j)
 			{
@@ -320,13 +320,13 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		{
 			//We may have some missing data recorded as zeros instead of fill value as some data is set to
 			//zero in the data file. Change it to fill value
-			sci::assign(windSpeeds[i], windFlags[i] == lidarNoDataFlag, metrePerSecond(OutputAmfNcFile::getFillValue()));
-			sci::assign(windDirections[i], windFlags[i] == lidarNoDataFlag, degree(OutputAmfNcFile::getFillValue()));
+			sci::assign(windSpeeds[i], windFlags[i] == lidarClippedWindProfileFlag, metrePerSecond(OutputAmfNcFile::getFillValue()));
+			sci::assign(windDirections[i], windFlags[i] == lidarClippedWindProfileFlag, degree(OutputAmfNcFile::getFillValue()));
 
 			altitudes[i].resize(maxLevels, metre(OutputAmfNcFile::getFillValue()));
 			windSpeeds[i].resize(maxLevels, metrePerSecond(OutputAmfNcFile::getFillValue()));
 			windDirections[i].resize(maxLevels, degree(OutputAmfNcFile::getFillValue()));
-			windFlags[i].resize(maxLevels, lidarNoDataFlag);
+			windFlags[i].resize(maxLevels, lidarUserChangedGatesFlag);
 		}
 
 		AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), sci::min<metre>(altitudes), sci::max<metre>(altitudes));

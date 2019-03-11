@@ -97,8 +97,8 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 		dopplerVelocities[i].resize(maxNGates, metrePerSecond(OutputAmfNcFile::getFillValue()));
 		backscatters[i].resize(maxNGates, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
 		ranges[i].resize(maxNGates, metre(OutputAmfNcFile::getFillValue()));
-		dopplerVelocityFlags[i].resize(maxNGates, lidarNoDataFlag);
-		backscatterFlags[i].resize(maxNGates, lidarNoDataFlag);
+		dopplerVelocityFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
+		backscatterFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
 	}
 
 	//work out the averaging time - this is the difference between the scan start and end times.

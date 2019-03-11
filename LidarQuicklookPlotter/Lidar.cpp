@@ -385,8 +385,8 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		{
 			dopplerVelocities[i][j].resize(maxProfilesPerScan, metrePerSecond(OutputAmfNcFile::getFillValue()));
 			backscatters[i][j].resize(maxProfilesPerScan, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
-			dopplerVelocityFlags[i][j].resize(maxProfilesPerScan, lidarNoDataFlag);
-			backscatterFlags[i][j].resize(maxProfilesPerScan, lidarNoDataFlag);
+			dopplerVelocityFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
+			backscatterFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
 		}
 	}
 

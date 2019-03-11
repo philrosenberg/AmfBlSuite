@@ -274,7 +274,8 @@ const uint8_t lidarSnrBelow3Flag = 2;
 const uint8_t lidarSnrBelow2Flag = 3;
 const uint8_t lidarSnrBelow1Flag = 4;
 const uint8_t lidarDopplerOutOfRangeFlag = 5;
-const uint8_t lidarNoDataFlag = 6;
+const uint8_t lidarUserChangedGatesFlag = 6;
+const uint8_t lidarClippedWindProfileFlag = 7;
 
 const std::vector<std::pair<uint8_t,sci::string>> lidarDopplerFlags
 {
@@ -284,5 +285,6 @@ const std::vector<std::pair<uint8_t,sci::string>> lidarDopplerFlags
 {lidarSnrBelow2Flag, sU("SNR_less_than_2") },
 {lidarSnrBelow1Flag, sU("SNR_less_than_1") },
 {lidarDopplerOutOfRangeFlag, sU("doppler_velocity_out_of_+-_19_m_s-1_range") },
-{lidarNoDataFlag, sU("no_data")}
+{lidarUserChangedGatesFlag, sU("User changed number of gates during the day so padding with fill value")},
+{lidarClippedWindProfileFlag, sU("Wind profiles are clipped by manufacturer software so padding wih fill value")}
 };
