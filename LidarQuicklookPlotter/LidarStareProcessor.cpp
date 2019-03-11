@@ -134,7 +134,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platform, times, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
+		projectInfo, platform, times, nonTimeDimensions);
 
 	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), metre(0), metre(10000.0));
 	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), sU("sensor_azimuth_angle"), degree(0), degree(360.0), sU("For stationary platforms this is relative to the geoid with 0 degrees being north. For moving platforms this is relative to the platform with 0 degrees being towards the \"front\" of the platform"));

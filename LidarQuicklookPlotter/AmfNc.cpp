@@ -117,8 +117,6 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const ProjectInfo &projectInfo,
 	const Platform &platform,
 	const std::vector<sci::UtcTime> &times,
-	degree longitude,
-	degree latitude,
 	const std::vector<sci::NcDimension *> &nonTimeDimensions)
 	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 {

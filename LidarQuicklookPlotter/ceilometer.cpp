@@ -132,7 +132,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	nonTimeDimensions.push_back(&gateDimension);
 	//create the file and dimensions. The time variable is added automatically
 	OutputAmfNcFile ceilometerFile(directory, ceilometerInfo, author, processingSoftwareInfo, ceilometerCalibrationInfo, dataInfo,
-		projectInfo, platform, times, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
+		projectInfo, platform, times, nonTimeDimensions);
 
 	//add the data variables
 

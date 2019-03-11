@@ -298,7 +298,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	nonTimeDimensions.push_back(&indexDimension);
 
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platform, scanStartTimes, platform.getPlatformInfo().longitudes[0], platform.getPlatformInfo().latitudes[0], nonTimeDimensions);
+		projectInfo, platform, scanStartTimes, nonTimeDimensions);
 
 	AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), metre(0), metre(20000.0));
 	AmfNcVariable<metrePerSecond> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), metrePerSecond(0), metrePerSecond(20.0));

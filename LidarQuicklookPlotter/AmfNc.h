@@ -779,8 +779,6 @@ public:
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
 		const std::vector<sci::UtcTime> &times,
-		degree longitude,
-		degree latitude,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions= std::vector<sci::NcDimension *>(0));
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
 	void writeTimeAndLocationData( const Platform &platform );
