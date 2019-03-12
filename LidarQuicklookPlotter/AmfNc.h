@@ -118,9 +118,6 @@ struct PlatformInfo
 	std::vector<sci::string> locationKeywords;
 	std::vector<degree> latitudes; //would have just one element for a static platform
 	std::vector<degree>longitudes; //would have just one element for a static platform
-	std::vector<degree> elevations;
-	std::vector<degree> azimuths;
-	std::vector<degree> rolls;
 };
 
 template< class T >
