@@ -37,7 +37,9 @@
     <elevationDegree>0</elevationDegree>
     <azimuthDegree>180</azimuthDegree>
     <rollDegree> 0</rollDegree>
-    <locationKeywords>Arctic;Sweden;Norway</locationKeywords>
+    <locationKeyword>Arctic</locationKeyword>
+    <locationKeyword>Sweden</locationKeyword>
+    <locationKeyword>Norway</locationKeyword>
     <locationFile>OdenLocationData.csv</locationFile>
     <platformRelative>false</platformRelative>
   </platform>
@@ -52,22 +54,28 @@
     <elevationDegree>0</elevationDegree>
     <azimuthDegree>180</azimuthDegree>
     <rollDegree> 0</rollDegree>
-    <locationKeywords>Arctic;Sweden;Norway</locationKeywords>
+    <locationKeyword>Arctic</locationKeyword>
+    <locationKeyword>Sweden</locationKeyword>
+    <locationKeyword>Norway</locationKeyword>
     <locationFile>OdenLocationData.csv</locationFile>
     <platformRelative>true</platformRelative>
   </platform>
 
   <!--This is an example of a stationary platform-->
   <platform id="3">
-    <name>OdenFakeStationary</name>
+    <name>AMF-Compound</name>
     <type>stationary</type>
-    <deploymentMode>sea</deploymentMode>
+    <deploymentMode>land</deploymentMode>
     <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->
-    <altitudeMetres>0</altitudeMetres>
+    <altitudeMetres>80</altitudeMetres>
     <elevationDegree>0</elevationDegree>
-    <azimuthDegree>180</azimuthDegree>
+    <azimuthDegree>0</azimuthDegree>
     <rollDegree> 0</rollDegree>
-    <locationKeywords>Arctic;Sweden;Norway</locationKeywords>
+    <locationKeyword>Leeds</locationKeyword>
+    <locationKeyword>University Of Leeds</locationKeyword>
+    <locationKeyword>United Kingdom</locationKeyword>
+    <locationKeyword>UK</locationKeyword>
+    <locationKeyword>NCAS Fairbairn House</locationKeyword>
   </platform>
   
   <!--Instruments-->

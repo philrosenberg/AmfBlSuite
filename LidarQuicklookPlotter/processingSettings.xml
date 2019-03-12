@@ -44,7 +44,7 @@
     <minute>59</minute>
     <second>59.999</second>
   </endTime>
-  <startImmediately>false</startImmediately>
+  <startImmediately>true</startImmediately>
   <checkForNewFiles>false</checkForNewFiles>
   <onlyProcessNewFiles>false</onlyProcessNewFiles>
   <generateQuicklooks>false</generateQuicklooks>
