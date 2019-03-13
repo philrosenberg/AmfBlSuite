@@ -112,7 +112,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 			degree windElevation;
 			for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
 			{
-				platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_windDirections[j], degree(0.0), thisProfile.m_windDirections[j], windElevation);
+				platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_VadProcessor.getTimesUtcTime().back(), thisProfile.m_windDirections[j], degree(0.0), thisProfile.m_windDirections[j], windElevation);
 				if (thisProfile.m_windDirections[j] < degree(0.0))
 					thisProfile.m_windDirections[j] += degree(360.0);
 			}
@@ -120,17 +120,17 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 			degree latitude;
 			degree longitude;
 			metre altitude;
-			platform.getLocation(thisProfile.m_VadProcessor.getTimesUtcTime()[0], latitude, longitude, altitude);
+			platform.getLocation(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_VadProcessor.getTimesUtcTime().back(), latitude, longitude, altitude);
 			thisProfile.m_heights += altitude;
 			//correct for instrument speed
-			metrePerSecond platformSpeed;
-			degree platformDirection;
-			degree platformHeading;
-			platform.getMotion(thisProfile.m_VadProcessor.getTimesUtcTime()[0], platformSpeed, platformDirection, platformHeading);
+			metrePerSecond platformU;
+			metrePerSecond platformV;
+			metrePerSecond platformW;
+			platform.getInstrumentVelocity(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_VadProcessor.getTimesUtcTime().back(), platformU, platformV, platformW);
 			for (size_t j = 0; j < thisProfile.m_windDirections.size(); ++j)
 			{
-				metrePerSecond u = thisProfile.m_windSpeeds[j] * sci::sin(thisProfile.m_windDirections[j]) + platformSpeed * sci::sin(platformDirection);
-				metrePerSecond v = thisProfile.m_windSpeeds[j] * sci::cos(thisProfile.m_windDirections[j]) + platformSpeed * sci::cos(platformDirection);
+				metrePerSecond u = thisProfile.m_windSpeeds[j] * sci::sin(thisProfile.m_windDirections[j]) + platformU;
+				metrePerSecond v = thisProfile.m_windSpeeds[j] * sci::cos(thisProfile.m_windDirections[j]) + platformV;
 				thisProfile.m_windSpeeds[j] = sci::root<2>(sci::pow<2>(u) + sci::pow<2>(v));
 			}
 
@@ -265,7 +265,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		scanStartTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
-		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back()+ (unitless(m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0)).value<second>();//the second bit of this adds the duration of each ray
+		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back()+ (unitless(m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0));//the second bit of this adds the duration of each ray
 	}
 
 	//work out the averaging time - this is the difference between the scan start and end times.

@@ -116,7 +116,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		m_years[i] = times[i].getYear();
 		m_months[i] = times[i].getMonth();
 		m_dayOfMonths[i] = times[i].getDayOfMonth();
-		m_dayOfYears[i] = std::floor((sci::UtcTime((int)m_years[i], (unsigned int)m_months[i], (unsigned int)m_dayOfMonths[i], 0, 0, 0) - sci::UtcTime((int)m_years[i], 1, 1, 0, 0, 0)) / 60.0 / 60.0 / 24.0);
+		m_dayOfYears[i] = std::floor(((sci::UtcTime((int)m_years[i], (unsigned int)m_months[i], (unsigned int)m_dayOfMonths[i], 0, 0, 0) - sci::UtcTime((int)m_years[i], 1, 1, 0, 0, 0)) / second(60.0 * 60.0 * 24.0)).value<unitless>());
 		m_hours[i] = times[i].getHour();
 		m_minutes[i] = times[i].getMinute();
 		m_seconds[i] = times[i].getSecond();
@@ -127,7 +127,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		degree longitude;
 		degree latitude;
 		metre altitude;
-		platform.getLocation(times[times.size() / 2], latitude, longitude, altitude);
+		platform.getLocation(times[times.size() / 2], times[times.size() / 2], latitude, longitude, altitude);
 		m_longitudes = { longitude };
 		m_latitudes = { latitude };
 	}
@@ -138,7 +138,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		metre altitude;
 		for (size_t i = 0; i < m_times.size(); ++i)
 		{
-			platform.getLocation(m_times[i], m_latitudes[i], m_longitudes[i], altitude);
+			platform.getLocation(m_times[i], m_times[i]+dataInfo.averagingPeriod, m_latitudes[i], m_longitudes[i], altitude);
 		}
 	}
 
@@ -270,16 +270,19 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(m_latitudes, m_longitudes)));
-	sci::assertThrow(platform.getPlatformInfo().altitudes.size() > 0, sci::err(sci::SERR_USER, 0, "Attempting to output platform info for a platform with no altitude information."));
-	if (platform.getPlatformInfo().altitudes.size()>1)
+	if (platform.getFixedAltitude())
 	{
-		write(sci::NcAttribute(sU("platform_altitude"), sci::string(sU("Not Applicable"))));
+		degree latitude;
+		degree longitude;
+		metre altitude;
+		platform.getLocation(m_times[m_times.size() / 2], m_times[m_times.size() / 2], latitude, longitude, altitude);
+		sci::stringstream altitudeString;
+		altitudeString << altitude;
+		write(sci::NcAttribute(sU("platform_altitude"), altitudeString.str()));
 	}
 	else
 	{
-		sci::stringstream altitudeString;
-		altitudeString << platform.getPlatformInfo().altitudes[0];
-		write(sci::NcAttribute(sU("platform_altitude"), altitudeString.str()));
+		write(sci::NcAttribute(sU("platform_altitude"), sci::string(sU("Not Applicable"))));
 	}
 	sci::stringstream locationKeywords;
 	if (platform.getPlatformInfo().locationKeywords.size() > 0)
@@ -360,7 +363,7 @@ void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 	sci::UtcTime epoch(1970, 1, 1, 0, 0, 0.0);
 	for (size_t i = 0; i < m_times.size(); ++i)
 	{
-		secondsAfterEpoch[i] = m_times[i] - epoch;
+		secondsAfterEpoch[i] = (m_times[i] - epoch).value<second>();
 	}
 
 	write(*m_timeVariable, secondsAfterEpoch);

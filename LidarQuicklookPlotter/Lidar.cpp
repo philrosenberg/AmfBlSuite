@@ -58,7 +58,8 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 			//correct azimuths and elevations for platform orientation
 			m_correctedAzimuths.resize(m_profiles.size(), degree(0.0));
 			m_correctedElevations.resize(m_profiles.size(), degree(0.0));
-			platform.correctDirection(m_profiles.back().getTime<sci::UtcTime>(), m_profiles.back().getAzimuth(), m_profiles.back().getElevation(), m_correctedAzimuths.back(), m_correctedElevations.back());
+			second profileDuration = (unitless(m_hplHeaders.back().pulsesPerRay) / sci::Physical<sci::Hertz<1, 3>>(15.0));
+			platform.correctDirection(m_profiles.back().getTime<sci::UtcTime>(), m_profiles.back().getTime<sci::UtcTime>()+ profileDuration, m_profiles.back().getAzimuth(), m_profiles.back().getElevation(), m_correctedAzimuths.back(), m_correctedElevations.back());
 			
 			m_headerIndex.push_back(m_hplHeaders.size() - 1);//record which header this profile is linked to
 			std::vector<uint8_t> dopplerVelocityFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
@@ -334,7 +335,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 				maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
 				thisProfilesPerScan = 1;
 				scanStartTimes.push_back(allTimes[i]);
-				scanEndTimes.push_back(allTimes[i - 1] + (unitless(getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0)).value<second>()); //this is the time of the last profile in the scan plus the duration of this profile
+				scanEndTimes.push_back(allTimes[i - 1] + (unitless(getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile
 				maxNGatesThisScan = getNGates(i);
 				ranges.push_back(getGateCentres(i));
 				azimuthAngles.resize(azimuthAngles.size() + 1);
@@ -358,7 +359,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 			backscatterFlags.back().push_back(allBackscatterFlags[i]);
 		}
 		//Some final items that need doing regaring the last scan/profile.
-		scanEndTimes.push_back(allTimes.back() + (unitless(getHeaderForProfile(allTimes.size() - 1).pulsesPerRay * getHeaderForProfile(allTimes.size() - 1).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0)).value<second>()); //this is the time of the last profile in the scan plus the duration of this profile);
+		scanEndTimes.push_back(allTimes.back() + (unitless(getHeaderForProfile(allTimes.size() - 1).pulsesPerRay * getHeaderForProfile(allTimes.size() - 1).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile);
 		maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
 	}
 

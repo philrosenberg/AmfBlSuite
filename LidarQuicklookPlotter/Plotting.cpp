@@ -117,7 +117,7 @@ bool InstrumentProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTim
 		stream >> second;
 	}
 	sci::UtcTime fileStartTime(year, month, day, hour, minute, second);
-	return fileStartTime < endTime && (fileStartTime + fileDuration.value<::second>()) >= startTime;
+	return fileStartTime < endTime && (fileStartTime + fileDuration) >= startTime;
 }
 
 std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter)

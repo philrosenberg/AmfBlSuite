@@ -381,7 +381,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 
 	xs[0] = second(profiles[0].getTime().getUnixTime());
 	for (size_t i = 1; i < xs.size() - 1; ++i)
-		xs[i] = second((profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / 2.0);
+		xs[i] = second((profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / unitless(2.0));
 	xs.back() = second(profiles.back().getTime().getUnixTime());
 
 	for (size_t i = 0; i < ys.size(); ++i)
