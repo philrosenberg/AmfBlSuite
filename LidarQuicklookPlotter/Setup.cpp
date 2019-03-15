@@ -1,7 +1,72 @@
 #include"Setup.h"
 
+//Rules for file format
+//The file must be netcdf.
+//The file must have the following variables, each with a Units attribute with the unit listed in brackets. capitalisation and spaces matter in the variable names and units. 
+//  time(seconds since 1970-1-1 00:00:00), latitude(degrees_north), longitude(degrees_east), elevation(degree), azimuth(degree), roll(degree), course(degree), speed(m s-1).
+//The variables must all have the same number of elements
+//The file can have either a variable altidue(metre) or a global attribute altitude and a global attribute altitude_unit
+//for course and azimuth 0 degrees is due north
+//for elevation 0 degrees is horizontal.
+//data do not need to be equally spaced, but if there is missing data this should be indicated with a nan. If there is missing
+//data for all parameters then add a valid time within the period of missing data and set all parameters to nan. This will
+//stop the code interpolating accross missing data periods.
 void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime> &times, std::vector<degree> &latitudes, std::vector<degree> &longitudes, std::vector<metre> &altitudes, std::vector<degree> &elevations, std::vector<degree> &azimuths, std::vector<degree> &rolls, std::vector<degree> &courses, std::vector<metrePerSecond> &speeds)
 {
+	sci::InputNcFile file(locationFile);
+
+	std::vector<sci::string> names = file.getVariableNames();
+
+	std::vector<double> timesUnitless = file.getVariable<double>(sU("time"));
+	std::vector<double> latitudesUnitless = file.getVariable<double>(sU("latitude"));
+	std::vector<double> longitudesUnitless = file.getVariable<double>(sU("longitude"));
+	std::vector<double> elevationsUnitless = file.getVariable<double>(sU("elevation"));
+	std::vector<double> azimuthsUnitless = file.getVariable<double>(sU("azimuth"));
+	std::vector<double> rollsUnitless = file.getVariable<double>(sU("roll"));
+	std::vector<double> coursesUnitless = file.getVariable<double>(sU("course"));
+	std::vector<double> speedsUnitless = file.getVariable<double>(sU("speed"));
+
+	std::vector<double> altitudesUnitless;
+	if (sci::anyTrue(names == sci::string(sU("altitude"))))
+		altitudesUnitless = file.getVariable<double>(sU("altitude"));
+	else
+		altitudesUnitless = std::vector<double>{ file.getGlobalAttribute<double>(sU("altitude")) };
+
+	sci::assertThrow(latitudesUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the latitude variable has a different numer of elements to the time variable.")));
+	sci::assertThrow(longitudesUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the longitude variable has a different numer of elements to the time variable.")));
+	sci::assertThrow(elevationsUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the elevation variable has a different numer of elements to the time variable.")));
+	sci::assertThrow(azimuthsUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the azimuth variable has a different numer of elements to the time variable.")));
+	sci::assertThrow(rollsUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the roll variable has a different numer of elements to the time variable.")));
+	sci::assertThrow(coursesUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the courses variable has a different numer of elements to the time variable.")));
+	sci::assertThrow(speedsUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the speed variable has a different numer of elements to the time variable.")));
+	
+	sci::assertThrow(altitudesUnitless.size() == timesUnitless.size() || altitudesUnitless.size() == 1, sci::err(sci::SERR_USER, 0, sU("When reading location file, the altitude variable has a different numer of elements to the time variable.")));
+
+
+	times.resize(timesUnitless.size());
+	latitudes.resize(timesUnitless.size());
+	longitudes.resize(timesUnitless.size());
+	elevations.resize(timesUnitless.size());
+	azimuths.resize(timesUnitless.size());
+	rolls.resize(timesUnitless.size());
+	speeds.resize(timesUnitless.size());
+	courses.resize(timesUnitless.size());
+	for (size_t i = 0; i < timesUnitless.size(); ++i)
+	{
+		times[i] = sci::UtcTime::getPosixEpoch() + second(timesUnitless[i]);
+		latitudes[i] = degree(latitudesUnitless[i]);
+		longitudes[i] = degree(longitudesUnitless[i]);
+		elevations[i] = degree(elevationsUnitless[i]);
+		azimuths[i] = degree(azimuthsUnitless[i]);
+		rolls[i] = degree(rollsUnitless[i]);
+		speeds[i] = metrePerSecond(speeds[i]);
+		courses[i] = degree(coursesUnitless[i]);
+	}
+	altitudes.resize(altitudesUnitless.size());
+	for (size_t i = 0; i < altitudes.size(); ++i)
+		altitudes[i] = metre(altitudesUnitless[i]);
+	
+	/*
 	//sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "Not set up to read location data yet"));
 	times = { sci::UtcTime(1900, 1, 1, 0, 0, 0.0), sci::UtcTime(2100, 1, 1, 0, 0, 0.0) };
 	latitudes = { degree(0), degree(0) };
@@ -12,7 +77,7 @@ void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime>
 	rolls = { degree(0), degree(0) };
 	courses = { degree(0), degree(0) };
 	speeds = { metrePerSecond(0), metrePerSecond(0) };
-
+	*/
 }
 
 wxXmlNode *findNode(const sci::string &type, const sci::string &id, wxXmlNode *nodeToSearch)
