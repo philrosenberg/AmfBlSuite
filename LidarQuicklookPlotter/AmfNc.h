@@ -141,10 +141,12 @@ struct AttitudeAverage
 	AttitudeAverage(degree mean, degree min, degree max, degree stdev)
 		:m_mean(mean), m_min(min), m_max(max), m_stdev(stdev)
 	{}
+	AttitudeAverage() {}
 	degree m_mean;
 	degree m_min;
 	degree m_max;
 	degree m_stdev;
+	degreePerSecond m_rate;
 };
 
 class Platform
@@ -191,7 +193,21 @@ public:
 	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const = 0;
 	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const = 0;
 	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degree &latitude, degree &longitude, metre &altitude) const = 0;
-	//virtual void getMotion(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecond &speed, degree &course, degree & azimuth) const = 0;
+	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecond &speed, degree &course) const
+	{
+		metrePerSecond u;
+		metrePerSecond v;
+		metrePerSecond w;
+		getInstrumentVelocity(startTime, endTime, u, v, w);
+		if (u == metrePerSecond(0) && v == metrePerSecond(0))
+		{
+			speed = metrePerSecond(0);
+			course = std::numeric_limits<degree>::quiet_NaN();
+		}
+		speed = sci::sqrt(u*u + v * v);
+		course = sci::atan2(u, v);
+
+	}
 	virtual void getInstrumentAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const = 0;
 	virtual bool getFixedAltitude() const = 0;
 private:
@@ -628,9 +644,9 @@ public:
 	}*/
 	virtual void getInstrumentAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const override
 	{
-		findStatistics(startTime, endTime, m_instrumentElevationsAbsolute, elevation.m_mean, elevation.m_stdev, elevation.m_min, elevation.m_max);
-		findStatistics(startTime, endTime, m_instrumentAzimuthsAbsoluteNoJumps, azimuth.m_mean, azimuth.m_stdev, azimuth.m_min, azimuth.m_max);
-		findStatistics(startTime, endTime, m_instrumentRollsAbsolute, roll.m_mean, roll.m_stdev, roll.m_min, roll.m_max);
+		findStatistics(startTime, endTime, m_instrumentElevationsAbsolute, elevation.m_mean, elevation.m_stdev, elevation.m_min, elevation.m_max, elevation.m_rate);
+		findStatistics(startTime, endTime, m_instrumentAzimuthsAbsoluteNoJumps, azimuth.m_mean, azimuth.m_stdev, azimuth.m_min, azimuth.m_max, azimuth.m_rate);
+		findStatistics(startTime, endTime, m_instrumentRollsAbsolute, roll.m_mean, roll.m_stdev, roll.m_min, roll.m_max, roll.m_rate);
 		degree azimuthOffset = sci::floor(azimuth.m_mean / degree(360))*degree(360);
 		if (azimuth.m_mean - azimuthOffset > degree(180))
 			azimuthOffset += degree(180);
@@ -697,7 +713,7 @@ private:
 		return sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
 	}
 	template<class T>
-	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property, T &mean, T &stdev, T &min, T &max) const
+	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property, T &mean, T &stdev, T &min, T &max, decltype(T(1)/second(1)) &rate) const
 	{
 
 		if (startTime < m_times[0] || endTime > m_times.back())
@@ -715,6 +731,7 @@ private:
 			min = mean;
 			max = mean;
 			stdev = T(0);
+			rate = std::numeric_limits<decltype(T(0)/second(0))>::quiet_NaN();
 		}
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
@@ -724,6 +741,9 @@ private:
 		mean = sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
 		min = sci::min<T>(subProperty);
 		max = sci::max<T>(subProperty);
+		size_t lowerIndexStart = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
+		size_t lowerIndexEnd = std::min(findLowerIndex(startTime, false), m_times.size() - 1);
+		rate = (sci::linearinterpolate(startTime, m_times[lowerIndexEnd], m_times[lowerIndexEnd + 1], property[lowerIndexEnd], property[lowerIndexEnd + 1]) - sci::linearinterpolate(startTime, m_times[lowerIndexStart], m_times[lowerIndexStart + 1], property[lowerIndexStart], property[lowerIndexStart + 1]))/(endTime-startTime);
 		std::vector<decltype(subProperty[0] * subProperty[0])>subPropertySquared(subProperty.size());
 		for(size_t i=0; i<subProperty.size(); ++i)
 			subPropertySquared[i] = sci::pow<2>(subProperty[i] - mean);
@@ -950,8 +970,20 @@ private:
 	std::unique_ptr<AmfNcVariable<degree>> m_orientationVariable;
 	std::unique_ptr<AmfNcVariable<metrePerSecond>> m_speedVariable;
 	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchStdevVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchMinVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecond>> m_instrumentPitchRateVariable;
 	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollStdevVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollMinVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecond>> m_instrumentRollRateVariable;
 	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawStdevVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawMinVariable;
+	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecond>> m_instrumentYawRateVariable;
 
 	std::vector<sci::UtcTime> m_times;
 	std::vector<int> m_years;
@@ -963,6 +995,23 @@ private:
 	std::vector<double> m_seconds;
 	std::vector<degree> m_latitudes;
 	std::vector<degree> m_longitudes;
+	std::vector<degree> m_elevations;
+	std::vector<degree> m_elevationStdevs;
+	std::vector<degree> m_elevationMins;
+	std::vector<degree> m_elevationMaxs;
+	std::vector<degreePerSecond> m_elevationRates;
+	std::vector<degree> m_azimuths;
+	std::vector<degree> m_azimuthStdevs;
+	std::vector<degree> m_azimuthMins;
+	std::vector<degree> m_azimuthMaxs;
+	std::vector<degreePerSecond> m_azimuthRates;
+	std::vector<degree> m_rolls;
+	std::vector<degree> m_rollStdevs;
+	std::vector<degree> m_rollMins;
+	std::vector<degree> m_rollMaxs;
+	std::vector<degreePerSecond> m_rollRates;
+	std::vector<degree> m_courses;
+	std::vector<metrePerSecond> m_speeds;
 };
 
 
