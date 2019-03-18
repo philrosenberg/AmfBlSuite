@@ -68,7 +68,8 @@ public:
 	std::vector<second> getTimesSeconds() const;
 	std::vector<sci::UtcTime> getTimesUtcTime() const;
 	std::vector<std::vector<perSteradianPerMetre>> getBetas() const;
-	std::vector<std::vector<metrePerSecond>> getDopplerVelocities() const;
+	std::vector<std::vector<metrePerSecond>> getInstrumentRelativeDopplerVelocities() const;
+	std::vector<std::vector<metrePerSecond>> getMotionCorrectedDopplerVelocities() const { return m_correctedDopplerVelocities; }
 	std::vector<std::vector<unitless>> getSignalToNoiseRatios() const;
 	std::vector<std::vector<uint8_t>> getDopplerFlags() const { return m_dopplerFlags; }
 	std::vector<std::vector<uint8_t>> getBetaFlags() const { return m_betaFlags; }
@@ -76,8 +77,10 @@ public:
 	std::vector<metre> getGateLowerBoundaries(size_t profileIndex) const;
 	std::vector<metre> getGateUpperBoundaries(size_t profileIndex) const;
 	std::vector<metre> getGateCentres(size_t profileIndex) const;
-	std::vector<degree> getAzimuths() const { return m_correctedAzimuths;}
-	std::vector<degree> getElevations() const { return m_correctedElevations; }
+	std::vector<degree> getAttitudeCorrectedAzimuths() const { return m_correctedAzimuths; }
+	std::vector<degree> getInstrumentRelativeElevations() const;
+	std::vector<degree> getInstrumentRelativeAzimuths() const;
+	std::vector<degree> getAttitudeCorrectedElevations() const { return m_correctedElevations; }
 	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
 	void setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent)
@@ -100,6 +103,7 @@ private:
 	std::shared_ptr<OrientationGrabber> m_orientationGrabber;
 	std::vector<degree> m_correctedAzimuths;
 	std::vector<degree> m_correctedElevations;
+	std::vector<std::vector<metrePerSecond>> m_correctedDopplerVelocities;
 };
 
 class LidarScanningProcessor : public LidarBackscatterDopplerProcessor

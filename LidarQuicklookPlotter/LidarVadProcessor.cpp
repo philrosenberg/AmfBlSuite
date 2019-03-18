@@ -257,12 +257,12 @@ void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilena
 void ConicalScanningProcessor::getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<degree> &sortedElevations, std::vector<degree> &sortedMidAzimuths, std::vector<degree> &azimuthBoundaries)
 {
 
-	std::vector<degree> midAzimuths = getAzimuths();
+	std::vector<degree> midAzimuths = getInstrumentRelativeAzimuths();
 	std::vector<size_t> newLocations;
 	sci::sort(midAzimuths, sortedMidAzimuths, newLocations);
 	std::vector<std::vector<perSteradianPerMetre>> betas = getBetas();
 	sortedBetas = sci::reorder(betas, newLocations);
-	std::vector<degree> elevations = getElevations();
+	std::vector<degree> elevations = getInstrumentRelativeElevations();
 	sortedElevations = sci::reorder(elevations, newLocations);
 
 	azimuthBoundaries.resize(sortedBetas.size() + 1);

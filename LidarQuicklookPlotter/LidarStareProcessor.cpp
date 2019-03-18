@@ -73,9 +73,12 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 
 	//build up our data arrays.
 	std::vector<sci::UtcTime> times = getTimesUtcTime();
-	std::vector<degree> azimuthAngles = getAzimuths();
-	std::vector<degree> elevationAngles = getElevations();
-	std::vector<std::vector<metrePerSecond>> dopplerVelocities = getDopplerVelocities();
+	std::vector<degree> instrumentRelativeAzimuthAngles = getInstrumentRelativeAzimuths();
+	std::vector<degree> instrumentRelativeElevationAngles = getInstrumentRelativeElevations();
+	std::vector<std::vector<metrePerSecond>> instrumentRelativeDopplerVelocities = getInstrumentRelativeDopplerVelocities();
+	std::vector<degree> attitudeCorrectedAzimuthAngles = getAttitudeCorrectedAzimuths();
+	std::vector<degree> attitudeCorrectedElevationAngles = getAttitudeCorrectedElevations();
+	std::vector<std::vector<metrePerSecond>> motionCorrectedDopplerVelocities = getMotionCorrectedDopplerVelocities();
 	std::vector<std::vector<perSteradianPerMetre>> backscatters = getBetas();
 	std::vector<std::vector<uint8_t>> dopplerVelocityFlags = getDopplerFlags();
 	std::vector<std::vector<uint8_t>> backscatterFlags = getBetaFlags();
@@ -94,7 +97,8 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	}
 	for (size_t i = 0; i < times.size(); ++i)
 	{
-		dopplerVelocities[i].resize(maxNGates, metrePerSecond(OutputAmfNcFile::getFillValue()));
+		instrumentRelativeDopplerVelocities[i].resize(maxNGates, metrePerSecond(OutputAmfNcFile::getFillValue()));
+		motionCorrectedDopplerVelocities[i].resize(maxNGates, metrePerSecond(OutputAmfNcFile::getFillValue()));
 		backscatters[i].resize(maxNGates, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
 		ranges[i].resize(maxNGates, metre(OutputAmfNcFile::getFillValue()));
 		dopplerVelocityFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
@@ -133,18 +137,24 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 		projectInfo, platform, times, nonTimeDimensions);
 
 	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), sci::min<metre>(ranges), sci::max<metre>(ranges));
-	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), sU("sensor_azimuth_angle"), sci::min<degree>(azimuthAngles), sci::max<degree>(azimuthAngles), sU("For stationary platforms this is relative to the geoid with 0 degrees being north. For moving platforms this is relative to the platform with 0 degrees being towards the \"front\" of the platform"));
-	AmfNcVariable<degree> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning head elevation angle"), sU("sensor_view_angle"), sci::min<degree>(elevationAngles), sci::max<degree>(elevationAngles), sU("Zero degrees is horizontal, positive is upwards, negative is downwards. For moving platforms this is relative to the platform itself, not the geoid."));
-	AmfNcVariable<metrePerSecond> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), sci::min<metrePerSecond>(dopplerVelocities), sci::max<metrePerSecond>(dopplerVelocities), sU("Positive is away, negative is towards."));
+	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), sU("sensor_azimuth_angle"), sci::min<degree>(instrumentRelativeAzimuthAngles), sci::max<degree>(instrumentRelativeAzimuthAngles), sU("Relative to the instrument with 0 degrees being to the \"front\" of the instruments."));
+	AmfNcVariable<degree> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning head elevation angle"), sU("sensor_view_angle"), sci::min<degree>(instrumentRelativeElevationAngles), sci::max<degree>(instrumentRelativeElevationAngles), sU("Relative to the instruments with 0 degrees being \"horizontal\", positive being upwards, negative being downwards."));
+	AmfNcVariable<metrePerSecond> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), sci::min<metrePerSecond>(instrumentRelativeDopplerVelocities), sci::max<metrePerSecond>(instrumentRelativeDopplerVelocities), sU("Instrument relative. Positive is away, negative is towards."));
+	AmfNcVariable<degree> azimuthVariableEarthFrame(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle Earth Frame"), sU(""), sci::min<degree>(attitudeCorrectedAzimuthAngles), sci::max<degree>(attitudeCorrectedAzimuthAngles), sU("Relative to the geoid with 0 degrees being north."));
+	AmfNcVariable<degree> elevationVariableEarthFrame(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning head elevation angle Earth Frame"), sU(""), sci::min<degree>(attitudeCorrectedElevationAngles), sci::max<degree>(attitudeCorrectedElevationAngles), sU("Relative to the geoid with 0 degrees being horizontal, positive being upwards, negative being downwards."));
+	AmfNcVariable<metrePerSecond> dopplerVariableEarthFrame(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument Earth Frame"), sU(""), sci::min<metrePerSecond>(motionCorrectedDopplerVelocities), sci::max<metrePerSecond>(motionCorrectedDopplerVelocities), sU("Instrument relative. Positive is away, negative is towards."));
 	AmfNcVariable<perSteradianPerMetre> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), sci::min<perSteradianPerMetre>(backscatters), sci::max<perSteradianPerMetre>(backscatters));
 	AmfNcFlagVariable dopplerFlagVariable(sU("radial_velocity_of_scatterers_away_from_instrument_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable backscatterFlagVariable(sU("attenuated_aerosol_backscatter_coefficient_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	
 
 	file.write(rangeVariable, ranges);
-	file.write(azimuthVariable, azimuthAngles);
-	file.write(elevationVariable, elevationAngles);
-	file.write(dopplerVariable, dopplerVelocities);
+	file.write(azimuthVariable, instrumentRelativeAzimuthAngles);
+	file.write(elevationVariable, instrumentRelativeElevationAngles);
+	file.write(dopplerVariable, instrumentRelativeDopplerVelocities);
+	file.write(azimuthVariable, attitudeCorrectedAzimuthAngles);
+	file.write(elevationVariable, attitudeCorrectedElevationAngles);
+	file.write(dopplerVariable, motionCorrectedDopplerVelocities);
 	file.write(backscatterVariable, backscatters);
 	file.write(dopplerFlagVariable, dopplerVelocityFlags);
 	file.write(backscatterFlagVariable, backscatterFlags);

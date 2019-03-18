@@ -60,7 +60,15 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 			m_correctedElevations.resize(m_profiles.size(), degree(0.0));
 			second profileDuration = (unitless(m_hplHeaders.back().pulsesPerRay) / sci::Physical<sci::Hertz<1, 3>>(15.0));
 			platform.correctDirection(m_profiles.back().getTime<sci::UtcTime>(), m_profiles.back().getTime<sci::UtcTime>()+ profileDuration, m_profiles.back().getAzimuth(), m_profiles.back().getElevation(), m_correctedAzimuths.back(), m_correctedElevations.back());
-			
+			metrePerSecond u;
+			metrePerSecond v;
+			metrePerSecond w;
+			platform.getInstrumentVelocity(m_profiles.back().getTime<sci::UtcTime>(), m_profiles.back().getTime<sci::UtcTime>() + profileDuration, u, v, w);
+			metrePerSecond offset = u * sci::sin(m_correctedAzimuths.back())*sci::cos(m_correctedElevations.back())
+				+ v * sci::cos(m_correctedAzimuths.back())*sci::cos(m_correctedElevations.back())
+				+ w * sci::sin(m_correctedElevations.back());
+			m_correctedDopplerVelocities.push_back(m_profiles.back().getDopplerVelocities()+offset);
+
 			m_headerIndex.push_back(m_hplHeaders.size() - 1);//record which header this profile is linked to
 			std::vector<uint8_t> dopplerVelocityFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
 			std::vector<uint8_t> betaFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
@@ -153,12 +161,31 @@ std::vector<std::vector<unitless>> LidarBackscatterDopplerProcessor::getSignalTo
 	return result;
 }
 
-std::vector<std::vector<metrePerSecond>> LidarBackscatterDopplerProcessor::getDopplerVelocities() const
+std::vector<std::vector<metrePerSecond>> LidarBackscatterDopplerProcessor::getInstrumentRelativeDopplerVelocities() const
 {
 	std::vector<std::vector<metrePerSecond>> result(m_profiles.size());
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		result[i] = m_profiles[i].getDopplerVelocities();
+	}
+	return result;
+}
+
+std::vector<degree> LidarBackscatterDopplerProcessor::getInstrumentRelativeElevations() const
+{
+	std::vector<degree> result(m_profiles.size());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		result[i] = m_profiles[i].getElevation();
+	}
+	return result;
+}
+std::vector<degree> LidarBackscatterDopplerProcessor::getInstrumentRelativeAzimuths() const
+{
+	std::vector<degree> result(m_profiles.size());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		result[i] = m_profiles[i].getAzimuth();
 	}
 	return result;
 }
@@ -245,9 +272,12 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	size_t maxProfilesPerScan = 1;
 	size_t thisProfilesPerScan = 1;
 	std::vector<sci::UtcTime> allTimes = getTimesUtcTime();
-	std::vector<degree> allAzimuths = getAzimuths();
-	std::vector<degree> allElevations = getElevations();
-	std::vector<std::vector<metrePerSecond>> allDopplerVelocities = getDopplerVelocities();
+	std::vector<degree> allAttitudeCorrectedAzimuths = getAttitudeCorrectedAzimuths();
+	std::vector<degree> allAttitudeCorrectedElevations = getAttitudeCorrectedElevations();
+	std::vector<degree> allInstrumentRelativeAzimuths = getInstrumentRelativeAzimuths();
+	std::vector<degree> allInstrumentRelativeElevations = getInstrumentRelativeElevations();
+	std::vector<std::vector<metrePerSecond>> allMotionCorrectedDopplerVelocities = getMotionCorrectedDopplerVelocities();
+	std::vector<std::vector<metrePerSecond>> allInstrumentRelativeDopplerVelocities = getInstrumentRelativeDopplerVelocities();
 	std::vector<std::vector<perSteradianPerMetre>> allBackscatters = getBetas();
 	std::vector<std::vector<uint8_t>> allDopplerVelocityFlags = getDopplerFlags();
 	std::vector<std::vector<uint8_t>> allBackscatterFlags = getBetaFlags();
@@ -259,15 +289,21 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	std::vector<std::vector<metre>> ranges;
 	ranges.reserve(allTimes.size() / 6);
 	//a 2d array for azimuth (time, profile within scan)
-	std::vector<std::vector<degree>> azimuthAngles;
-	azimuthAngles.reserve(allTimes.size() / 6);
+	std::vector<std::vector<degree>> instrumentRelativeAzimuthAngles;
+	instrumentRelativeAzimuthAngles.reserve(allTimes.size() / 6);
+	std::vector<std::vector<degree>> attitudeCorrectedAzimuthAngles;
+	attitudeCorrectedAzimuthAngles.reserve(allTimes.size() / 6);
 	//a 2d array for elevation angle (time, profile within scan)
-	std::vector<std::vector<degree>> elevationAngles;
-	elevationAngles.reserve(allTimes.size() / 6);
+	std::vector<std::vector<degree>> instrumentRelativeElevationAngles;
+	instrumentRelativeElevationAngles.reserve(allTimes.size() / 6);
+	std::vector<std::vector<degree>> attitudeCorrectedElevationAngles;
+	attitudeCorrectedElevationAngles.reserve(allTimes.size() / 6);
 	//a 3d array for doppler speeds (time, profile within a scan, elevation) - note this is not the order we need to output
 	//so immediately after this code we transpose the second two dimensions (time, elevation, profile within a scan)
-	std::vector<std::vector<std::vector<metrePerSecond>>> dopplerVelocities;
-	dopplerVelocities.reserve(allTimes.size() / 6);
+	std::vector<std::vector<std::vector<metrePerSecond>>> instrumentRelativeDopplerVelocities;
+	instrumentRelativeDopplerVelocities.reserve(allTimes.size() / 6);
+	std::vector<std::vector<std::vector<metrePerSecond>>> motionCorrectedDopplerVelocities;
+	motionCorrectedDopplerVelocities.reserve(allTimes.size() / 6);
 	//a 3d array for backscatters (time, profile within a scan, elevation) - note this is not the order we need to output
 	//so immediately after this code we transpose the second two dimensions (time, elevation, profile within a scan)
 	std::vector<std::vector<std::vector<perSteradianPerMetre>>> backscatters;
@@ -292,15 +328,24 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		maxNGatesThisScan = getNGates(0);
 		maxNGates = maxNGatesThisScan;
 		ranges.push_back(getGateCentres(0));
-		azimuthAngles.resize(1);
-		azimuthAngles.back().reserve(6);
-		azimuthAngles.back().push_back(allAzimuths[0]);
-		elevationAngles.resize(1);
-		elevationAngles.back().reserve(6);
-		elevationAngles.back().push_back(allElevations[0]);
-		dopplerVelocities.resize(1);
-		dopplerVelocities.back().reserve(6);
-		dopplerVelocities.back().push_back(allDopplerVelocities[0]);
+		instrumentRelativeAzimuthAngles.resize(1);
+		instrumentRelativeAzimuthAngles.back().reserve(6);
+		instrumentRelativeAzimuthAngles.back().push_back(allInstrumentRelativeAzimuths[0]);
+		attitudeCorrectedAzimuthAngles.resize(1);
+		attitudeCorrectedAzimuthAngles.back().reserve(6);
+		attitudeCorrectedAzimuthAngles.back().push_back(allAttitudeCorrectedAzimuths[0]);
+		instrumentRelativeElevationAngles.resize(1);
+		instrumentRelativeElevationAngles.back().reserve(6);
+		instrumentRelativeElevationAngles.back().push_back(allInstrumentRelativeElevations[0]);
+		attitudeCorrectedElevationAngles.resize(1);
+		attitudeCorrectedElevationAngles.back().reserve(6);
+		attitudeCorrectedElevationAngles.back().push_back(allAttitudeCorrectedElevations[0]);
+		instrumentRelativeDopplerVelocities.resize(1);
+		instrumentRelativeDopplerVelocities.back().reserve(6);
+		instrumentRelativeDopplerVelocities.back().push_back(allInstrumentRelativeDopplerVelocities[0]);
+		motionCorrectedDopplerVelocities.resize(1);
+		motionCorrectedDopplerVelocities.back().reserve(6);
+		motionCorrectedDopplerVelocities.back().push_back(allMotionCorrectedDopplerVelocities[0]);
 		backscatters.resize(1);
 		backscatters.back().reserve(6);
 		backscatters.back().push_back(allBackscatters[0]);
@@ -338,12 +383,18 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 				scanEndTimes.push_back(allTimes[i - 1] + (unitless(getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile
 				maxNGatesThisScan = getNGates(i);
 				ranges.push_back(getGateCentres(i));
-				azimuthAngles.resize(azimuthAngles.size() + 1);
-				azimuthAngles.back().reserve(maxProfilesPerScan);
-				elevationAngles.resize(elevationAngles.size() + 1);
-				elevationAngles.back().reserve(maxProfilesPerScan);
-				dopplerVelocities.resize(dopplerVelocities.size() + 1);
-				dopplerVelocities.back().reserve(maxProfilesPerScan);
+				instrumentRelativeAzimuthAngles.resize(instrumentRelativeAzimuthAngles.size() + 1);
+				instrumentRelativeAzimuthAngles.back().reserve(maxProfilesPerScan);
+				attitudeCorrectedAzimuthAngles.resize(attitudeCorrectedAzimuthAngles.size() + 1);
+				attitudeCorrectedAzimuthAngles.back().reserve(maxProfilesPerScan);
+				instrumentRelativeElevationAngles.resize(instrumentRelativeElevationAngles.size() + 1);
+				instrumentRelativeElevationAngles.back().reserve(maxProfilesPerScan);
+				attitudeCorrectedElevationAngles.resize(attitudeCorrectedElevationAngles.size() + 1);
+				attitudeCorrectedElevationAngles.back().reserve(maxProfilesPerScan);
+				instrumentRelativeDopplerVelocities.resize(instrumentRelativeDopplerVelocities.size() + 1);
+				instrumentRelativeDopplerVelocities.back().reserve(maxProfilesPerScan);
+				motionCorrectedDopplerVelocities.resize(motionCorrectedDopplerVelocities.size() + 1);
+				motionCorrectedDopplerVelocities.back().reserve(maxProfilesPerScan);
 				backscatters.resize(backscatters.size() + 1);
 				backscatters.back().reserve(maxProfilesPerScan);
 				dopplerVelocityFlags.resize(dopplerVelocityFlags.size() + 1);
@@ -351,9 +402,12 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 				backscatterFlags.resize(backscatterFlags.size() + 1);
 				backscatterFlags.back().reserve(maxProfilesPerScan);
 			}
-			azimuthAngles.back().push_back(allAzimuths[i]);
-			elevationAngles.back().push_back(allElevations[i]);
-			dopplerVelocities.back().push_back(allDopplerVelocities[i]);
+			instrumentRelativeAzimuthAngles.back().push_back(allInstrumentRelativeAzimuths[i]);
+			attitudeCorrectedAzimuthAngles.back().push_back(allAttitudeCorrectedAzimuths[i]);
+			instrumentRelativeElevationAngles.back().push_back(allInstrumentRelativeElevations[i]);
+			attitudeCorrectedElevationAngles.back().push_back(allAttitudeCorrectedElevations[i]);
+			instrumentRelativeDopplerVelocities.back().push_back(allInstrumentRelativeDopplerVelocities[i]);
+			motionCorrectedDopplerVelocities.back().push_back(allMotionCorrectedDopplerVelocities[i]);
 			backscatters.back().push_back(allBackscatters[i]);
 			dopplerVelocityFlags.back().push_back(allDopplerVelocityFlags[i]);
 			backscatterFlags.back().push_back(allBackscatterFlags[i]);
@@ -365,9 +419,10 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 
 	//Now we must transpose each element of the doppler and backscatter data
 	//so they are indexed by the range before the profile within the scan.
-	for (size_t i = 0; i < dopplerVelocities.size(); ++i)
+	for (size_t i = 0; i < backscatters.size(); ++i)
 	{
-		dopplerVelocities[i] = sci::transpose(dopplerVelocities[i]);
+		instrumentRelativeDopplerVelocities[i] = sci::transpose(instrumentRelativeDopplerVelocities[i]);
+		motionCorrectedDopplerVelocities[i] = sci::transpose(motionCorrectedDopplerVelocities[i]);
 		backscatters[i] = sci::transpose(backscatters[i]);
 		dopplerVelocityFlags[i] = sci::transpose(dopplerVelocityFlags[i]);
 		backscatterFlags[i] = sci::transpose(backscatterFlags[i]);
@@ -378,13 +433,17 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	for (size_t i = 0; i < ranges.size(); ++i)
 	{
 		ranges[i].resize(maxNGates, metre(OutputAmfNcFile::getFillValue()));
-		azimuthAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
-		elevationAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
-		dopplerVelocities[i].resize(maxNGates);
+		instrumentRelativeAzimuthAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
+		attitudeCorrectedAzimuthAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
+		instrumentRelativeElevationAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
+		attitudeCorrectedElevationAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
+		instrumentRelativeDopplerVelocities[i].resize(maxNGates);
+		motionCorrectedDopplerVelocities[i].resize(maxNGates);
 		backscatters[i].resize(maxNGates);
 		for (size_t j = 0; j < maxNGates; ++j)
 		{
-			dopplerVelocities[i][j].resize(maxProfilesPerScan, metrePerSecond(OutputAmfNcFile::getFillValue()));
+			instrumentRelativeDopplerVelocities[i][j].resize(maxProfilesPerScan, metrePerSecond(OutputAmfNcFile::getFillValue()));
+			motionCorrectedDopplerVelocities[i][j].resize(maxProfilesPerScan, metrePerSecond(OutputAmfNcFile::getFillValue()));
 			backscatters[i][j].resize(maxProfilesPerScan, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
 			dopplerVelocityFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
 			backscatterFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
@@ -421,16 +480,22 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		projectInfo, platform, scanStartTimes, nonTimeDimensions);
 
 	AmfNcVariable<metre> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), sci::min<metre>(ranges), sci::max<metre>(ranges));
-	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head azimuth angle"), sU("sensor_azimuth_angle"), sci::min<degree>(azimuthAngles), sci::max<degree>(azimuthAngles), sU("For stationary platforms this is relative to the geoid with 0 degrees being north. For moving platforms this is relative to the platform with 0 degrees being towards the \"front\" of the platform"));
-	AmfNcVariable<degree> elevationVariable(sU("sensor_view_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head elevation angle"), sU("sensor_view_angle"), sci::min<degree>(elevationAngles), sci::max<degree>(elevationAngles), sU("Zero degrees is horizontal, positive is upwards, negative is downwards. For moving platforms this is relative to the platform itself, not the geoid."));
-	AmfNcVariable<metrePerSecond> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), sci::min<metrePerSecond>(dopplerVelocities), sci::max<metrePerSecond>(dopplerVelocities), sU("Positive is away, negative is towards."));
+	AmfNcVariable<degree> azimuthVariable(sU("sensor_azimuth_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head azimuth angle"), sU("sensor_azimuth_angle"), sci::min<degree>(instrumentRelativeAzimuthAngles), sci::max<degree>(instrumentRelativeAzimuthAngles), sU("Relative to the instrument with 0 degrees being to the \"front\" of the instruments."));
+	AmfNcVariable<degree> elevationVariable(sU("sensor_view_angle"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head elevation angle"), sU("sensor_view_angle"), sci::min<degree>(instrumentRelativeElevationAngles), sci::max<degree>(instrumentRelativeElevationAngles), sU("Relative to the instruments with 0 degrees being \"horizontal\", positive being upwards, negative being downwards."));
+	AmfNcVariable<degree> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head azimuth angle Earth Frame"), sU(""), sci::min<degree>(attitudeCorrectedAzimuthAngles), sci::max<degree>(attitudeCorrectedAzimuthAngles), sU("Relative to the geoid with 0 degrees being north."));
+	AmfNcVariable<degree> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning head elevation angle Earth Frame"), sU(""), sci::min<degree>(attitudeCorrectedElevationAngles), sci::max<degree>(attitudeCorrectedElevationAngles), sU("Relative to the geoid with 0 degrees being horizontal, positive being upwards, negative being downwards."));
+	AmfNcVariable<metrePerSecond> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), sci::min<metrePerSecond>(instrumentRelativeDopplerVelocities), sci::max<metrePerSecond>(instrumentRelativeDopplerVelocities), sU("Instrument relative. Positive is away, negative is towards."));
+	AmfNcVariable<metrePerSecond> dopplerVariableEarthFrame(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Radial Velocity of Scatterers Away From Instrument Earth Frame"), sU(""), sci::min<metrePerSecond>(motionCorrectedDopplerVelocities), sci::max<metrePerSecond>(motionCorrectedDopplerVelocities), sU("Motion relative to the geoid in the direction specified by sensor_azimuth_angle_earth_frame and sensor_view_angle_earth_frame. Positive is in the direction specified, negative is in the opposite direction specified."));
 	AmfNcVariable<perSteradianPerMetre> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), sci::min<perSteradianPerMetre>(backscatters), sci::max<perSteradianPerMetre>(backscatters));
 	AmfNcFlagVariable dopplerFlagVariable(sU("radial_velocity_of_scatterers_away_from_instrument_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension });
 	AmfNcFlagVariable backscatterFlagVariable(sU("attenuated_aerosol_backscatter_coefficient_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension });
 
 	file.write(rangeVariable, ranges);
-	file.write(azimuthVariable, azimuthAngles);
-	file.write(elevationVariable, elevationAngles);
-	file.write(dopplerVariable, dopplerVelocities);
+	file.write(azimuthVariable, instrumentRelativeAzimuthAngles);
+	file.write(azimuthVariableEarthFrame, attitudeCorrectedAzimuthAngles);
+	file.write(elevationVariable, instrumentRelativeElevationAngles);
+	file.write(elevationVariableEarthFrame, attitudeCorrectedElevationAngles);
+	file.write(dopplerVariable, instrumentRelativeDopplerVelocities);
+	file.write(dopplerVariableEarthFrame, motionCorrectedDopplerVelocities);
 	file.write(backscatterVariable, backscatters);
 }
