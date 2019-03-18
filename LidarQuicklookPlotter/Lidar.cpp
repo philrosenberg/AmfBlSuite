@@ -91,6 +91,9 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 			else if (nRead % 10 == 0)
 				progressReporter << sU(", ") << nRead - 9 << sU("-") << nRead;
 		}
+		sci::replacenans(m_correctedDopplerVelocities, metrePerSecond(OutputAmfNcFile::getFillValue()));
+		sci::replacenans(m_correctedElevations, degree(OutputAmfNcFile::getFillValue()));
+		sci::replacenans(m_correctedAzimuths, degree(OutputAmfNcFile::getFillValue()));
 		if (progressReporter.shouldStop())
 			break;
 

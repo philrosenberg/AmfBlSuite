@@ -257,8 +257,10 @@ private:
 	{
 		Profile(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, std::shared_ptr<OrientationGrabber> orientationGrabber) : m_VadProcessor(instrumentInfo, calibrationInfo, orientationGrabber) {}
 		std::vector<metre> m_heights;
-		std::vector<degree> m_windDirections;
-		std::vector<metrePerSecond> m_windSpeeds;
+		std::vector<degree> m_instrumentRelativeWindDirections;
+		std::vector<metrePerSecond> m_instrumentRelativeWindSpeeds;
+		std::vector<degree> m_motionCorrectedWindDirections;
+		std::vector<metrePerSecond> m_motionCorrectedWindSpeeds;
 		InstrumentInfo m_instrumentInfo;
 		//sci::UtcTime m_time;
 		LidarWindVadProcessor m_VadProcessor; // have a separate Wind VAD processor for each profile
