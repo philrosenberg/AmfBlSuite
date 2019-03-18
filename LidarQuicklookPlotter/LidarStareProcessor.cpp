@@ -147,6 +147,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	AmfNcFlagVariable dopplerFlagVariable(sU("radial_velocity_of_scatterers_away_from_instrument_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable backscatterFlagVariable(sU("attenuated_aerosol_backscatter_coefficient_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	
+	file.writeTimeAndLocationData(platform);
 
 	file.write(rangeVariable, ranges);
 	file.write(azimuthVariable, instrumentRelativeAzimuthAngles);

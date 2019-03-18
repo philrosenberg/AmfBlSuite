@@ -249,17 +249,17 @@ void mainFrame::process()
 	std::shared_ptr<OrientationGrabber>orientationGrabber(new StaticOrientationGrabber(degree(0.0), degree(0.0), degree(0.0)));
 
 	//process(CeilometerProcessor(), sU("Ceilometer processor"));
-	process(LidarWindProfileProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar Wind Profile processor"));
 	process(LidarWindVadProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar Wind VAD/PPI processor"));
-	process(LidarCopolarisedStareProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar Copolarised Stare processor"));
-	process(LidarCrosspolarisedStareProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar Cross Polarised Stare processor"));
 	process(LidarVadProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar VAD/PPI processor"));
+	process(LidarWindProfileProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar Wind Profile processor"));
 	process(LidarRhiProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar RHI processor"));
 	process(LidarUser1Processor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar User1 processor"));
 	process(LidarUser2Processor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar User2 processor"));
 	process(LidarUser3Processor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar User3 processor"));
 	process(LidarUser4Processor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar User4 processor"));
 	process(LidarUser5Processor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar User5 processor"));
+	process(LidarCopolarisedStareProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar Copolarised Stare processor"));
+	process(LidarCrosspolarisedStareProcessor(m_lidarInfo, m_lidarCalibrationInfo, orientationGrabber), sU("Lidar Cross Polarised Stare processor"));
 	
 	//Tell the user we are done for now
 	if (m_progressReporter->shouldStop())

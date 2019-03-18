@@ -209,6 +209,7 @@ public:
 
 	}
 	virtual void getInstrumentAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const = 0;
+	virtual void getPlatformAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const = 0;
 	virtual bool getFixedAltitude() const = 0;
 private:
 	PlatformInfo m_platformInfo;
@@ -262,6 +263,16 @@ public:
 		elevation = AttitudeAverage(m_elevation, m_elevation, m_elevation, degree(0));
 		azimuth = AttitudeAverage(m_azimuth, m_azimuth, m_azimuth, degree(0));
 		roll = AttitudeAverage(m_roll, m_roll, m_roll, degree(0));
+	}
+	virtual void getPlatformAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const override
+	{
+		elevation.m_mean = std::numeric_limits<degree>::quiet_NaN();
+		elevation.m_min = std::numeric_limits<degree>::quiet_NaN();
+		elevation.m_max = std::numeric_limits<degree>::quiet_NaN();
+		elevation.m_stdev = std::numeric_limits<degree>::quiet_NaN();
+		azimuth = elevation;
+		roll = elevation;
+
 	}
 	virtual bool getFixedAltitude() const override
 	{
@@ -468,7 +479,9 @@ public:
 		m_altitude = altitude;
 		m_latitudes = latitudes;
 		m_longitudes = longitudes;
+		m_shipElevations = shipElevations;
 		m_shipAzimuths = shipAzimuths;
+		m_shipRolls = shipRolls;
 		m_shipCourses = shipCourses;
 		m_shipSpeeds = shipSpeeds;
 
@@ -654,6 +667,18 @@ public:
 		azimuth.m_max -= azimuthOffset;
 		azimuth.m_min -= azimuthOffset;
 	}
+	virtual void getPlatformAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const override
+	{
+		findStatistics(startTime, endTime, m_shipElevations, elevation.m_mean, elevation.m_stdev, elevation.m_min, elevation.m_max, elevation.m_rate);
+		findStatistics(startTime, endTime, m_shipAzimuthsNoJumps, azimuth.m_mean, azimuth.m_stdev, azimuth.m_min, azimuth.m_max, azimuth.m_rate);
+		findStatistics(startTime, endTime, m_shipRolls, roll.m_mean, roll.m_stdev, roll.m_min, roll.m_max, roll.m_rate);
+		degree azimuthOffset = sci::floor(azimuth.m_mean / degree(360))*degree(360);
+		if (azimuth.m_mean - azimuthOffset > degree(180))
+			azimuthOffset += degree(180);
+		azimuth.m_mean -= azimuthOffset;
+		azimuth.m_max -= azimuthOffset;
+		azimuth.m_min -= azimuthOffset;
+	}
 	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
 	{
 		sinInstrumentElevation = findMean(startTime, endTime, m_sinInstrumentElevationsAbsolute);
@@ -678,7 +703,9 @@ private:
 	std::vector<degree> m_instrumentAzimuthsAbsoluteNoJumps;
 	std::vector<degree> m_instrumentRollsAbsolute;
 	std::vector<degree> m_shipCourses;
+	std::vector<degree> m_shipElevations;
 	std::vector<degree> m_shipAzimuths;
+	std::vector<degree> m_shipRolls;
 	std::vector<degree> m_shipCoursesNoJumps;
 	std::vector<degree> m_shipAzimuthsNoJumps;
 	std::vector<metrePerSecond> m_shipSpeeds;
@@ -708,8 +735,8 @@ private:
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
 		size_t endUpperIndex = std::min(endLowerIndex + 1, m_times.size() - 1);
-		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex);
-		std::vector<T> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex);
+		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex+1);
+		std::vector<T> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex+1);
 		return sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
 	}
 	template<class T>
@@ -736,14 +763,14 @@ private:
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
 		size_t endUpperIndex = std::min(endLowerIndex + 1, m_times.size() - 1);
-		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex);
-		std::vector<degree> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex);
+		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex+1);
+		std::vector<degree> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex+1);
 		mean = sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
 		min = sci::min<T>(subProperty);
 		max = sci::max<T>(subProperty);
 		size_t lowerIndexStart = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
-		size_t lowerIndexEnd = std::min(findLowerIndex(startTime, false), m_times.size() - 1);
-		rate = (sci::linearinterpolate(startTime, m_times[lowerIndexEnd], m_times[lowerIndexEnd + 1], property[lowerIndexEnd], property[lowerIndexEnd + 1]) - sci::linearinterpolate(startTime, m_times[lowerIndexStart], m_times[lowerIndexStart + 1], property[lowerIndexStart], property[lowerIndexStart + 1]))/(endTime-startTime);
+		size_t lowerIndexEnd = std::min(findLowerIndex(endTime, false), m_times.size() - 1);
+		rate = (sci::linearinterpolate(endTime, m_times[lowerIndexEnd], m_times[lowerIndexEnd + 1], property[lowerIndexEnd], property[lowerIndexEnd + 1]) - sci::linearinterpolate(startTime, m_times[lowerIndexStart], m_times[lowerIndexStart + 1], property[lowerIndexStart], property[lowerIndexStart + 1]))/(endTime-startTime);
 		std::vector<decltype(subProperty[0] * subProperty[0])>subPropertySquared(subProperty.size());
 		for(size_t i=0; i<subProperty.size(); ++i)
 			subPropertySquared[i] = sci::pow<2>(subProperty[i] - mean);
@@ -1012,6 +1039,7 @@ private:
 	std::vector<degreePerSecond> m_rollRates;
 	std::vector<degree> m_courses;
 	std::vector<metrePerSecond> m_speeds;
+	std::vector<degree> m_headings;
 };
 
 

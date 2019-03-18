@@ -2,14 +2,14 @@
   <!--This file contains the settings for a run of the processing software-->
   <author type ="amfEntity/person" id="1"></author>
   <project type="amfEntity/project" id="1"></project>
-  <platform type="amfEntity/platform" id="1"></platform>
+  <platform type="amfEntity/platform" id="3"></platform>
   <lidarInstrument type="amfEntity/instrument" id="1"></lidarInstrument>
   <lidarCalibrationInfo type="amfEntity/calibrationInfo" id="1"></lidarCalibrationInfo>
   <ceiometerInstrument type="amfEntity/instrument" id="2"></ceiometerInstrument>
 
   <comment>This is a test file</comment>
-  <inputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Mob data\</inputDirectory>
-  <outputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Mob data\nctest\</outputDirectory>
+  <inputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Lidar_Test\Proc\</inputDirectory>
+  <outputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Lidar_Test\nctest2\</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>
   <!--<startTime>
@@ -30,19 +30,19 @@
   </endTime>-->
   <startTime>
     <year>2018</year>
-    <month>7</month>
-    <day>11</day>
-    <hour>15</hour>
+    <month>1</month>
+    <day>1</day>
+    <hour>0</hour>
     <minute>0</minute>
     <second>0</second>
   </startTime>
   <endTime>
-    <year>2018</year>
-    <month>7</month>
-    <day>11</day>
-    <hour>17</hour>
-    <minute>59</minute>
-    <second>59.999</second>
+    <year>2019</year>
+    <month>1</month>
+    <day>1</day>
+    <hour>0</hour>
+    <minute>0</minute>
+    <second>0</second>
   </endTime>
   <startImmediately>true</startImmediately>
   <checkForNewFiles>false</checkForNewFiles>

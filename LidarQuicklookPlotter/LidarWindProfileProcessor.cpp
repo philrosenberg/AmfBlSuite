@@ -107,12 +107,12 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 
 
 			//correct for instrument misalignment
-			thisProfile.m_motionCorrectedWindDirections = thisProfile.m_motionCorrectedWindDirections;
+			thisProfile.m_motionCorrectedWindDirections = thisProfile.m_instrumentRelativeWindDirections;
 			degree windElevation;
 			for (size_t j = 0; j < thisProfile.m_motionCorrectedWindDirections.size(); ++j)
 			{
 				platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_VadProcessor.getTimesUtcTime().back(), thisProfile.m_motionCorrectedWindDirections[j], degree(0.0), thisProfile.m_motionCorrectedWindDirections[j], windElevation);
-				if (thisProfile.m_motionCorrectedWindDirections[j] < degree(180.0))
+				if (thisProfile.m_motionCorrectedWindDirections[j] < degree(-180.0))
 					thisProfile.m_motionCorrectedWindDirections[j] += degree(360.0);
 			}
 			//correct for instrument height

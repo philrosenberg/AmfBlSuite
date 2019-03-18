@@ -59,7 +59,7 @@ void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime>
 		elevations[i] = degree(elevationsUnitless[i]);
 		azimuths[i] = degree(azimuthsUnitless[i]);
 		rolls[i] = degree(rollsUnitless[i]);
-		speeds[i] = metrePerSecond(speeds[i]);
+		speeds[i] = metrePerSecond(speedsUnitless[i]);
 		courses[i] = degree(coursesUnitless[i]);
 	}
 	altitudes.resize(altitudesUnitless.size());
@@ -445,12 +445,12 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node)
 		double roll_degree;
 
 		std::vector<nameVarPair<double>> valueLinks
-		{ nameVarPair<double>(sU("latitude_degree"), &(latitude_degree)),
-			nameVarPair<double>(sU("longitude_degree"), &(longitude_degree)),
-			nameVarPair<double>(sU("altitude_m"), &(altitude_m)),
-			nameVarPair<double>(sU("elevation_degree"), &(elevation_degree)),
-			nameVarPair<double>(sU("azimuth_degree"), &(azimuth_degree)),
-			nameVarPair<double>(sU("roll_degree"), &(roll_degree))
+		{ nameVarPair<double>(sU("latitudeDegree"), &(latitude_degree)),
+			nameVarPair<double>(sU("longitudeDegree"), &(longitude_degree)),
+			nameVarPair<double>(sU("altitudeMetres"), &(altitude_m)),
+			nameVarPair<double>(sU("elevationDegree"), &(elevation_degree)),
+			nameVarPair<double>(sU("azimuthDegree"), &(azimuth_degree)),
+			nameVarPair<double>(sU("rollDegree"), &(roll_degree))
 		};
 		parseXmlNode(node, valueLinks.begin(), valueLinks.end());
 		bool allRead = true;

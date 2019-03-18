@@ -32,15 +32,15 @@
     <type>moving</type>
     <deploymentMode>sea</deploymentMode>
     <!--AltitudeMetres is the altitude relative to the sea line of the ship-->
-    <altitudeMetres>0</altitudeMetres>
+    <altitudeMetres>9</altitudeMetres>
     <!--The attitude variables are of the instrument relative to the ship-->
     <elevationDegree>0</elevationDegree>
-    <azimuthDegree>180</azimuthDegree>
+    <azimuthDegree>0</azimuthDegree>
     <rollDegree> 0</rollDegree>
     <locationKeyword>Arctic</locationKeyword>
     <locationKeyword>Sweden</locationKeyword>
     <locationKeyword>Norway</locationKeyword>
-    <locationFile>OdenLocationData.csv</locationFile>
+    <locationFile>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\MocchaLidarMotion.nc</locationFile>
     <platformRelative>false</platformRelative>
   </platform>
   
@@ -67,6 +67,8 @@
     <type>stationary</type>
     <deploymentMode>land</deploymentMode>
     <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->
+    <latitudeDegree>53.81</latitudeDegree>
+    <longitudeDegree>-1.56</longitudeDegree>
     <altitudeMetres>80</altitudeMetres>
     <elevationDegree>0</elevationDegree>
     <azimuthDegree>0</azimuthDegree>
