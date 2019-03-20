@@ -1,4 +1,5 @@
 #include"Setup.h"
+#include"ProgressReporter.h"
 
 //Rules for file format
 //The file must be netcdf.
@@ -11,26 +12,53 @@
 //data do not need to be equally spaced, but if there is missing data this should be indicated with a nan. If there is missing
 //data for all parameters then add a valid time within the period of missing data and set all parameters to nan. This will
 //stop the code interpolating accross missing data periods.
-void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime> &times, std::vector<degree> &latitudes, std::vector<degree> &longitudes, std::vector<metre> &altitudes, std::vector<degree> &elevations, std::vector<degree> &azimuths, std::vector<degree> &rolls, std::vector<degree> &courses, std::vector<metrePerSecond> &speeds)
+void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime> &times, std::vector<degree> &latitudes, std::vector<degree> &longitudes, std::vector<metre> &altitudes, std::vector<degree> &elevations, std::vector<degree> &azimuths, std::vector<degree> &rolls, std::vector<degree> &courses, std::vector<metrePerSecond> &speeds, ProgressReporter &progressReporter)
 {
 	sci::InputNcFile file(locationFile);
 
 	std::vector<sci::string> names = file.getVariableNames();
 
+	progressReporter << sU("Reading platform time data.\n");
 	std::vector<double> timesUnitless = file.getVariable<double>(sU("time"));
+	if (progressReporter.shouldStop())
+		return;
+	progressReporter << sU("Reading platform latitude data.\n");
 	std::vector<double> latitudesUnitless = file.getVariable<double>(sU("latitude"));
+	if (progressReporter.shouldStop())
+		return;
+	progressReporter << sU("Reading platform longitude data.\n");
 	std::vector<double> longitudesUnitless = file.getVariable<double>(sU("longitude"));
+	if (progressReporter.shouldStop())
+		return;
+	progressReporter << sU("Reading platform elevation data.\n");
 	std::vector<double> elevationsUnitless = file.getVariable<double>(sU("elevation"));
+	if (progressReporter.shouldStop())
+		return;
+	progressReporter << sU("Reading platform azimuth data.\n");
 	std::vector<double> azimuthsUnitless = file.getVariable<double>(sU("azimuth"));
+	if (progressReporter.shouldStop())
+		return;
+	progressReporter << sU("Reading platform roll data.\n");
 	std::vector<double> rollsUnitless = file.getVariable<double>(sU("roll"));
+	if (progressReporter.shouldStop())
+		return;
+	progressReporter << sU("Reading platform course data.\n");
 	std::vector<double> coursesUnitless = file.getVariable<double>(sU("course"));
+	if (progressReporter.shouldStop())
+		return;
+	progressReporter << sU("Reading platform speed data.\n");
 	std::vector<double> speedsUnitless = file.getVariable<double>(sU("speed"));
+	if (progressReporter.shouldStop())
+		return;
 
+	progressReporter << sU("Reading platform altitude data.\n");
 	std::vector<double> altitudesUnitless;
 	if (sci::anyTrue(names == sci::string(sU("altitude"))))
 		altitudesUnitless = file.getVariable<double>(sU("altitude"));
 	else
 		altitudesUnitless = std::vector<double>{ file.getGlobalAttribute<double>(sU("altitude")) };
+	if (progressReporter.shouldStop())
+		return;
 
 	sci::assertThrow(latitudesUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the latitude variable has a different numer of elements to the time variable.")));
 	sci::assertThrow(longitudesUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the longitude variable has a different numer of elements to the time variable.")));
@@ -42,7 +70,7 @@ void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime>
 	
 	sci::assertThrow(altitudesUnitless.size() == timesUnitless.size() || altitudesUnitless.size() == 1, sci::err(sci::SERR_USER, 0, sU("When reading location file, the altitude variable has a different numer of elements to the time variable.")));
 
-
+	progressReporter << sU("Performing an internal copy of the position and attitude data.\n");
 	times.resize(timesUnitless.size());
 	latitudes.resize(timesUnitless.size());
 	longitudes.resize(timesUnitless.size());
@@ -408,7 +436,7 @@ ProjectInfo parseProjectInfo(wxXmlNode *node, wxXmlNode *infoNode)
 	return result;
 }
 
-std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node)
+std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &progressReporter)
 {
 	sci::string name;
 	sci::string platformType;
@@ -503,9 +531,14 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node)
 		std::vector<degree> rolls;
 		std::vector<degree> courses;
 		std::vector<metrePerSecond> speeds;
-		readLocationData(locationFile, times, latitudes, longitudes, altitudes, elevations, azimuths, rolls, courses, speeds);
+
+		readLocationData(locationFile, times, latitudes, longitudes, altitudes, elevations, azimuths, rolls, courses, speeds, progressReporter);
+		if (progressReporter.shouldStop())
+			return nullptr;
+		
 		if (deploymentMode == sU("sea"))
 		{
+			progressReporter << sU("Generating motion correction parameters for the platform.\n");
 			if(platformRelative)
 				return std::shared_ptr<Platform>(new ShipPlatformShipRelativeCorrected(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
 			else
@@ -529,10 +562,12 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 {
 	wxXmlDocument info;
 	info.Load(sci::nativeUnicode(infoFilename));
+	sci::assertThrow(info.IsOk(), sci::err(sci::SERR_USER, 0, sU("Could not open the info.xml file.")));
 	wxXmlNode *infoNode = info.GetRoot();
 
 	wxXmlDocument settings;
 	settings.Load(sci::nativeUnicode(setupFilename));
+	sci::assertThrow(settings.IsOk(), sci::err(sci::SERR_USER, 0, sU("Could not open the processing setting xml file ") +setupFilename +sU(".")));
 	wxXmlNode *settingsNode = settings.GetRoot();
 
 	sci::assertThrow(settingsNode->GetName() == sci::nativeUnicode(sU("processingSettings")), sci::err(sci::SERR_USER, 0, "Found incorrect root node in processing settings xml file."));
@@ -561,31 +596,40 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 			node = child;
 		if (child->GetName() == sci::nativeUnicode(sU("author")))
 		{
+			progressReporter << sU("Found author data.\n");
 			author = parsePersonInfo(node);
 			gotAuthor = true;
 		}
 		else if (child->GetName() == sci::nativeUnicode(sU("project")))
 		{
+			progressReporter << sU("Found project data.\n");
 			projectInfo = parseProjectInfo(node, infoNode);
 			gotProjectInfo = true;
 		}
 		else if (child->GetName() == sci::nativeUnicode(sU("platform")))
 		{
-			platform = parsePlatformInfo(node);
+			progressReporter << sU("Found platform data.\n");
+			platform = parsePlatformInfo(node, progressReporter);
+			if (progressReporter.shouldStop())
+				return;
 			gotPlatform = true;
 		}
 		else if (child->GetName() == sci::nativeUnicode(sU("lidarInstrument")))
 		{
+			progressReporter << sU("Found lidar instrumnent data.\n");
 			lidarInstrumentInfo = parseInstrumentInfo(node);
 			gotLidarInfo = true;
 			gotAtLeastOneInstrument = true;
 		}
 		else if (child->GetName() == sci::nativeUnicode(sU("lidarCalibrationInfo")))
 		{
+			progressReporter << sU("Found lidar calibration data.\n");
 			lidarCalibrationInfo = parseCalibrationInfo(node);
 			gotLidarCalibrationInfo = true;
 		}
 		child = child->GetNext();
+		if (progressReporter.shouldStop())
+			return;
 	}
 	sci::assertThrow(gotAuthor, sci::err(sci::SERR_USER, 0, "Did not find the author element in the settings xml file."));
 	sci::assertThrow(gotProjectInfo, sci::err(sci::SERR_USER, 0, "Did not find the project element in the settings xml file."));
@@ -593,4 +637,17 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 	sci::assertThrow(gotAtLeastOneInstrument, sci::err(sci::SERR_USER, 0, "Did not find any instrument elements in the settings xml file."));
 	sci::assertThrow((!gotLidarInfo && !gotLidarCalibrationInfo) || (gotLidarInfo && gotLidarCalibrationInfo), sci::err(sci::SERR_USER, 0, sU("The setings file must either have both lidarInfo and lidarCalibrationInfo or neither of them. Found just one of these while parsing the settings xml.")));
 
+}
+
+void setupProcessingOptionsOnly(sci::string setupFilename, ProcessingOptions &processingOptions)
+{
+	wxXmlDocument settings;
+	settings.Load(sci::nativeUnicode(setupFilename));
+	sci::assertThrow(settings.IsOk(), sci::err(sci::SERR_USER, 0, sU("Could not open the processing setting xml file ") + setupFilename + sU(".")));
+	wxXmlNode *settingsNode = settings.GetRoot();
+
+	sci::assertThrow(settingsNode->GetName() == sci::nativeUnicode(sU("processingSettings")), sci::err(sci::SERR_USER, 0, "Found incorrect root node in processing settings xml file."));
+
+	//parse top level processing options
+	processingOptions = parseProcessingOptions(settingsNode);
 }

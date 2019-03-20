@@ -17,8 +17,7 @@
 const int mainFrame::ID_FILE_EXIT = ::wxNewId();
 const int mainFrame::ID_FILE_RUN = ::wxNewId();
 const int mainFrame::ID_FILE_STOP = ::wxNewId();
-const int mainFrame::ID_FILE_SELECT_INPUT_DIR = ::wxNewId();
-const int mainFrame::ID_FILE_SELECT_OUTPUT_DIR = ::wxNewId();
+const int mainFrame::ID_FILE_SELECT_SETUP_FILE = ::wxNewId();
 const int mainFrame::ID_HELP_ABOUT = ::wxNewId();
 const int mainFrame::ID_CHECK_DATA_TIMER = ::wxNewId();
 const int mainFrame::ID_INSTANT_CHECK_DATA_TIMER = ::wxNewId();
@@ -27,8 +26,7 @@ BEGIN_EVENT_TABLE(mainFrame, wxFrame)
 EVT_MENU(ID_FILE_EXIT, mainFrame::OnExit)
 EVT_MENU(ID_FILE_RUN, mainFrame::OnRun)
 EVT_MENU(ID_FILE_STOP, mainFrame::OnStop)
-EVT_MENU(ID_FILE_SELECT_INPUT_DIR, mainFrame::OnSelectInputDir)
-EVT_MENU(ID_FILE_SELECT_OUTPUT_DIR, mainFrame::OnSelectOutputDir)
+EVT_MENU(ID_FILE_SELECT_SETUP_FILE, mainFrame::OnSelectSetupFile)
 EVT_MENU(ID_HELP_ABOUT, mainFrame::OnAbout)
 EVT_TIMER(ID_CHECK_DATA_TIMER, mainFrame::OnCheckDataTimer)
 EVT_TIMER(ID_INSTANT_CHECK_DATA_TIMER, mainFrame::OnCheckDataTimer)
@@ -56,6 +54,8 @@ private:
 mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &settingsFile)
 	: wxFrame(frame, -1, title)
 {
+	setSetupFile(sci::fromWxString(settingsFile));
+
 	m_processingSoftwareInfo.url = sU("https://github.com/philrosenberg/AmfBlSuite.git");
 	m_processingSoftwareInfo.version = sU("beta");
 
@@ -64,8 +64,7 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &sett
 	fileMenu->Append(ID_FILE_EXIT, wxT("E&xit\tAlt+F4"), wxT("Exit the application"));
 	fileMenu->Append(ID_FILE_RUN, wxT("Run\tCtrl+R"), wxT("Run Code"));
 	fileMenu->Append(ID_FILE_STOP, wxT("Stop\tCtrl+X"), wxT("Stop Code"));
-	fileMenu->Append(ID_FILE_SELECT_INPUT_DIR, wxT("Select Input Dir"), wxT("Select directory to search for data files"));
-	fileMenu->Append(ID_FILE_SELECT_OUTPUT_DIR, wxT("Select Output Dir"), wxT("Select directory to store plots"));
+	fileMenu->Append(ID_FILE_SELECT_SETUP_FILE, wxT("Select Setup File"), wxT("Select xml file containing the processing parameters"));
 	mbar->Append(fileMenu, wxT("&File"));
 
 	wxMenu* helpMenu = new wxMenu(wxT(""));
@@ -93,23 +92,13 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &sett
 	m_progressReporter.reset(new TextCtrlProgressReporter(m_logText, true, this));
 	m_progressReporter->setShouldStop(true);
 
-	if (settingsFile.length() > 0)
+	try
 	{
-		try
-		{
-			setup(sci::fromWxString(settingsFile), sU("info.xml"), *m_progressReporter, m_processingOptions, m_author, m_projectInfo, m_platform, m_lidarInfo, m_lidarCalibrationInfo);
-		}
-		catch (sci::err err)
-		{
-			ErrorSetter setter(m_progressReporter.get());
-			(*m_progressReporter) << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
-		}
-		catch (std::exception err)
-		{
-			ErrorSetter setter(m_progressReporter.get());
-			(*m_progressReporter) << err.what() << "\n";
-		}
+		if(m_setupFileName.length() > 0)
+			setupProcessingOptionsOnly(m_setupFileName, m_processingOptions);
 	}
+	catch(...)
+	{ }
 
 	if (m_processingOptions.startImmediately)
 		start();
@@ -149,34 +138,59 @@ void mainFrame::OnStop(wxCommandEvent& event)
 	stop();
 }
 
-void mainFrame::OnSelectInputDir(wxCommandEvent& event)
+void mainFrame::OnSelectSetupFile(wxCommandEvent& event)
 {
 	if (m_plotting || !m_progressReporter->shouldStop())
 	{
-		wxMessageBox("Please stop processing before attempting to change a directory.");
+		wxMessageBox("Please stop processing before attempting to change the setup file.");
 		return;
 	}
-	sci::string dir = sci::fromWxString(wxDirSelector("Select the input directory to search for data files.",sci::nativeUnicode(m_processingOptions.inputDirectory), wxDD_DIR_MUST_EXIST|wxDD_CHANGE_DIR));
-	if (dir.length() == 0)
-		return;
-	m_processingOptions.inputDirectory = dir;
-	(*m_progressReporter) << sU("Input directory changed to ") << m_processingOptions.inputDirectory << sU("\n");
-}
-
-void mainFrame::OnSelectOutputDir(wxCommandEvent& event)
-{
-	if (m_plotting || !m_progressReporter->shouldStop())
+	wxString defaultDir = wxGetCwd();
+	wxString defaultFileName = wxEmptyString;
+	if (m_setupFileName.length() > 0)
 	{
-		wxMessageBox("Please stop processing before attempting to change a directory.");
-		return;
+		wxFileName currentFile(sci::nativeUnicode(m_setupFileName));
+		defaultDir = currentFile.GetPath();
+		defaultFileName = currentFile.GetFullName();
 	}
-	sci::string dir = sci::fromWxString(wxDirSelector("Select the output directory to store plots.", sci::nativeUnicode(m_processingOptions.outputDirectory), wxDD_DIR_MUST_EXIST | wxDD_CHANGE_DIR));
-	if (dir.length() == 0)
+	sci::string filename = sci::fromWxString(wxFileSelector("Select the xml setup file.",defaultDir, defaultFileName, wxEmptyString, wxFileSelectorDefaultWildcardStr, wxFD_FILE_MUST_EXIST|wxFD_OPEN));
+	if (filename.length() == 0)
 		return;
-	m_processingOptions.outputDirectory = dir;
-	(*m_progressReporter) << sU("Output directory changed to ") << m_processingOptions.outputDirectory << sU("\n");
+	setSetupFile(filename);
+	(*m_progressReporter) << sU("Setup file changed to ") << m_setupFileName << sU("\n");
 }
 
+void mainFrame::setSetupFile(sci::string setupFileName)
+{
+	m_setupFileName = setupFileName;
+	m_isSetup = false;
+}
+
+void mainFrame::readSetupFile()
+{
+	(*m_progressReporter) << "Reading setup information. For a moving platform this can take some time while the position data is read.\n";
+	try
+	{
+		setup(m_setupFileName, sU("info.xml"), *m_progressReporter, m_processingOptions, m_author, m_projectInfo, m_platform, m_lidarInfo, m_lidarCalibrationInfo);
+		if (m_progressReporter->shouldStop())
+			(*m_progressReporter) << sU("Reading setup data halted at the users request. Processing will stop.\n\n");
+		m_isSetup = true;
+	}
+	catch (sci::err err)
+	{
+		ErrorSetter setter(m_progressReporter.get());
+		(*m_progressReporter) << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
+	}
+	catch (std::exception err)
+	{
+		ErrorSetter setter(m_progressReporter.get());
+		(*m_progressReporter) << err.what() << "\n";
+	}
+	if (m_isSetup)
+		(*m_progressReporter) << sU("Setup data read successfully\n\n");
+	else
+		(*m_progressReporter) << sU("Reading setup data failed\n\n");
+}
 
 void mainFrame::start()
 {
@@ -244,6 +258,13 @@ void mainFrame::process()
 	//user interaction and screen updates which may allow this function
 	//to get called again when we are not ready for it.
 	ProcessFlagger plottingFlagger(&m_plotting);
+
+	//check if we have the setup data - if not then read it
+	if(!m_isSetup)
+		readSetupFile();
+	//if this did not work for some reason then return
+	if (!m_isSetup)
+		return;
 
 
 	std::shared_ptr<OrientationGrabber>orientationGrabber(new StaticOrientationGrabber(degree(0.0), degree(0.0), degree(0.0)));

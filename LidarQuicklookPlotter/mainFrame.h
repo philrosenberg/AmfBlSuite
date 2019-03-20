@@ -22,8 +22,7 @@ public:
 	static const int ID_FILE_EXIT;
 	static const int ID_FILE_RUN;
 	static const int ID_FILE_STOP;
-	static const int ID_FILE_SELECT_INPUT_DIR;
-	static const int ID_FILE_SELECT_OUTPUT_DIR;
+	static const int ID_FILE_SELECT_SETUP_FILE;
 	static const int ID_HELP_ABOUT;
 	static const int ID_CHECK_DATA_TIMER;
 	static const int ID_INSTANT_CHECK_DATA_TIMER;
@@ -35,8 +34,7 @@ private:
 	void OnRun(wxCommandEvent& event);
 	void OnStop(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
-	void OnSelectInputDir(wxCommandEvent& event);
-	void OnSelectOutputDir(wxCommandEvent& event);
+	void OnSelectSetupFile(wxCommandEvent& event);
 	void OnCheckDataTimer(wxTimerEvent& event);
 
 	wxTextCtrl *m_logText;
@@ -46,6 +44,8 @@ private:
 	bool m_plotting;
 	std::unique_ptr<TextCtrlProgressReporter> m_progressReporter;
 
+	bool m_isSetup;
+	sci::string m_setupFileName;
 	PersonInfo m_author;
 	ProcessingSoftwareInfo m_processingSoftwareInfo;
 	ProjectInfo m_projectInfo;
@@ -55,7 +55,8 @@ private:
 	ProcessingOptions m_processingOptions;
 	//int m_processingLevel;
 
-
+	void setSetupFile(sci::string setupFileName);
+	void readSetupFile();
 	void start();
 	void stop();
 	void process();
