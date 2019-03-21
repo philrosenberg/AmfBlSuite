@@ -13,6 +13,21 @@ void LidarBackscatterDopplerProcessor::readData(const std::vector<sci::string> &
 {
 	for (size_t i = 0; i < inputFilenames.size(); ++i)
 	{
+		//after reading the first file reserve space for the remaining files. This
+		//can speed things up a lot
+		if (i == 1)
+		{
+			size_t reserveSize = m_profiles.size()*(inputFilenames.size() + 1); // the +1 gives a bit of slack
+			m_profiles.reserve(reserveSize);
+			m_hplHeaders.reserve(reserveSize);
+			m_headerIndex.reserve(reserveSize);
+			m_betaFlags.reserve(reserveSize);
+			m_dopplerFlags.reserve(reserveSize);
+			m_correctedAzimuths.reserve(reserveSize);
+			m_correctedElevations.reserve(reserveSize);
+			m_correctedDopplerVelocities.reserve(reserveSize);
+		}
+
 		readData(inputFilenames[i], platform, progressReporter, parent, i == 0);
 		if (progressReporter.shouldStop())
 			break;
