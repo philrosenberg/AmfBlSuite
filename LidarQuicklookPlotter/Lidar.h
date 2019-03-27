@@ -3,6 +3,7 @@
 #include<svector/svector.h>
 #include<svector/sstring.h>
 #include<svector/serr.h>
+#include"InstrumentProcessor.h"
 #include"HplHeader.h"
 #include"Units.h"
 #include"AmfNc.h"

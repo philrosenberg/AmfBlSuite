@@ -1,7 +1,7 @@
 #include "FolderChangesLister.h"
 #include<fstream>
 #include<algorithm>
-#include"Plotting.h"
+#include"InstrumentProcessor.h"
 
 void FolderChangesLister::clearSnapshotFile()
 {
