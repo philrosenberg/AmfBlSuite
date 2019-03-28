@@ -403,7 +403,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 			{
 				//readData takes an array of files that will all be processed and plotted together
 				//and put in a single netcdf. To process just one file we make an array with just one filename
-				processor.readData({ newPlotFiles[i] }, platform, *m_progressReporter, this);
+				processor.readData({ newPlotFiles[i] }, platform, *m_progressReporter);
 
 				if (m_progressReporter->shouldStop())
 				{
@@ -460,7 +460,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 			(*m_progressReporter) << sU("\nReading...\n\n");
 			try
 			{
-				processor.readData(dayFileSets[i], platform, *m_progressReporter, this);
+				processor.readData(dayFileSets[i], platform, *m_progressReporter);
 
 				if (m_progressReporter->shouldStop())
 				{

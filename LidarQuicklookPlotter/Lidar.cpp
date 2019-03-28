@@ -9,7 +9,7 @@
 #include<svector/sstring.h>
 #include"ProgressReporter.h"
 
-void LidarBackscatterDopplerProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarBackscatterDopplerProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter)
 {
 	for (size_t i = 0; i < inputFilenames.size(); ++i)
 	{
@@ -28,12 +28,12 @@ void LidarBackscatterDopplerProcessor::readData(const std::vector<sci::string> &
 			m_correctedDopplerVelocities.reserve(reserveSize);
 		}
 
-		readData(inputFilenames[i], platform, progressReporter, parent, i == 0);
+		readData(inputFilenames[i], platform, progressReporter, i == 0);
 		if (progressReporter.shouldStop())
 			break;
 	}
 }
-void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent, bool clear)
+void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename, const Platform &platform, ProgressReporter &progressReporter, bool clear)
 {
 	if (clear)
 	{

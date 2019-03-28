@@ -9,7 +9,7 @@
 #include<wx/filename.h>
 #include"AmfNc.h"
 
-void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter)
 {
 	m_hasData = false;
 	m_profiles.clear();
@@ -100,7 +100,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 
 			//now read the hpl file
 			progressReporter << sU("Reading matching ray data file\n");
-			thisProfile.m_VadProcessor.readData({ hplFilenames[i] }, platform, progressReporter, parent);
+			thisProfile.m_VadProcessor.readData({ hplFilenames[i] }, platform, progressReporter);
 
 			//check that we actually found some VAD data
 			sci::assertThrow(thisProfile.m_VadProcessor.getTimesUtcTime().size() > 0, sci::err(sci::SERR_USER, 0, "Could not read VAD data to accompany wind profile data. Aborting read."));

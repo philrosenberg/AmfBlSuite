@@ -183,14 +183,14 @@ sci::UtcTime getCeilometerTime(const sci::string &timeDateString)
 	return result;
 }
 
-void CeilometerProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter, wxWindow *parent)
+void CeilometerProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter)
 {
 	for (size_t i = 0; i < inputFilenames.size(); ++i)
 	{
-		readData(inputFilenames[i], progressReporter, parent, i == 0);
+		readData(inputFilenames[i], progressReporter, i == 0);
 	}
 }
-void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressReporter &progressReporter, wxWindow *parent, bool clearPrevious)
+void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressReporter &progressReporter, bool clearPrevious)
 {
 	if (clearPrevious)
 	{
