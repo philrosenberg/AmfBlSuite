@@ -17,6 +17,23 @@ struct ProcessingOptions;
 class InstrumentProcessor
 {
 public:
+	//a note on regexes for the constructor. \ is the escape character in the regex. It is also the escape character
+	//in C++, so \\ creates an escape character in the regex (e.g. \\t for a tab) or if you actually want an escaped
+	//forward slash you need to use 4 of them (e.g. \\\\).
+	//[] means any character in the bracket. Combined with the escaping above this gives [/\\\\] meaning either a unix
+	//or windows path delimiter.
+	//. means any character
+	//$ means the end of the string
+	//^ means the beginning of the string
+	//so the following might be a typical regex
+	// [/\\\\^]........_......_myInstrument\\.ext
+	//which is a file that has the following either fate a slash of any type or the start of the filename:
+	//8 characters (maybe a date)
+	//an undercore
+	//6 characters (maybe a time)
+	//_myInstrument
+	//a . (escaped)
+	//ext
 	InstrumentProcessor(sci::string fileSearchRegEx) : m_fileSearchRegEx(fileSearchRegEx) {}
 	virtual ~InstrumentProcessor() {}
 	//virtual void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
