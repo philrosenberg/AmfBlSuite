@@ -150,6 +150,7 @@ void MicroRainRadarProcessor::readData(const sci::string &inputFilename, const P
 				return;
 			}
 			m_hasData = true;
+			sci::assertThrow(fin.good(), sci::err(sci::SERR_USER, 0, sU("Read of file failed - it may be locked or inaccessible.")));
 		}
 	}
 	catch (...)

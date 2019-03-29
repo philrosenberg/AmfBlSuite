@@ -65,6 +65,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 
 			size_t nPoints;
 			fin >> nPoints;
+			sci::assertThrow(fin.good(), sci::err(sci::SERR_USER, 0, sU("Read of file failed - it may be locked or inaccessible.")));
 
 			thisProfile.m_heights.resize(nPoints);
 			thisProfile.m_instrumentRelativeWindDirections.resize(nPoints);
@@ -73,7 +74,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 			for (size_t j = 0; j < nPoints; ++j)
 			{
 				fin >> thisProfile.m_heights[j] >> thisProfile.m_instrumentRelativeWindDirections[j] >> thisProfile.m_instrumentRelativeWindSpeeds[j];
-				sci::assertThrow(!fin.fail(), sci::err(sci::SERR_USER, 0, sU("When opening file ") + processedFilenames[i] + sU(" some lines were missing.")));
+				sci::assertThrow(!fin.eof(), sci::err(sci::SERR_USER, 0, sU("When opening file ") + processedFilenames[i] + sU(" some lines were missing.")));
 
 				//get the time from the filename.
 				/*int year;
@@ -91,6 +92,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 				sci::istringstream(processedFilenames[i].substr(dateStart + 13, 2)) >> second;
 				m_profiles[i].m_time = sci::UtcTime(year, month, day, hour, minute, second);*/
 			}
+			sci::assertThrow(fin.good(), sci::err(sci::SERR_USER, 0, sU("Read of file failed - it may be locked or inaccessible.")));
 			fin.close();
 			if (progressReporter.shouldStop())
 			{

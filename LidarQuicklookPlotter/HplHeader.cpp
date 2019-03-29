@@ -105,6 +105,7 @@ void readHeaderLine(std::istream &stream, T &variable, const std::string &name)
 {
 	std::string tempString;
 	std::getline(stream, tempString);
+	sci::assertThrow(stream.good(), sci::err(sci::SERR_USER, 0, sU("Read of file failed - it may be locked or inaccessible.")));
 	size_t colonPosition = std::numeric_limits<size_t>::max();
 	size_t valueStartPosition = std::numeric_limits<size_t>::max();
 	for (size_t i = 0; i < tempString.size(); ++i)
@@ -118,7 +119,7 @@ void readHeaderLine(std::istream &stream, T &variable, const std::string &name)
 	}
 	std::string foundName = tempString.substr(0, colonPosition);
 	std::string foundVariable = tempString.substr(valueStartPosition);
-	sci::assertThrow(foundName == name, sci::err(sci::SERR_USER, 0, "Could not find the variable " + name + " in the file header at the expected location"));
+	sci::assertThrow(foundName == name, sci::err(sci::SERR_USER, 1, "Could not find the variable " + name + " in the file header at the expected location"));
 
 	std::istringstream varStream;
 	varStream.str(foundVariable);
@@ -131,10 +132,13 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 	{
 		readHeaderLine(stream, hplHeader.filename, "Filename");
 	}
-	catch (...)
+	catch (sci::err err)
 	{
-		//throw a sightly different error if we don't find the first variable
-		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("The file is not a lidar profile. Lidar profile files should start with a \"Filename:\" parameter.")));
+		//throw a sightly different error if we did't find the first variable
+		if( err.getErrorCode() == 1) //missing variable uses error code 1
+			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("The file is not a lidar profile. Lidar profile files should start with a \"Filename:\" parameter.")));
+		else
+			throw;
 	}
 
 	readHeaderLine(stream, hplHeader.systemId, "System ID");
