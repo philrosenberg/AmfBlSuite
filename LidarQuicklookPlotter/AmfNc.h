@@ -6,6 +6,7 @@
 #include<svector/sstring.h>
 #include<svector/Units.h>
 #include"Units.h"
+#include<svector/svector.h>
 
 struct HplHeader;
 class HplProfile;
@@ -926,27 +927,66 @@ private:
 	}
 };
 
-//logarithmic variables are a bit different, so need their own class
+//Specialize sci::NcVariable for Decibels - this is so that we can convert the valuse from linear units to decibels
+//at write time
+template < class REFERENCE_UNIT>
+class sci::NcVariable<Decibel<REFERENCE_UNIT>> : public sci::NcVariable<sci::Physical<sci::Unitless>>
+{
+public:
+	NcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension)
+		:NcVariable<sci::Physical<sci::Unitless>>(name, ncFile, dimension)
+	{
+	}
+	NcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions)
+		:NcVariable<sci::Physical<sci::Unitless>>(name, ncFile, dimensions)
+	{
+	}
+	template<class U>
+	static std::vector<double> flattenData(const std::vector<sci::Physical<U>> &linearPhysicals)
+	{
+		std::vector<double> result = sci::log10(sci::physicalsToValues<REFERENCE_UNIT>(linearPhysicals));
+		for (auto iter = result.begin(); iter != result.end(); ++iter)
+			*iter *= 10.0;
+		return result;
+	}
+	template <class U>
+	static std::vector<double> flattenData(const std::vector<std::vector<U>> &linearPhysicals)
+	{
+
+		std::vector<double> result;
+		flattenData(result, linearPhysicals);
+		return result;
+	}
+	template<class U>
+	static void flattenData(std::vector<double> &result, const std::vector<sci::Physical<U>> &linearPhysicals)
+	{
+		std::vector<double> chunk = flattenData(linearPhysicals);
+		result.insert(result.end(), chunk.begin(), chunk.end());
+	}
+	template <class U>
+	static void flattenData(std::vector<double> &result, const std::vector<std::vector<U>> &linearPhysicals)
+	{
+		for (size_t i = 0; i < linearPhysicals.size(); ++i)
+			flattenData(result, linearPhysicals[i]);
+	}
+};
+
+//logarithmic variables are a bit different, so need their own class which inherits from the Decibel specialization above
 //note that when we do the write, this must be called with the linear unit or a compatible linear unit. If it
 //is a compatible linear unit it will be converted to the reference unit before logging
 template < class REFERENCE_UNIT>
-class AmfNcDbVariable : public sci::NcVariable<sci::Physical<sci::Unitless>>
+class AmfNcVariable<Decibel<REFERENCE_UNIT>> : public sci::NcVariable<Decibel<REFERENCE_UNIT>>
 {
 public:
-	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment = sU(""))
-		:NcVariable<sci::Physical<sci::Unitless>>(name, ncFile, dimension)
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment = sU(""))
+		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimension)
 	{
 		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
 	}
-	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment = sU(""))
-		:NcVariable<sci::Physical<sci::Unitless>>(name, ncFile, dimensions)
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment = sU(""))
+		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
 	{
 		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
-	}
-	template <class U>
-	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<REFERENCE_UNIT>(physicals))
-	{
-		return sci::log10(sci::physicalsToValues<sci::Physical<REFERENCE_UNIT>>(physicals))*10.0;
 	}
 
 private:
@@ -955,17 +995,17 @@ private:
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), sU("dB"));
-		sci::NcAttribute validMinAttribute(sU("valid_min"), std::log10(validMin.value<sci::Unitless>())*10.0);
-		sci::NcAttribute validMaxAttribute(sU("valid_max"), std::log10(validMax.value<sci::Unitless>()*10.0));
+		sci::NcAttribute validMinAttribute(sU("valid_min"), std::log10(validMin.value<REFERENCE_UNIT>())*10.0);
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), std::log10(validMax.value<REFERENCE_UNIT>()*10.0));
 		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), REFERENCE_UNIT::getShortUnitString());
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
-		addAttribute(longNameAttribute, ncFile);
+		/*addAttribute(longNameAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
-			addAttribute(standardNameAttribute, ncFile);
+			addAttribute(standardNameAttribute, ncFile);*/
 	}
 };
 

@@ -8,8 +8,8 @@
   <ceiometerInstrument type="amfEntity/instrument" id="2"></ceiometerInstrument>
 
   <comment>This is a test file</comment>
-  <inputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Lidar_Test\Proc\</inputDirectory>
-  <outputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Lidar_Test\nctest2\</outputDirectory>
+  <inputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\co-debug\</inputDirectory>
+  <outputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\co-debug_out\</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>
   <!--<startTime>
@@ -38,7 +38,7 @@
   </startTime>
   <endTime>
     <year>2018</year>
-    <month>8</month>
+    <month>10</month>
     <day>1</day>
     <hour>0</hour>
     <minute>55</minute>

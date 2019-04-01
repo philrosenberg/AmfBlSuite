@@ -23,3 +23,19 @@ typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<-3>, sci::Metre<-1,-
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<-3>, sci::Metre<-6, -3>>> reflectivity;
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<1, -3>, sci::Hour<-1>>> millimetrePerHour;
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Gram<>, sci::Metre<-3>>> gramPerMetreCubed;
+
+
+template<class REFERENCE_UNIT>
+class Decibel
+{
+public:
+	static sci::Physical<typename REFERENCE_UNIT::unit> decibelToLinear(sci::Physical<sci::Unitless> value)
+	{
+		return std::pow(10, value.value<sci::Unitless>() / 10.0);
+	}
+	template<class U>
+	static sci::Physical<sci::Unitless> linearToDecibel(sci::Physical<U> value)
+	{
+		return sci::Physical<sci::Unitless>(std::log10(value.value<typename REFERENCE_UNIT::unit>())*10.0);
+	}
+};
