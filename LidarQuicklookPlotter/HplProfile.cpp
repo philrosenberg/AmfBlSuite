@@ -16,7 +16,7 @@ bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 	m_elevation = degree(elevationDeg);
 	m_pitch = degree(pitchDeg);
 	m_roll = degree(rollDeg);
-	sci::assertThrow(stream.good(), sci::err(sci::SERR_USER , 0, sU("Read of file failed - it may be locked or inaccessible.")));
+	sci::assertThrow(stream.eof() || stream.good(), sci::err(sci::SERR_USER , 0, sU("Read of file failed - it may be locked or inaccessible.")));
 	if (stream.eof())
 	{
 		return false;

@@ -74,7 +74,8 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 			for (size_t j = 0; j < nPoints; ++j)
 			{
 				fin >> thisProfile.m_heights[j] >> thisProfile.m_instrumentRelativeWindDirections[j] >> thisProfile.m_instrumentRelativeWindSpeeds[j];
-				sci::assertThrow(!fin.eof(), sci::err(sci::SERR_USER, 0, sU("When opening file ") + processedFilenames[i] + sU(" some lines were missing.")));
+				sci::assertThrow(!fin.eof(), sci::err(sci::SERR_USER, 0, sU("When reading file ") + processedFilenames[i] + sU(" some lines were missing.")));
+				sci::assertThrow(fin.good(), sci::err(sci::SERR_USER, 0, sU("Failed to read file ") + processedFilenames[i] + sU(" - it may be locked or inaccessible.")));
 
 				//get the time from the filename.
 				/*int year;
