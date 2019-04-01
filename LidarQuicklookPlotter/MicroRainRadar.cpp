@@ -183,22 +183,22 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
-	DataInfo dataInfo;
-	dataInfo.averagingPeriod = second(OutputAmfNcFile::getFillValue());
-	dataInfo.samplingInterval = second(OutputAmfNcFile::getFillValue());
-	dataInfo.continuous = true;
-	dataInfo.startTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
-	dataInfo.endTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
+	DataInfo dataInfo1d;
+	dataInfo1d.averagingPeriod = second(OutputAmfNcFile::getFillValue());
+	dataInfo1d.samplingInterval = second(OutputAmfNcFile::getFillValue());
+	dataInfo1d.continuous = true;
+	dataInfo1d.startTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
+	dataInfo1d.endTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
 	if (m_profiles.size() > 0)
 	{
-		dataInfo.startTime = m_profiles[0].getTime();
-		dataInfo.endTime = m_profiles.back().getTime();
+		dataInfo1d.startTime = m_profiles[0].getTime();
+		dataInfo1d.endTime = m_profiles.back().getTime();
 	}
-	dataInfo.featureType = ft_timeSeriesPoint;
-	dataInfo.options = std::vector<sci::string>(0);
-	dataInfo.processingLevel = 2;
-	dataInfo.productName = sU("rain lwc velocity reflectivity");
-	dataInfo.processingOptions = processingOptions;
+	dataInfo1d.featureType = ft_timeSeriesPoint;
+	dataInfo1d.options = std::vector<sci::string>(0);
+	dataInfo1d.processingLevel = 2;
+	dataInfo1d.productName = sU("rain lwc velocity reflectivity");
+	dataInfo1d.processingOptions = processingOptions;
 
 	if (m_profiles.size() > 0)
 	{
@@ -209,7 +209,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		}
 		std::vector <second> sortedAveragingTimes = averagingTimes;
 		std::sort(sortedAveragingTimes.begin(), sortedAveragingTimes.end());
-		dataInfo.averagingPeriod = sortedAveragingTimes[sortedAveragingTimes.size() / 2];
+		dataInfo1d.averagingPeriod = sortedAveragingTimes[sortedAveragingTimes.size() / 2];
 	}
 
 	//grab the times;
@@ -230,8 +230,11 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		}
 		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
 		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
-		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
+		dataInfo1d.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
+
+	DataInfo dataInfo2d = dataInfo1d;
+	dataInfo2d.productName = sU("size concentration spectra");
 
 	//pull all the 1d variables out
 	std::vector<std::vector<metre>> altitudes(m_profiles.size());
@@ -305,7 +308,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	sci::NcDimension indexDimension1d(sU("index"), altitudes[0].size());
 	nonTimeDimensions1D.push_back(&indexDimension1d);
 
-	OutputAmfNcFile file1d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
+	OutputAmfNcFile file1d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo1d,
 		projectInfo, platform, times, nonTimeDimensions1D);
 
 	AmfNcVariable<metre> altitudesVariable(sU("altitude"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), sci::min<metre>(altitudes), sci::max<metre>(altitudes));
@@ -401,7 +404,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	nonTimeDimensions2d.push_back(&indexRangeDimension);
 	nonTimeDimensions2d.push_back(&indexBinDimension);
 
-	OutputAmfNcFile file2d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
+	OutputAmfNcFile file2d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo2d,
 		projectInfo, platform, times, nonTimeDimensions2d);
 
 	AmfNcVariable<metre> altitudesVariable2d(sU("altitude"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), sci::min<metre>(altitudes), sci::max<metre>(altitudes));
