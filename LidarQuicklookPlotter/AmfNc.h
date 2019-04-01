@@ -912,8 +912,52 @@ private:
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
+		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getShortUnitString());
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>());
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<T>());
+		sci::NcAttribute commentAttribute(sU("comment"), comment);
+		addAttribute(longNameAttribute, ncFile);
+		addAttribute(validMinAttribute, ncFile);
+		addAttribute(validMaxAttribute, ncFile);
+		if (comment.length() > 0)
+			addAttribute(commentAttribute, ncFile);
+		if (standardName.length() > 0)
+			addAttribute(standardNameAttribute, ncFile);
+	}
+};
+
+//logarithmic variables are a bit different, so need their own class
+//note that when we do the write, this must be called with the linear unit or a compatible linear unit. If it
+//is a compatible linear unit it will be converted to the reference unit before logging
+template < class REFERENCE_UNIT>
+class AmfNcDbVariable : public sci::NcVariable<sci::Physical<sci::Unitless>>
+{
+public:
+	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment = sU(""))
+		:NcVariable<sci::Physical<sci::Unitless>>(name, ncFile, dimension)
+	{
+		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
+	}
+	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment = sU(""))
+		:NcVariable<sci::Physical<sci::Unitless>>(name, ncFile, dimensions)
+	{
+		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
+	}
+	template <class U>
+	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<REFERENCE_UNIT>(physicals))
+	{
+		return sci::log10(sci::physicalsToValues<sci::Physical<REFERENCE_UNIT>>(physicals))*10.0;
+	}
+
+private:
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment)
+	{
+		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
+		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
+		sci::NcAttribute unitsAttribute(sU("units"), sU("dB"));
+		sci::NcAttribute validMinAttribute(sU("valid_min"), std::log10(validMin.value<sci::Unitless>())*10.0);
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), std::log10(validMax.value<sci::Unitless>()*10.0));
+		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), REFERENCE_UNIT::getShortUnitString());
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
