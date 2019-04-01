@@ -54,7 +54,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 
 	for (size_t i=0; i<processedFilenames.size(); ++i)
 	{
-		Profile thisProfile(getInstrumentInfo(), getCalibrationInfo(), m_orientationGrabber);
+		Profile thisProfile(getInstrumentInfo(), getCalibrationInfo());
 		bool readProfileWithoutErrors = true;
 		try
 		{
