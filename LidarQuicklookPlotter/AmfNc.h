@@ -902,11 +902,6 @@ public:
 	{
 		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
 	}
-	template <class U>
-	static auto convertValues(const std::vector<U> &physicals) -> decltype(sci::physicalsToValues<T>(physicals))
-	{
-		return sci::physicalsToValues<sci::Physical<T>>(physicals);
-	}
 
 private:
 	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<T> validMin, sci::Physical<T> validMax, const sci::string &comment)
