@@ -2,6 +2,23 @@
 #include<svector/sreadwrite.h>
 #include"ProgressReporter.h"
 
+const uint8_t microRainRadarUnusedFlag = 0;
+const uint8_t microRainRadarGoodDataFlag = 1;
+const uint8_t microRainRadarBelowNoiseFloorFlag = 2;
+const uint8_t microRainRadarQualityBelowOnehundredPercentFlag = 3;
+const uint8_t microRainRadarQualityBelowFiftyPercentFlag = 4;
+const uint8_t microRainRadarDiameterNotDerivedFlag = 5;
+
+const std::vector<std::pair<uint8_t, sci::string>> microRainRadarFlags
+{
+{ microRainRadarUnusedFlag, sU("not_used") },
+{microRainRadarGoodDataFlag, sU("good_data")},
+{microRainRadarBelowNoiseFloorFlag, sU("Signal Below Noise Floor - logarithmic units invalid") },
+{microRainRadarDiameterNotDerivedFlag, sU("Diameter not derived by data processing software")},
+{microRainRadarQualityBelowOnehundredPercentFlag, sU("Fewer than 100% of spectra in averaging period were valid") },
+{microRainRadarQualityBelowFiftyPercentFlag, sU("Fewer than 50% of spectra in averaging period were valid") },
+};
+
 MicroRainRadarProcessor::MicroRainRadarProcessor(const InstrumentInfo &instrumentInfo, const CalibrationInfo &calibrationInfo)
 	: InstrumentProcessor(sU("[/\\\\]ProcessedData[/\\\\]......[/\\\\]....\\.pro"))
 {
@@ -216,7 +233,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
 
-	//pull all the variables out
+	//pull all the 1d variables out
 	std::vector<std::vector<metre>> altitudes(m_profiles.size());
 	std::vector<std::vector<millimetrePerHour>> rainfallRates(m_profiles.size());
 	std::vector<std::vector<gramPerMetreCubed>> rainLiquidWaterContent(m_profiles.size());
@@ -246,33 +263,164 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 		pathIntegratedAttenuation[i] = m_profiles[i].getPathIntegratedAttenuation();
 
+	//generate the flag variable. Basically the only option here is that data could be missing
+	//due to negative reflectivities from subtraction of the noise floor. This is marked by NaNs
+	std::vector<std::vector<unsigned char>> flags1d(m_profiles.size());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		unsigned char baseValue = microRainRadarGoodDataFlag;
+		if (m_profiles[i].getValidFraction() < percent(50))
+			baseValue = microRainRadarQualityBelowFiftyPercentFlag;
+		else if (m_profiles[i].getValidFraction() < percent(100))
+			baseValue = microRainRadarQualityBelowOnehundredPercentFlag;
+
+		std::vector<SBOOL> missing(rainfallRates[i].size());
+		for (size_t j = 0; j < missing.size(); ++j)
+		{
+			missing[j] = (rainfallRates[i][j] != rainfallRates[i][j]) ||
+				(rainLiquidWaterContent[i][j] != rainLiquidWaterContent[i][j]) ||
+				(rainfallVelocity[i][j] != rainfallVelocity[i][j]) ||
+				(radarReflectivity[i][j] != radarReflectivity[i][j]) ||
+				(radarReflectivityAttenuated[i][j] != radarReflectivityAttenuated[i][j]) ||
+				(pathIntegratedAttenuation[i][j] != pathIntegratedAttenuation[i][j]);
 
 
-	std::vector<sci::NcDimension*> nonTimeDimensions;
+		}
 
-	sci::NcDimension indexDimension(sU("index"), m_profiles[0].getRanges().size());
-	nonTimeDimensions.push_back(&indexDimension);
+		flags1d[i].resize(missing.size(), baseValue);
+		sci::assign(flags1d[i], missing, microRainRadarBelowNoiseFloorFlag);
+	}
 
-	OutputAmfNcFile file(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
-		projectInfo, platform, times, nonTimeDimensions);
+	//replace nans with fill value
+	sci::replacenans(rainfallRates, millimetrePerHour(OutputAmfNcFile::getFillValue()));
+	sci::replacenans(rainLiquidWaterContent, gramPerMetreCubed(OutputAmfNcFile::getFillValue()));
+	sci::replacenans(rainfallVelocity, metrePerSecond(OutputAmfNcFile::getFillValue()));
+	sci::replacenans(radarReflectivity, reflectivity(OutputAmfNcFile::getFillValue()));
+	sci::replacenans(radarReflectivityAttenuated, reflectivity(OutputAmfNcFile::getFillValue()));
+	sci::replacenans(pathIntegratedAttenuation, unitless(OutputAmfNcFile::getFillValue()));
 
-	AmfNcVariable<metre> altitudesVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), sci::min<metre>(altitudes), sci::max<metre>(altitudes));
-	AmfNcVariable<millimetrePerHour> rainfallRatesVariable(sU("rainfall_rate"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Rainfall Rate"), sU(""), sci::min<millimetrePerHour>(rainfallRates), sci::max<millimetrePerHour>(rainfallRates));
-	AmfNcVariable<gramPerMetreCubed> rainLiquidWaterContentVariable(sU("rain_liquid_water_content"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Rain Liquid Water Content"), sU(""), sci::min<gramPerMetreCubed>(rainLiquidWaterContent), sci::max<gramPerMetreCubed>(rainLiquidWaterContent));
-	AmfNcVariable<metrePerSecond> rainfallVelocityVariable(sU("rainfall_velocity"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Rainfall Velocity"), sU(""), sci::min<metrePerSecond>(rainfallVelocity), sci::max<metrePerSecond>(rainfallVelocity));
-	AmfNcVariable<reflectivity> radarReflectivityVariable(sU("radar_reflectivity"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Radar Reflectivity (Z)"), sU(""), sci::min<reflectivity>(radarReflectivity), sci::max<reflectivity>(radarReflectivity));
-	AmfNcVariable<reflectivity> radarReflectivityAttenuatedVariable(sU("attenuated_radar_reflectivity"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Attenuated Radar Reflectivity (z)"), sU(""), sci::min<reflectivity>(radarReflectivityAttenuated), sci::max<reflectivity>(radarReflectivity));
-	AmfNcVariable<unitless> pathIntegratedAttenuationVariable(sU("path_integrated_attenuation"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Path Integrated Attenuation"), sU(""), sci::min<unitless>(pathIntegratedAttenuation), sci::max<unitless>(pathIntegratedAttenuation));
+	//Output the one D parameters
 
-	file.writeTimeAndLocationData(platform);
+	std::vector<sci::NcDimension*> nonTimeDimensions1D;
+	sci::NcDimension indexDimension1d(sU("index"), altitudes[0].size());
+	nonTimeDimensions1D.push_back(&indexDimension1d);
 
-	file.write(altitudesVariable, altitudes);
-	file.write(rainfallRatesVariable, rainfallRates);
-	file.write(rainLiquidWaterContentVariable, rainLiquidWaterContent);
-	file.write(rainfallVelocityVariable, rainfallVelocity);
-	file.write(radarReflectivityVariable, radarReflectivity);
-	file.write(radarReflectivityAttenuatedVariable, radarReflectivityAttenuated);
-	file.write(pathIntegratedAttenuationVariable, pathIntegratedAttenuation);
+	OutputAmfNcFile file1d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
+		projectInfo, platform, times, nonTimeDimensions1D);
+
+	AmfNcVariable<metre> altitudesVariable(sU("altitude"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), sci::min<metre>(altitudes), sci::max<metre>(altitudes));
+	AmfNcVariable<millimetrePerHour> rainfallRatesVariable(sU("rainfall_rate"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Rainfall Rate"), sU(""), sci::min<millimetrePerHour>(rainfallRates), sci::max<millimetrePerHour>(rainfallRates));
+	AmfNcVariable<gramPerMetreCubed> rainLiquidWaterContentVariable(sU("rain_liquid_water_content"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Rain Liquid Water Content"), sU(""), sci::min<gramPerMetreCubed>(rainLiquidWaterContent), sci::max<gramPerMetreCubed>(rainLiquidWaterContent));
+	AmfNcVariable<metrePerSecond> rainfallVelocityVariable(sU("rainfall_velocity"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Rainfall Velocity"), sU(""), sci::min<metrePerSecond>(rainfallVelocity), sci::max<metrePerSecond>(rainfallVelocity));
+	AmfNcVariable<reflectivity> radarReflectivityVariable(sU("radar_reflectivity"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Radar Reflectivity (Z)"), sU(""), sci::min<reflectivity>(radarReflectivity), sci::max<reflectivity>(radarReflectivity));
+	AmfNcVariable<reflectivity> radarReflectivityAttenuatedVariable(sU("attenuated_radar_reflectivity"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Attenuated Radar Reflectivity (z)"), sU(""), sci::min<reflectivity>(radarReflectivityAttenuated), sci::max<reflectivity>(radarReflectivity));
+	AmfNcVariable<unitless> pathIntegratedAttenuationVariable(sU("path_integrated_attenuation"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Path Integrated Attenuation"), sU(""), sci::min<unitless>(pathIntegratedAttenuation), sci::max<unitless>(pathIntegratedAttenuation));
+	AmfNcFlagVariable flagVariable1d(sU("qc_flag"), microRainRadarFlags, file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d });
+
+	file1d.writeTimeAndLocationData(platform);
+
+	file1d.write(altitudesVariable, altitudes);
+	file1d.write(rainfallRatesVariable, rainfallRates);
+	file1d.write(rainLiquidWaterContentVariable, rainLiquidWaterContent);
+	file1d.write(rainfallVelocityVariable, rainfallVelocity);
+	file1d.write(radarReflectivityVariable, radarReflectivity);
+	file1d.write(radarReflectivityAttenuatedVariable, radarReflectivityAttenuated);
+	file1d.write(pathIntegratedAttenuationVariable, pathIntegratedAttenuation);
+	file1d.write(flagVariable1d, flags1d);
+
+	//pull out the 2 d variables. We must transpose them so that the range dimension is first
+
+	std::vector<std::vector<std::vector<perMetre>>> spectralReflectivity(m_profiles.size());
+	std::vector<std::vector<std::vector<millimetre>>> dropDiameters(m_profiles.size());
+	std::vector<std::vector<std::vector<perMetreCubedPerMillimetre>>> sizeDistributions(m_profiles.size());
+
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+		spectralReflectivity[i] = sci::transpose(m_profiles[i].getSpectralReflectivities());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+		dropDiameters[i] = sci::transpose(m_profiles[i].getDropDiameters());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+		sizeDistributions[i] = sci::transpose(m_profiles[i].getNumberDistribution());
+
+
+	//generate the flag variables.
+	std::vector < std::vector<std::vector<unsigned char>>> spectralReflectivityFlags(m_profiles.size());
+	std::vector < std::vector<std::vector<unsigned char>>> dropDiameterFlags(m_profiles.size());
+	std::vector < std::vector<std::vector<unsigned char>>> sizeDistributionFlags(m_profiles.size());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		unsigned char baseValue = microRainRadarGoodDataFlag;
+		if (m_profiles[i].getValidFraction() < percent(50))
+			baseValue = microRainRadarQualityBelowFiftyPercentFlag;
+		else if (m_profiles[i].getValidFraction() < percent(100))
+			baseValue = microRainRadarQualityBelowOnehundredPercentFlag;
+
+		for (size_t j = 0; j < spectralReflectivity[i].size(); ++j)
+		{
+			std::vector<SBOOL> missing(spectralReflectivity[i][j].size());
+			for (size_t k = 0; k < spectralReflectivity[i][j].size(); ++k)
+			{
+				missing[k] = spectralReflectivity[i][j][k] != spectralReflectivity[i][j][k];
+			}
+			spectralReflectivityFlags[i][j].resize(missing.size(), baseValue);
+			sci::assign(spectralReflectivityFlags[i][j], missing, microRainRadarBelowNoiseFloorFlag);
+		}
+
+
+		for (size_t j = 0; j < dropDiameters[i].size(); ++j)
+		{
+			std::vector<SBOOL> missing(dropDiameters[i][j].size());
+			for (size_t k = 0; k < dropDiameters[i][j].size(); ++k)
+			{
+				missing[k] = dropDiameters[i][j][k] != dropDiameters[i][j][k];
+			}
+			dropDiameterFlags[i][j].resize(missing.size(), baseValue);
+			sci::assign(dropDiameterFlags[i][j], missing, microRainRadarDiameterNotDerivedFlag);
+		}
+
+		for (size_t j = 0; j < sizeDistributions[i].size(); ++j)
+		{
+			std::vector<SBOOL> missing(sizeDistributions[i][j].size());
+			for (size_t k = 0; k < sizeDistributions[i][j].size(); ++k)
+			{
+				missing[k] = sizeDistributions[i][j][k] != sizeDistributions[i][j][k];
+			}
+			sizeDistributionFlags[i][j].resize(missing.size(), baseValue);
+			sci::assign(sizeDistributionFlags[i][j], missing, microRainRadarDiameterNotDerivedFlag);
+		}
+	}
+
+	sci::replacenans(spectralReflectivity, perMetre(OutputAmfNcFile::getFillValue()));
+	sci::replacenans(dropDiameters, millimetre(OutputAmfNcFile::getFillValue()));
+	sci::replacenans(sizeDistributions, perMetreCubedPerMillimetre(OutputAmfNcFile::getFillValue()));
+
+
+	//create and write the file
+	std::vector<sci::NcDimension*> nonTimeDimensions2d;
+	sci::NcDimension indexRangeDimension(sU("index_range"), altitudes[0].size());
+	sci::NcDimension indexBinDimension(sU("index_bin"), m_profiles[0].getRanges().size());
+	nonTimeDimensions2d.push_back(&indexRangeDimension);
+	nonTimeDimensions2d.push_back(&indexBinDimension);
+
+	OutputAmfNcFile file2d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
+		projectInfo, platform, times, nonTimeDimensions2d);
+
+	AmfNcVariable<metre> altitudesVariable2d(sU("altitude"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), sci::min<metre>(altitudes), sci::max<metre>(altitudes));
+	AmfNcVariable<perMetre> spectralReflectivityVariable(sU("spectral_reflectivity"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension }, sU("Spectral Reflectivity"), sU(""), sci::min<perMetre>(spectralReflectivity), sci::max<perMetre>(spectralReflectivity));
+	AmfNcVariable<millimetre> dropDiameterVariable(sU("rain_drop_diameter"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension }, sU("Rain Drop Diameter"), sU(""), sci::min<millimetre>(dropDiameters), sci::max<millimetre>(dropDiameters));
+	AmfNcVariable<perMetreCubedPerMillimetre> numberDistributionVariable(sU("drop_size_distribution"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension }, sU("Rain Size Distribution"), sU(""), sci::min<perMetreCubedPerMillimetre>(sizeDistributions), sci::max<perMetreCubedPerMillimetre>(sizeDistributions), sU("In case of low signal to noise ratio negative values can occur. Although they have no physical meaning they are retained in order to avoid statistical biases."));
+	AmfNcFlagVariable spectralReflectivityFlagVariable2d(sU("spectral_reflectivity_flag"), microRainRadarFlags, file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension });
+	AmfNcFlagVariable dropDiameterFlagVariable2d(sU("rain_drop_diameter_flag"), microRainRadarFlags, file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension });
+	AmfNcFlagVariable sizeDistributionFlagVariable2d(sU("drop_size_distribution_flag"), microRainRadarFlags, file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension });
+
+	file2d.writeTimeAndLocationData(platform);
+
+	file2d.write(altitudesVariable2d, altitudes);
+	file2d.write(spectralReflectivityVariable, spectralReflectivity);
+	file2d.write(dropDiameterVariable, dropDiameters);
+	file2d.write(numberDistributionVariable, sizeDistributions);
+	file2d.write(spectralReflectivityFlagVariable2d, spectralReflectivityFlags);
+	file2d.write(dropDiameterFlagVariable2d, dropDiameterFlags);
+	file2d.write(sizeDistributionFlagVariable2d, sizeDistributionFlags);
 }
 
 std::vector<std::vector<sci::string>> MicroRainRadarProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const

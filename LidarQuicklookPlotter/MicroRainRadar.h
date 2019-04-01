@@ -15,6 +15,7 @@ public:
 	bool readProfile(std::istream &stream);
 	sci::UtcTime getTime() const { return m_time; }
 	second getAveragingTime() const { return m_averagingTime; }
+	percent getValidFraction() const { return m_validFraction; }
 	std::vector<metre> getRanges() const { return m_ranges; }
 	std::vector<unitless> getPathIntegratedAttenuation() const { return m_pathIntegratedAttenuation; }
 	std::vector<reflectivity> getReflectivity() const { return m_reflectivity; }
@@ -22,6 +23,9 @@ public:
 	std::vector<millimetrePerHour> getRainRate() const { return m_rainRate; }
 	std::vector<gramPerMetreCubed> getLiquidWaterContent() const { return m_liquidWaterContent; }
 	std::vector<metrePerSecond> getFallVeocity() const { return m_fallVelocity; }
+	std::vector<std::vector<perMetre>> getSpectralReflectivities() { return m_spectralReflectivities; }
+	std::vector<std::vector<millimetre>> getDropDiameters() { return m_dropDiameters; }
+	std::vector<std::vector<perMetreCubedPerMillimetre>> getNumberDistribution() { return m_numberDistribution; }
 private:
 
 	template<class T>
