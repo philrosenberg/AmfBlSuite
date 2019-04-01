@@ -154,6 +154,7 @@ void MicroRainRadarProcessor::readData(const sci::string &inputFilename, const P
 	std::ifstream fin;
 	fin.open(sci::nativeUnicode(inputFilename), std::ios::in);
 	sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Failed to open file ") + inputFilename + sU(".")));
+	size_t interval = 100;
 	try
 	{
 		while (true)
@@ -165,6 +166,19 @@ void MicroRainRadarProcessor::readData(const sci::string &inputFilename, const P
 				//file at the end of the previous point
 				m_profiles.pop_back();
 				return;
+			}
+
+			if (m_profiles.size() == interval)
+			{
+				progressReporter << sU("Read profile 1-") << interval;
+				if (progressReporter.shouldStop())
+					return;
+			}
+			else if (m_profiles.size() % interval == 0)
+			{
+				progressReporter << m_profiles.size() - interval + 1 << sU("-") << m_profiles.size();
+				if (progressReporter.shouldStop())
+					return;
 			}
 			m_hasData = true;
 			sci::assertThrow(fin.good(), sci::err(sci::SERR_USER, 0, sU("Read of file failed - it may be locked or inaccessible.")));
@@ -357,6 +371,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		else if (m_profiles[i].getValidFraction() < percent(100))
 			baseValue = microRainRadarQualityBelowOnehundredPercentFlag;
 
+		spectralReflectivityFlags[i].resize(spectralReflectivity[i].size());
 		for (size_t j = 0; j < spectralReflectivity[i].size(); ++j)
 		{
 			std::vector<SBOOL> missing(spectralReflectivity[i][j].size());
@@ -368,7 +383,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 			sci::assign(spectralReflectivityFlags[i][j], missing, microRainRadarBelowNoiseFloorFlag);
 		}
 
-
+		dropDiameterFlags[i].resize(dropDiameters[i].size());
 		for (size_t j = 0; j < dropDiameters[i].size(); ++j)
 		{
 			std::vector<SBOOL> missing(dropDiameters[i][j].size());
@@ -380,6 +395,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 			sci::assign(dropDiameterFlags[i][j], missing, microRainRadarDiameterNotDerivedFlag);
 		}
 
+		sizeDistributionFlags[i].resize(sizeDistributions[i].size());
 		for (size_t j = 0; j < sizeDistributions[i].size(); ++j)
 		{
 			std::vector<SBOOL> missing(sizeDistributions[i][j].size());
@@ -400,7 +416,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	//create and write the file
 	std::vector<sci::NcDimension*> nonTimeDimensions2d;
 	sci::NcDimension indexRangeDimension(sU("index_range"), altitudes[0].size());
-	sci::NcDimension indexBinDimension(sU("index_bin"), m_profiles[0].getRanges().size());
+	sci::NcDimension indexBinDimension(sU("index_bin"), spectralReflectivity[0][0].size());
 	nonTimeDimensions2d.push_back(&indexRangeDimension);
 	nonTimeDimensions2d.push_back(&indexBinDimension);
 
