@@ -6,6 +6,7 @@
 #include<svector/svector.h>
 #include<svector/sstring.h>
 #include<svector/time.h>
+#include<memory>
 
 class ProgressReporter;
 class Platform;
@@ -13,6 +14,8 @@ struct PersonInfo;
 struct ProjectInfo;
 struct ProcessingSoftwareInfo;
 struct ProcessingOptions;
+struct InstrumentInfo;
+struct CalibrationInfo;
 
 class InstrumentProcessor
 {
@@ -66,3 +69,5 @@ private:
 	sci::string m_fileSearchRegEx;
 	static std::vector<sci::string> selectRelevantFilesUsingRegEx(const std::vector<sci::string> &allFiles, sci::string regEx);
 };
+
+std::shared_ptr<InstrumentProcessor> getProcessorByName(sci::string name, InstrumentInfo &instrumentInfo, CalibrationInfo &calibrationInfo);

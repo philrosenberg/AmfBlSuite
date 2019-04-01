@@ -3,19 +3,83 @@
   <author type ="amfEntity/person" id="1"></author>
   <project type="amfEntity/project" id="1"></project>
   <platform type="amfEntity/platform" id="3"></platform>
-  <lidarInstrument type="amfEntity/instrument" id="1"></lidarInstrument>
-  <lidarCalibrationInfo type="amfEntity/calibrationInfo" id="1"></lidarCalibrationInfo>
-  <ceiometerInstrument type="amfEntity/instrument" id="2"></ceiometerInstrument>
+  <processor>
+    <name>MicroRainRadarProcessor</name>
+    <instrument type="amfEntity/instrument" id="3"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="3">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarCopolarisedStareProcessor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarCrosspolarisedStareProcessor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarWindVadProcessor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarVadProcessor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarWindProfileProcessor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarRhiProcessor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarUser1Processor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarUser2Processor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarUser3Processor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarUser4Processor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <processor>
+    <name>LidarUser5Processor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <!--
+  <processor>
+    <name>CeilometerProcessor</name>
+    <instrument type="amfEntity/instrument" id="2"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="2">></calibrationInfo>
+  </processor>
+  -->
 
   <comment>This is a test file</comment>
-  <inputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\co-debug\</inputDirectory>
-  <outputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\co-debug_out\</outputDirectory>
+  <inputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Mob data\</inputDirectory>
+  <outputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Mob data out\</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>
   <!--<startTime>
     <year>2018</year>
     <month>7</month>
-    <day>31</day>
+    <day>11</day>
     <hour>0</hour>
     <minute>0</minute>
     <second>0</second>
@@ -30,19 +94,19 @@
   </endTime>-->
   <startTime>
     <year>2018</year>
-    <month>8</month>
-    <day>1</day>
+    <month>7</month>
+    <day>11</day>
     <hour>0</hour>
     <minute>0</minute>
     <second>0</second>
   </startTime>
   <endTime>
     <year>2018</year>
-    <month>10</month>
-    <day>1</day>
-    <hour>0</hour>
-    <minute>55</minute>
-    <second>0</second>
+    <month>7</month>
+    <day>11</day>
+    <hour>10</hour>
+    <minute>00</minute>
+    <second>59</second>
   </endTime>
   <startImmediately>true</startImmediately>
   <checkForNewFiles>false</checkForNewFiles>

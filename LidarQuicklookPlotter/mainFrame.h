@@ -50,8 +50,7 @@ private:
 	ProcessingSoftwareInfo m_processingSoftwareInfo;
 	ProjectInfo m_projectInfo;
 	std::shared_ptr<Platform> m_platform;
-	InstrumentInfo m_lidarInfo;
-	CalibrationInfo m_lidarCalibrationInfo;
+	std::vector<std::shared_ptr<InstrumentProcessor>> m_instrumentProcessors;
 	ProcessingOptions m_processingOptions;
 	//int m_processingLevel;
 
@@ -60,10 +59,10 @@ private:
 	void start();
 	void stop();
 	void process();
-	void process(InstrumentProcessor &processor, sci::string processorName);
+	void process(InstrumentProcessor &processor);
 	void readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 		const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const Platform &platform, const ProcessingOptions &processingOptions, InstrumentProcessor &processor, sci::string processorName);
+		const Platform &platform, const ProcessingOptions &processingOptions, InstrumentProcessor &processor);
 	void checkDirectoryStructue();
 
 	DECLARE_EVENT_TABLE();

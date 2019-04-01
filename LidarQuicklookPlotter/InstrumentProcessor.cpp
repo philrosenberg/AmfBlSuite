@@ -114,3 +114,40 @@ std::vector<sci::string> InstrumentProcessor::selectRelevantFilesUsingRegEx(cons
 	}
 	return result;
 }
+
+
+
+#include"Lidar.h"
+#include"Ceilometer.h"
+#include"MicroRainRadar.h"
+std::shared_ptr<InstrumentProcessor> getProcessorByName(sci::string name, InstrumentInfo &instrumentInfo, CalibrationInfo &calibrationInfo)
+{
+	if (name == sU("LidarCopolarisedStareProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarCopolarisedStareProcessor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarCrosspolarisedStareProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarCrosspolarisedStareProcessor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarWindVadProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarWindVadProcessor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarVadProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarVadProcessor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarWindProfileProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarWindProfileProcessor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarRhiProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarRhiProcessor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarUser1Processor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarUser1Processor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarUser2Processor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarUser2Processor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarUser3Processor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarUser3Processor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarUser4Processor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarUser4Processor(instrumentInfo, calibrationInfo));
+	if (name == sU("LidarUser5Processor"))
+		return std::shared_ptr<InstrumentProcessor>(new LidarUser5Processor(instrumentInfo, calibrationInfo));
+	if (name == sU("CeilometerProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new CeilometerProcessor());
+	if (name == sU("MicroRainRadarProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new MicroRainRadarProcessor(instrumentInfo, calibrationInfo));
+
+	throw(sci::err(sci::SERR_USER, 0, sU("Invalid processor name: ") + name));
+}

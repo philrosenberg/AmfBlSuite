@@ -1,5 +1,6 @@
 #include"Setup.h"
 #include"ProgressReporter.h"
+#include"InstrumentProcessor.h"
 
 //Rules for file format
 //The file must be netcdf.
@@ -396,6 +397,56 @@ CalibrationInfo parseCalibrationInfo(wxXmlNode *node)
 
 	return result;
 }
+
+
+std::shared_ptr<InstrumentProcessor> parseInstrumentProcessor(wxXmlNode *node, wxXmlNode *infoNode, ProgressReporter &progressReporter)
+{
+	wxXmlNode *child = node->GetChildren();
+	sci::string name;
+	InstrumentInfo instrumentInfo;
+	CalibrationInfo calibrationInfo;
+	bool gotName = false;
+	bool gotInstrumentInfo = false;
+	bool gotCalibrationInfo = false;
+	while (child)
+	{
+		wxXmlNode *node;
+		if (child->HasAttribute(sci::nativeUnicode(sU("type"))) && child->HasAttribute(sci::nativeUnicode(sU("id"))))
+			node = findNode(sci::fromWxString(child->GetAttribute(sci::nativeUnicode(sU("type")))),
+				sci::fromWxString(child->GetAttribute(sci::nativeUnicode(sU("id")))),
+				infoNode);
+		else
+			node = child;
+		if (child->GetName() == sci::nativeUnicode(sU("name")))
+		{
+			wxXmlNode *valueNode = child->GetChildren();
+			if (valueNode)
+			{
+				name = sci::fromWxString(valueNode->GetContent());
+				gotName = true;
+				progressReporter << sU("Found ") << name << sU("\n");
+			}
+		}
+		else if (child->GetName() == sci::nativeUnicode(sU("instrument")))
+		{
+			instrumentInfo = parseInstrumentInfo(node);
+			gotInstrumentInfo = true;
+		}
+		else if (child->GetName() == sci::nativeUnicode(sU("calibrationInfo")))
+		{
+			calibrationInfo = parseCalibrationInfo(node);
+			gotCalibrationInfo = true;
+		}
+		child = child->GetNext();
+	}
+
+	sci::assertThrow(gotName, sci::err(sci::SERR_USER, 0, sU("Found a processor with no name.")));
+	sci::assertThrow(gotInstrumentInfo, sci::err(sci::SERR_USER, 0, sU("Found a processor with no instrument.")));
+	sci::assertThrow(gotCalibrationInfo, sci::err(sci::SERR_USER, 0, sU("Found a processor with no calibrationInfo.")));
+
+	return getProcessorByName(name, instrumentInfo, calibrationInfo);
+}
+
 ProjectInfo parseProjectInfo(wxXmlNode *node, wxXmlNode *infoNode)
 {
 	ProjectInfo result;
@@ -558,7 +609,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 
 void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter &progressReporter,
 	ProcessingOptions &processingOptions, PersonInfo &author, ProjectInfo &projectInfo, std::shared_ptr<Platform> &platform,
-	InstrumentInfo &lidarInstrumentInfo, CalibrationInfo &lidarCalibrationInfo)
+	std::vector<std::shared_ptr<InstrumentProcessor>> &instrumentProcessors)
 {
 	wxXmlDocument info;
 	info.Load(sci::nativeUnicode(infoFilename));
@@ -579,8 +630,6 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 	bool gotAuthor = false;
 	bool gotProjectInfo = false;
 	bool gotPlatform = false;
-	bool gotLidarInfo = false;
-	bool gotLidarCalibrationInfo = false;
 	bool gotAtLeastOneInstrument = false;
 	while (child)
 	{
@@ -614,18 +663,10 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 				return;
 			gotPlatform = true;
 		}
-		else if (child->GetName() == sci::nativeUnicode(sU("lidarInstrument")))
+		else if (child->GetName() == sci::nativeUnicode(sU("processor")))
 		{
-			progressReporter << sU("Found lidar instrumnent data.\n");
-			lidarInstrumentInfo = parseInstrumentInfo(node);
-			gotLidarInfo = true;
+			instrumentProcessors.push_back(parseInstrumentProcessor(node, infoNode, progressReporter));
 			gotAtLeastOneInstrument = true;
-		}
-		else if (child->GetName() == sci::nativeUnicode(sU("lidarCalibrationInfo")))
-		{
-			progressReporter << sU("Found lidar calibration data.\n");
-			lidarCalibrationInfo = parseCalibrationInfo(node);
-			gotLidarCalibrationInfo = true;
 		}
 		child = child->GetNext();
 		if (progressReporter.shouldStop())
@@ -635,8 +676,6 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 	sci::assertThrow(gotProjectInfo, sci::err(sci::SERR_USER, 0, "Did not find the project element in the settings xml file."));
 	sci::assertThrow(gotPlatform, sci::err(sci::SERR_USER, 0, "Did not find the platform element in the settings xml file."));
 	sci::assertThrow(gotAtLeastOneInstrument, sci::err(sci::SERR_USER, 0, "Did not find any instrument elements in the settings xml file."));
-	sci::assertThrow((!gotLidarInfo && !gotLidarCalibrationInfo) || (gotLidarInfo && gotLidarCalibrationInfo), sci::err(sci::SERR_USER, 0, sU("The setings file must either have both lidarInfo and lidarCalibrationInfo or neither of them. Found just one of these while parsing the settings xml.")));
-
 }
 
 void setupProcessingOptionsOnly(sci::string setupFilename, ProcessingOptions &processingOptions)

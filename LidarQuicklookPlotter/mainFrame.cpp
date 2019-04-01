@@ -171,7 +171,7 @@ void mainFrame::readSetupFile()
 	(*m_progressReporter) << "Reading setup information. For a moving platform this can take some time while the position data is read.\n";
 	try
 	{
-		setup(m_setupFileName, sU("info.xml"), *m_progressReporter, m_processingOptions, m_author, m_projectInfo, m_platform, m_lidarInfo, m_lidarCalibrationInfo);
+		setup(m_setupFileName, sU("info.xml"), *m_progressReporter, m_processingOptions, m_author, m_projectInfo, m_platform, m_instrumentProcessors);
 		if (m_progressReporter->shouldStop())
 			(*m_progressReporter) << sU("Reading setup data halted at the users request. Processing will stop.\n\n");
 		m_isSetup = true;
@@ -266,20 +266,8 @@ void mainFrame::process()
 	if (!m_isSetup)
 		return;
 
-
-	
-	/*process(CeilometerProcessor(), sU("Ceilometer processor"));
-	process(LidarWindVadProcessor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar Wind VAD/PPI processor"));
-	process(LidarVadProcessor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar VAD/PPI processor"));
-	process(LidarWindProfileProcessor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar Wind Profile processor"));
-	process(LidarRhiProcessor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar RHI processor"));
-	process(LidarUser1Processor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar User1 processor"));
-	process(LidarUser2Processor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar User2 processor"));
-	process(LidarUser3Processor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar User3 processor"));
-	process(LidarUser4Processor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar User4 processor"));
-	process(LidarUser5Processor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar User5 processor"));*/
-	process(LidarCopolarisedStareProcessor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar Copolarised Stare processor"));
-	//process(LidarCrosspolarisedStareProcessor(m_lidarInfo, m_lidarCalibrationInfo), sU("Lidar Cross Polarised Stare processor"));
+	for (size_t i = 0; i < m_instrumentProcessors.size(); ++i)
+		process(*m_instrumentProcessors[i]);
 	
 	//Tell the user we are done for now
 	if (m_progressReporter->shouldStop())
@@ -294,9 +282,9 @@ void mainFrame::process()
 
 }
 
-void mainFrame::process(InstrumentProcessor &processor, sci::string processorName)
+void mainFrame::process(InstrumentProcessor &processor)
 {
-	(*m_progressReporter) << sU("Beginning processing with the ") << processorName << sU("\n\n");
+	(*m_progressReporter) << sU("Beginning processing with the next processor.\n\n");
 	//Check that the input/output diectories are actually there
 	checkDirectoryStructue();
 
@@ -324,9 +312,9 @@ void mainFrame::process(InstrumentProcessor &processor, sci::string processorNam
 	{
 		if (!m_progressReporter->shouldStop())
 		{
-			readDataThenPlotThenNc(*(plotChangesLister.get()), *(ncChangesLister.get()), m_author, m_processingSoftwareInfo, m_projectInfo, *m_platform, m_processingOptions, processor, processorName);
+			readDataThenPlotThenNc(*(plotChangesLister.get()), *(ncChangesLister.get()), m_author, m_processingSoftwareInfo, m_projectInfo, *m_platform, m_processingOptions, processor);
 			if (!m_progressReporter->shouldStop())
-				(*m_progressReporter) << sU("Processed all files for ") << processorName << sU("\n\n\n");
+				(*m_progressReporter) << sU("Processed all files for the current processor\n\n\n");
 		}
 	}
 	catch (sci::err err)
@@ -372,7 +360,7 @@ void mainFrame::checkDirectoryStructue()
 
 void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLister, const FolderChangesLister &ncChangesLister,
 	const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const Platform &platform, const ProcessingOptions &processingOptions, InstrumentProcessor &processor, sci::string processorName)
+	const Platform &platform, const ProcessingOptions &processingOptions, InstrumentProcessor &processor)
 {
 	if (processingOptions.generateQuicklooks)
 	{
@@ -383,12 +371,12 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 		//Keep the user updated
 		if (newPlotFiles.size() == 0)
 		{
-			(*m_progressReporter) << sU("Found no new files to process for the ") << processorName << sU("\n");
+			(*m_progressReporter) << sU("Found no new files to process for the current processor\n");
 			return;
 		}
 		else
 		{
-			(*m_progressReporter) << sU("Found the following new files to for the  ") << processorName << sU(" :\n");
+			(*m_progressReporter) << sU("Found the following new files to for the  current processor:\n");
 			for (size_t i = 0; i < newPlotFiles.size(); ++i)
 				(*m_progressReporter) << sU("\t") << newPlotFiles[i] << sU("\n");
 		}

@@ -90,10 +90,58 @@
     <operatingSoftware>StreamLine</operatingSoftware>
     <operatingSoftwareVersion>v9</operatingSoftwareVersion>
   </instrument>
+
+  <instrument id="2">
+    <name>ncas-ceilometer-1</name>
+    <description>NCAS Lidar Ceilometer unit 1</description>
+    <manufacturer>Campbel</manufacturer>
+    <model>CS135</model>
+    <serial>To Check</serial>
+    <operatingSoftware>To Check</operatingSoftware>
+    <operatingSoftwareVersion>To Check</operatingSoftwareVersion>
+  </instrument>
+  
+  <instrument id="3">
+    <name>ncas-mrr-1</name>
+    <description>NCAS Micro Rain Radar unit 1</description>
+    <manufacturer>METEK</manufacturer>
+    <model>MRR-2</model>
+    <serial>To Check</serial>
+    <operatingSoftware>To Check</operatingSoftware>
+    <operatingSoftwareVersion>To Check</operatingSoftwareVersion>
+  </instrument>
   
   <!--Calibration Info-->
   <calibrationInfo id ="1">
     <calibrationDescription>Calibrated to manufacturers standard:: 0 to 19 ms-1</calibrationDescription>
+    <certificationDate>
+      <year>0</year>
+      <month>1</month>
+      <day>1</day>
+      <hour>0</hour>
+      <minute>0</minute>
+      <second>0</second>
+    </certificationDate>
+    <certificateUrl>Not available</certificateUrl>
+  </calibrationInfo>
+  
+  <!--Ceilometer cal-->
+  <calibrationInfo id ="2">
+    <calibrationDescription>Calibrated to manufacturers standard</calibrationDescription>
+    <certificationDate>
+      <year>0</year>
+      <month>1</month>
+      <day>1</day>
+      <hour>0</hour>
+      <minute>0</minute>
+      <second>0</second>
+    </certificationDate>
+    <certificateUrl>Not available</certificateUrl>
+  </calibrationInfo>
+
+  <!--MRR cal-->
+  <calibrationInfo id ="3">
+    <calibrationDescription>Calibrated to manufacturers standard</calibrationDescription>
     <certificationDate>
       <year>0</year>
       <month>1</month>
