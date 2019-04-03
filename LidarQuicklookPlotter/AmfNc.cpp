@@ -187,25 +187,25 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	sci::string title = instrumentInfo.name;
 	//add the platform if there is one
 	if (platform.getPlatformInfo().name.length() > 0)
-		title = title + sU("-") + platform.getPlatformInfo().name;
+		title = title + sU("_") + platform.getPlatformInfo().name;
 	//add either the date or date and time depending upon whether the data is
 	//continuous or a single measurement
 	if (dataInfo.continuous)
-		title = title + sU("-") + getFormattedDateOnly(dataInfo.startTime, sU(""));
+		title = title + sU("_") + getFormattedDateOnly(dataInfo.startTime, sU(""));
 	else
-		title = title + sU("-") + getFormattedDateTime(dataInfo.startTime, sU(""), sU(""), sU("T"));
+		title = title + sU("_") + getFormattedDateTime(dataInfo.startTime, sU(""), sU(""), sU("T"));
 	//add the data product name
-	title = title + sU("-") + dataInfo.productName;
+	title = title + sU("_") + dataInfo.productName;
 	//add any options
 	for (size_t i = 0; i < dataInfo.options.size(); ++i)
 		title = title + sU("_") + dataInfo.options[i];
 
-	//Swap spaces for underscores and make lower case
+	//Swap spaces for hyphens and make lower case
 	std::locale locale;
 	for (size_t i = 0; i < title.length(); ++i)
 	{
 		if (title[i] == sU(' '))
-			title[i] = sU('_');
+			title[i] = sU('-');
 		else
 			title[i] = std::tolower(title[i], locale);
 	}
