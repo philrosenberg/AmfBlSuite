@@ -20,7 +20,7 @@ public:
 	const sci::string &getDirectory() const { return m_directory; }
 	const sci::string &getSnapshotFile() const { return m_snapshotFile; }
 	virtual std::vector<sci::string> getChanges(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const = 0;
-	virtual void updateSnapshotFile( const sci::string &changedFile) const = 0;
+	virtual void updateSnapshotFile(const sci::string &changedFile) const = 0;
 	virtual void clearSnapshotFile();
 	std::vector<sci::string> listFolderContents(const InstrumentProcessor &processor, sci::UtcTime startTime, sci::UtcTime endTime) const;
 	virtual ~FolderChangesLister() {}
@@ -57,7 +57,7 @@ public:
 	virtual ~AlphabeticallyLastCouldHaveChangedChangesLister() {}
 };
 
-class AssumeAllChangedChangesLister: public ExistedFolderChangesLister
+class AssumeAllChangedChangesLister : public ExistedFolderChangesLister
 {
 public:
 	AssumeAllChangedChangesLister(const sci::string &directory, const sci::string snapshotFile)

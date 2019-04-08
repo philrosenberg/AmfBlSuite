@@ -68,7 +68,7 @@ void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime>
 	sci::assertThrow(rollsUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the roll variable has a different numer of elements to the time variable.")));
 	sci::assertThrow(coursesUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the courses variable has a different numer of elements to the time variable.")));
 	sci::assertThrow(speedsUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the speed variable has a different numer of elements to the time variable.")));
-	
+
 	sci::assertThrow(altitudesUnitless.size() == timesUnitless.size() || altitudesUnitless.size() == 1, sci::err(sci::SERR_USER, 0, sU("When reading location file, the altitude variable has a different numer of elements to the time variable.")));
 
 	progressReporter << sU("Performing an internal copy of the position and attitude data.\n");
@@ -94,7 +94,7 @@ void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime>
 	altitudes.resize(altitudesUnitless.size());
 	for (size_t i = 0; i < altitudes.size(); ++i)
 		altitudes[i] = metre(altitudesUnitless[i]);
-	
+
 	/*
 	//sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "Not set up to read location data yet"));
 	times = { sci::UtcTime(1900, 1, 1, 0, 0, 0.0), sci::UtcTime(2100, 1, 1, 0, 0, 0.0) };
@@ -203,12 +203,12 @@ void parseXmlNode(wxXmlNode *node, ITER begin, ITER end)
 	{
 		for (ITER iter = begin; iter != end; ++iter)
 		{
-			if (sci::fromWxString(child->GetName()) == iter->m_name && child->GetType()==wxXML_ELEMENT_NODE)
+			if (sci::fromWxString(child->GetName()) == iter->m_name && child->GetType() == wxXML_ELEMENT_NODE)
 			{
 				wxXmlNode *textNode = child->GetChildren();
-				sci::assertThrow(textNode!=nullptr, sci::err(sci::SERR_USER, 0, "Could not parse xml data, the node does not have content."));
+				sci::assertThrow(textNode != nullptr, sci::err(sci::SERR_USER, 0, "Could not parse xml data, the node does not have content."));
 				sci::assertThrow(textNode->GetType() == wxXML_TEXT_NODE, sci::err(sci::SERR_USER, 0, "Could not parse xml data, the content is not text."));
-				*(iter->m_var) = textToValue<std::remove_pointer<decltype(iter->m_var)>::type>( sci::fromWxString(textNode->GetContent()) );
+				*(iter->m_var) = textToValue<std::remove_pointer<decltype(iter->m_var)>::type>(sci::fromWxString(textNode->GetContent()));
 				iter->m_read = true;
 			}
 		}
@@ -505,7 +505,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 
 	for (auto iter = stringLinks.begin(); iter != stringLinks.end(); ++iter)
 	{
-		if(iter->m_name!= sU("locationFile")) //not needed in all cases - we check this below
+		if (iter->m_name != sU("locationFile")) //not needed in all cases - we check this below
 			sci::assertThrow(iter->m_read, sci::err(sci::SERR_USER, 0, "missing parameter " + sci::nativeCodepage(iter->m_name) + " when parsing Platform Information."));
 	}
 
@@ -538,7 +538,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 		sci::assertThrow(allRead, sci::err(sci::SERR_USER, 0, "Could not find the fixed positions and orientation when parsing a stationary platform information - require latitude_degree, longitude_degree, altitude_m, elevation_degree, azimuth_degree, roll_degree."));
 		if (deploymentMode == sU("land"))
 			return std::shared_ptr<Platform>(new StationaryPlatform(name, metre(altitude_m), degree(latitude_degree), degree(longitude_degree), locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree)));
-		else if( deploymentMode == sU("sea"))
+		else if (deploymentMode == sU("sea"))
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for stationary sea deployments"));
 		else if (deploymentMode == sU("air"))
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for stationary air deployments"));
@@ -564,7 +564,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 			allRead &= iter->m_read;
 		sci::assertThrow(allRead, sci::err(sci::SERR_USER, 0, "Could not find the fixed altitude (altitude_m) or ship relative elevation, azimuth and roll (elevation_degree, azimuth_degree, elevation_degree) when parsing a ship (moving/sea) platform information."));
 		sci::assertThrow(locationFile.length() > 0, sci::err(sci::SERR_USER, 0, "Could not find the name of the location file when parsing a moving platform information"));
-		
+
 		bool platformRelative;
 		std::vector<nameVarPair<bool>> boolLinks
 		{
@@ -572,7 +572,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 		};
 		parseXmlNode(node, boolLinks.begin(), boolLinks.end());
 		sci::assertThrow(boolLinks.begin()->m_read, sci::err(sci::SERR_USER, 0, "Could not find the platformRelative parameter when parsing a moving platform."));
-		
+
 		std::vector<sci::UtcTime> times;
 		std::vector<degree> latitudes;
 		std::vector<degree> longitudes;
@@ -586,14 +586,14 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 		readLocationData(locationFile, times, latitudes, longitudes, altitudes, elevations, azimuths, rolls, courses, speeds, progressReporter);
 		if (progressReporter.shouldStop())
 			return nullptr;
-		
+
 		if (deploymentMode == sU("sea"))
 		{
 			progressReporter << sU("Generating motion correction parameters for the platform.\n");
-			if(platformRelative)
+			if (platformRelative)
 				return std::shared_ptr<Platform>(new ShipPlatformShipRelativeCorrected(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
 			else
-			return std::shared_ptr<Platform>(new ShipPlatform(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
+				return std::shared_ptr<Platform>(new ShipPlatform(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
 		}
 		else if (deploymentMode == sU("land"))
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for moving land deployments"));
@@ -618,7 +618,7 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 
 	wxXmlDocument settings;
 	settings.Load(sci::nativeUnicode(setupFilename));
-	sci::assertThrow(settings.IsOk(), sci::err(sci::SERR_USER, 0, sU("Could not open the processing setting xml file ") +setupFilename +sU(".")));
+	sci::assertThrow(settings.IsOk(), sci::err(sci::SERR_USER, 0, sU("Could not open the processing setting xml file ") + setupFilename + sU(".")));
 	wxXmlNode *settingsNode = settings.GetRoot();
 
 	sci::assertThrow(settingsNode->GetName() == sci::nativeUnicode(sU("processingSettings")), sci::err(sci::SERR_USER, 0, "Found incorrect root node in processing settings xml file."));

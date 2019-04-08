@@ -16,7 +16,7 @@ bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 	m_elevation = degree(elevationDeg);
 	m_pitch = degree(pitchDeg);
 	m_roll = degree(rollDeg);
-	sci::assertThrow(stream.eof() || stream.good(), sci::err(sci::SERR_USER , 0, sU("Read of file failed - it may be locked or inaccessible.")));
+	sci::assertThrow(stream.eof() || stream.good(), sci::err(sci::SERR_USER, 0, sU("Read of file failed - it may be locked or inaccessible.")));
 	if (stream.eof())
 	{
 		return false;
@@ -28,7 +28,7 @@ bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 	m_time = header.startTime;
 	m_time.setTime(hour, minute, second);
 
-	sci::assertThrow(minute<60, sci::err(sci::SERR_USER, 0, sU("Found a minute value bigger than 59, the file may be corrupt or be incorrectly formatted.")));
+	sci::assertThrow(minute < 60, sci::err(sci::SERR_USER, 0, sU("Found a minute value bigger than 59, the file may be corrupt or be incorrectly formatted.")));
 	sci::assertThrow(second < 60.0, sci::err(sci::SERR_USER, 0, sU("Found a second value greater than or equal to 60, the file may be corrupt or be incorrectly formatted.")));
 
 	size_t nGates = header.nGates;

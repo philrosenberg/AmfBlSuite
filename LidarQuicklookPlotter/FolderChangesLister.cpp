@@ -132,7 +132,7 @@ std::vector<sci::string> AlphabeticallyLastCouldHaveChangedChangesLister::getCha
 		bool alreadyExisted = false;
 		//note we don't check against the last previously existing file alphabetically
 		//as we always assume that this file could have changed
-		for (size_t j = 0; j < previouslyExistingFiles.size()-1; ++j)
+		for (size_t j = 0; j < previouslyExistingFiles.size() - 1; ++j)
 		{
 			if (allFiles[i] == previouslyExistingFiles[j])
 			{

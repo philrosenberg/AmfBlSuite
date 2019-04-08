@@ -118,7 +118,7 @@ struct PlatformInfo
 };
 
 template< class T >
-void correctDirection( T measuredX, T measuredY, T measuredZ, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, T &correctedX, T &correctedY, T &correctedZ)
+void correctDirection(T measuredX, T measuredY, T measuredZ, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, T &correctedX, T &correctedY, T &correctedZ)
 {
 	//make things a little easier with notation
 	unitless cosE = cosInstrumentElevation;
@@ -161,12 +161,12 @@ public:
 		m_platformInfo.locationKeywords = locationKeywords;
 	}
 
-	PlatformInfo getPlatformInfo() const 
+	PlatformInfo getPlatformInfo() const
 	{
 		return m_platformInfo;
 	};
 	virtual ~Platform() {}
-	void correctDirection(sci::UtcTime startTime, sci::UtcTime endTime, degree instrumentRelativeAzimuth, degree instrumentRelativeElevation,  degree &correctedAzimuth, degree &correctedElevation) const
+	void correctDirection(sci::UtcTime startTime, sci::UtcTime endTime, degree instrumentRelativeAzimuth, degree instrumentRelativeElevation, degree &correctedAzimuth, degree &correctedElevation) const
 	{
 		unitless sinInstrumentElevation;
 		unitless sinInstrumentAzimuth;
@@ -175,7 +175,7 @@ public:
 		unitless cosInstrumentAzimuth;
 		unitless cosInstrumentRoll;
 		getInstrumentTrigAttitudesForDirectionCorrection(startTime, endTime, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
-		
+
 		::correctDirection(instrumentRelativeElevation, instrumentRelativeAzimuth, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedElevation, correctedAzimuth);
 	}
 	template<class T>
@@ -736,12 +736,12 @@ private:
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
 		size_t endUpperIndex = std::min(endLowerIndex + 1, m_times.size() - 1);
-		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex+1);
-		std::vector<T> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex+1);
+		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex + 1);
+		std::vector<T> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex + 1);
 		return sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
 	}
 	template<class T>
-	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property, T &mean, T &stdev, T &min, T &max, decltype(T(1)/second(1)) &rate) const
+	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property, T &mean, T &stdev, T &min, T &max, decltype(T(1) / second(1)) &rate) const
 	{
 
 		if (startTime < m_times[0] || endTime > m_times.back())
@@ -759,21 +759,21 @@ private:
 			min = mean;
 			max = mean;
 			stdev = T(0);
-			rate = std::numeric_limits<decltype(T(0)/second(0))>::quiet_NaN();
+			rate = std::numeric_limits<decltype(T(0) / second(0))>::quiet_NaN();
 		}
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
 		size_t endUpperIndex = std::min(endLowerIndex + 1, m_times.size() - 1);
-		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex+1);
-		std::vector<degree> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex+1);
+		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex + 1);
+		std::vector<degree> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex + 1);
 		mean = sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
 		min = sci::min<T>(subProperty);
 		max = sci::max<T>(subProperty);
 		size_t lowerIndexStart = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t lowerIndexEnd = std::min(findLowerIndex(endTime, false), m_times.size() - 1);
-		rate = (sci::linearinterpolate(endTime, m_times[lowerIndexEnd], m_times[lowerIndexEnd + 1], property[lowerIndexEnd], property[lowerIndexEnd + 1]) - sci::linearinterpolate(startTime, m_times[lowerIndexStart], m_times[lowerIndexStart + 1], property[lowerIndexStart], property[lowerIndexStart + 1]))/(endTime-startTime);
+		rate = (sci::linearinterpolate(endTime, m_times[lowerIndexEnd], m_times[lowerIndexEnd + 1], property[lowerIndexEnd], property[lowerIndexEnd + 1]) - sci::linearinterpolate(startTime, m_times[lowerIndexStart], m_times[lowerIndexStart + 1], property[lowerIndexStart], property[lowerIndexStart + 1])) / (endTime - startTime);
 		std::vector<decltype(subProperty[0] * subProperty[0])>subPropertySquared(subProperty.size());
-		for(size_t i=0; i<subProperty.size(); ++i)
+		for (size_t i = 0; i < subProperty.size(); ++i)
 			subPropertySquared[i] = sci::pow<2>(subProperty[i] - mean);
 		stdev = sci::TypeTraits<decltype(subProperty[0] * subProperty[0])>::sqrt(sci::integrate(subTimes, subPropertySquared, startTime, endTime) / (endTime - startTime));
 	}
@@ -1237,7 +1237,7 @@ class AmfNcTimeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
 	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<sci::UtcTime> &times)
-		:AmfNcVariable<double, std::vector<double>>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second>(times-sci::UtcTime(1970, 1, 1, 0, 0, 0)))
+		:AmfNcVariable<double, std::vector<double>>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
 		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);

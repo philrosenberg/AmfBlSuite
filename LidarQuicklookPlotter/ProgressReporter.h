@@ -69,9 +69,9 @@ class NullProgressReporter : public ProgressReporter
 public:
 	void reportProgress(const sci::string &progress) override {}
 	bool shouldStop() override { return false; }
-	void setNormalModeFormat() override{}
-	void setWarningModeFormat() override{}
-	void setErrorModeFormat() override{}
+	void setNormalModeFormat() override {}
+	void setWarningModeFormat() override {}
+	void setErrorModeFormat() override {}
 };
 
 class WarningSetter
@@ -85,7 +85,7 @@ public:
 	~WarningSetter()
 	{
 		m_progressReporter->setNormalMode();
-		
+
 	}
 private:
 	ProgressReporter* m_progressReporter;

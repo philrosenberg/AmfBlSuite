@@ -21,7 +21,7 @@ WindowCleaner::~WindowCleaner()
 
 
 
-sci::string getScanTypeString (const HplHeader &header)
+sci::string getScanTypeString(const HplHeader &header)
 {
 	if (header.scanType == st_stare)
 		return sU("Stare");
@@ -52,7 +52,7 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, s
 		directory = sU(".");
 	else
 		directory = filename.substr(0, lastSlashPosition + 1);
-	
+
 	if (!wxDirExists(sci::nativeUnicode(directory)))
 		wxFileName::Mkdir(sci::nativeUnicode(directory), 770, wxPATH_MKDIR_FULL);
 	if (!wxDirExists(sci::nativeUnicode(directory)))
@@ -71,7 +71,7 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, s
 	{
 		return;
 	}
-	if( !plotCanvas->writetofile(filename, width, height, 1.0))
+	if (!plotCanvas->writetofile(filename, width, height, 1.0))
 	{
 		sci::ostringstream message;
 		message << sU("The output file ") << filename << sU(" could not be created.");

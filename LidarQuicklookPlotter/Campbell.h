@@ -35,11 +35,11 @@ enum ceilometerMessageStatus
 class CampbellHeader
 {
 public:
-	CampbellHeader(char startOfHeaderCharacter='\01', char startOfTextCharacter='\02');
+	CampbellHeader(char startOfHeaderCharacter = '\01', char startOfTextCharacter = '\02');
 	void readHeader(std::istream &stream);
 	char getStartOfHeaderCharacter() const { return m_startOfHeaderCharacter; }
 	char getStartOfTextCharacter() const { return m_startOfTextCharacter; }
-	campbellMessageType getMessageType() const { sci::assertThrow(m_initialised,sci::err(sci::SERR_USER, 0, sU("Attempted to get the message type for an uninitialised CampbellHeader object."))); return m_messageType; }
+	campbellMessageType getMessageType() const { sci::assertThrow(m_initialised, sci::err(sci::SERR_USER, 0, sU("Attempted to get the message type for an uninitialised CampbellHeader object."))); return m_messageType; }
 	std::string getOs() const { sci::assertThrow(m_initialised, sci::err(sci::SERR_USER, 0, sU("Attempted to get the OS for an uninitialised CampbellHeader object."))); return m_os; }
 	short getMessageNumber() const { sci::assertThrow(m_initialised, sci::err(sci::SERR_USER, 0, sU("Attempted to get the message number for an uninitialised CampbellHeader object."))); return m_messageNumber; }
 	char getId() const { sci::assertThrow(m_initialised, sci::err(sci::SERR_USER, 0, sU("Attempted to get the ID for an uninitialised CampbellHeader object."))); return m_id; }
@@ -78,7 +78,7 @@ public:
 	metre getHeight3() const { return m_height3; }
 	metre getHeight4() const { return m_height4; }
 	metre getVisibility() const { return m_visibility; }
-	double getHighestSignal() const { return m_highestSignal;  }
+	double getHighestSignal() const { return m_highestSignal; }
 	percent getWindowTransmission() const { return m_windowTransmission; }
 	metre getResolution() const { return m_resolution; }
 	percent getLaserPulseEnergy() const { return m_laserPulseEnergy; }
@@ -87,7 +87,7 @@ public:
 	millivolt getBackground() const { return m_background; }
 	size_t getPulseQuantity() const { return m_pulseQuantity; }
 	hertz getSampleRate() const { return m_sampleRate; }
-	const bool getPassedChecksum() const { return m_passedChecksum;  }
+	const bool getPassedChecksum() const { return m_passedChecksum; }
 	campbellAlarmStatus getAlarmStatus() const { return m_alarmStatus; }
 	ceilometerMessageStatus getMessageStatus() const { return m_messageStatus; }
 private:

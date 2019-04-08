@@ -25,7 +25,7 @@ uint16_t generateChecksum(char *buffer, size_t length)
 	for (i = 0; i < length; ++i)
 	{
 		checksum ^= buffer[i] << 8;
-		for (j = 0; j<8; ++j) {
+		for (j = 0; j < 8; ++j) {
 			m = (checksum & 0x8000) ? 0x1021 : 0;
 			checksum <<= 1;
 			checksum ^= m;
@@ -48,7 +48,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	m_bytes = std::vector<char>(commonHeader, commonHeader + 7);
 
 	//check the start header character
-	if(commonHeader[0] != m_startOfHeaderCharacter)
+	if (commonHeader[0] != m_startOfHeaderCharacter)
 	{
 		std::ostringstream message;
 		message << "Expected Campbell header to start with character '" << m_startOfHeaderCharacter << "', but attempting to read a header beginning with '" << commonHeader[0] << "'.";
@@ -93,7 +93,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	}
 
 	//if this is a CL message then get the Samples number, which defines the message number
-	else if(m_messageType == cmt_cl)
+	else if (m_messageType == cmt_cl)
 	{
 
 		char messageNumberText[3];
@@ -174,7 +174,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	char headerEnd[3];
 	stream.read(headerEnd, 3);
 	m_bytes.insert(m_bytes.end(), headerEnd, headerEnd + 3);
-	if(headerEnd[0] != m_startOfTextCharacter)
+	if (headerEnd[0] != m_startOfTextCharacter)
 	{
 		std::ostringstream message;
 		message << "Found an invalid Campbell header. Expected to find the start of text character '" << m_startOfTextCharacter << "', but found '" << headerEnd[0] << "'.";
@@ -206,7 +206,7 @@ int hexCharToNumber(char hexChar)
 
 int hexTextToNumber(char* textHex)
 {
-	int result = (((hexCharToNumber(textHex[0])*16+ hexCharToNumber(textHex[1]))*16 + hexCharToNumber(textHex[2]))*16 + hexCharToNumber(textHex[3]))*16 + hexCharToNumber(textHex[4]);
+	int result = (((hexCharToNumber(textHex[0]) * 16 + hexCharToNumber(textHex[1])) * 16 + hexCharToNumber(textHex[2])) * 16 + hexCharToNumber(textHex[3])) * 16 + hexCharToNumber(textHex[4]);
 	//two's compliment format means the first bit is actually negative - correct for the
 	//fact that we have aded it on.
 	if (result > (8 * 16 * 16 * 16 * 16))
@@ -254,11 +254,11 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	//for checksum calculation
 	std::vector<char> buffer = header.getBytes();
 	size_t messageStartByte = buffer.size();
-	buffer.resize(buffer.size()+10335);
+	buffer.resize(buffer.size() + 10335);
 	istream.read(&buffer[messageStartByte], 10335);
 
 	//create a binary stream from the data that we will use to parse each of the values;
-	std::istringstream bufferStream(std::string(&buffer[messageStartByte], buffer.size()- messageStartByte));
+	std::istringstream bufferStream(std::string(&buffer[messageStartByte], buffer.size() - messageStartByte));
 
 	//parse all the variables from the bufferStream
 
@@ -306,7 +306,7 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 		m_visibility = metre(std::atof(height1));
 		m_highestSignal = std::atof(height2);
 	}
-	else if(messageStatus < '5')
+	else if (messageStatus < '5')
 	{
 		m_height1 = metre(std::atof(height1));
 		if (messageStatus > '1')
@@ -364,15 +364,15 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	m_scale = percent(std::atof(scale));
 	m_resolution = metre(std::atof(res));
 	m_laserPulseEnergy = percent(std::atof(energy));
-	m_laserTemperature = kelvin(std::atof(laserTemperature)+273.15);
+	m_laserTemperature = kelvin(std::atof(laserTemperature) + 273.15);
 	m_tiltAngle = degree(std::atof(tiltAngle));
 	m_background = millivolt(std::atof(background));
-	m_pulseQuantity = std::atoi(pulseQuantity)*1000;
+	m_pulseQuantity = std::atoi(pulseQuantity) * 1000;
 	m_sampleRate = megahertz(std::atof(sampleRate));
 	m_sum = std::atof(sum);
 
 
-	
+
 	std::vector<char> data(10240);
 	bufferStream.read(&data[0], 10240);
 	bufferStream.read(crlf, 2);

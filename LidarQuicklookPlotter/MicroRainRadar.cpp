@@ -40,7 +40,7 @@ bool MicroRainRadarProfile::readProfile(std::istream &stream)
 
 	//parse the header line
 	std::vector<std::string> headerChunks = sci::splitstring(line, " ", true);
-	sci::assertThrow(headerChunks.size()==23 &&
+	sci::assertThrow(headerChunks.size() == 23 &&
 		headerChunks[0] == "MRR" &&
 		headerChunks[2] == "UTC" &&
 		headerChunks[3] == "AVE" &&
@@ -127,7 +127,7 @@ void MicroRainRadarProcessor::readData(const std::vector<sci::string> &inputFile
 		if (i == 2)
 		{
 			profilesInSecondFile = m_profiles.size() - profilesInFirstFile;
-			m_profiles.reserve(inputFilenames.size()*std::max(profilesInFirstFile,profilesInSecondFile));
+			m_profiles.reserve(inputFilenames.size()*std::max(profilesInFirstFile, profilesInSecondFile));
 		}
 
 		try
@@ -240,7 +240,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		std::vector<second> samplingIntervals(m_profiles.size());
 		for (size_t i = 1; i < samplingIntervals.size(); ++i)
 		{
-			samplingIntervals[i] = times[i] - times[i-1];
+			samplingIntervals[i] = times[i] - times[i - 1];
 		}
 		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
 		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());

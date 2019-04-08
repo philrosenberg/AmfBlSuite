@@ -91,7 +91,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 		cloudBase2[i] = profiles[i].getCloudBase2();
 		cloudBase3[i] = profiles[i].getCloudBase3();
 		cloudBase4[i] = profiles[i].getCloudBase4();
-		
+
 		//assign gates for the first profile then check it is identical for the remaining profiles
 		if (i == 0)
 		{
@@ -143,7 +143,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-lower-height"), ceilometerFile, gateDimension, sU("")), gatesPhysical*resolution);
 	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-upper-height"), ceilometerFile, gateDimension, sU("")), (gatesPhysical + unitless(1))*resolution);
 	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-mid-height"), ceilometerFile, gateDimension, sU("")), (gatesPhysical + unitless(0.5))*resolution);
-	
+
 	//backscatter
 	std::vector<sci::NcDimension*> backscatterDimensions{ &ceilometerFile.getTimeDimension(), &gateDimension };
 	ceilometerFile.write(AmfNcVariable<steradianPerMetre>(sU("aerosol-backscatter"), ceilometerFile, backscatterDimensions, sU("aerosol-backscatter")), backscatter);
@@ -207,7 +207,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 
 		progressReporter << sU("Reading file ") << inputFilename << sU("\n");
 
-		
+
 		const size_t displayInterval = 120;
 		sci::string firstBatchDate;
 		sci::string timeDate;
@@ -315,7 +315,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 void CeilometerProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::assertThrow(hasData(), sci::err(sci::SERR_USER, 0, sU("Attempted to plot Ceilometer data when it has not been read")));
-	
+
 	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{
 		sci::ostringstream rangeLimitedfilename;

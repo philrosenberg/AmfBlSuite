@@ -94,11 +94,12 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &sett
 
 	try
 	{
-		if(m_setupFileName.length() > 0)
+		if (m_setupFileName.length() > 0)
 			setupProcessingOptionsOnly(m_setupFileName, m_processingOptions);
 	}
-	catch(...)
-	{ }
+	catch (...)
+	{
+	}
 
 	if (m_processingOptions.startImmediately)
 		start();
@@ -153,7 +154,7 @@ void mainFrame::OnSelectSetupFile(wxCommandEvent& event)
 		defaultDir = currentFile.GetPath();
 		defaultFileName = currentFile.GetFullName();
 	}
-	sci::string filename = sci::fromWxString(wxFileSelector("Select the xml setup file.",defaultDir, defaultFileName, wxEmptyString, wxFileSelectorDefaultWildcardStr, wxFD_FILE_MUST_EXIST|wxFD_OPEN));
+	sci::string filename = sci::fromWxString(wxFileSelector("Select the xml setup file.", defaultDir, defaultFileName, wxEmptyString, wxFileSelectorDefaultWildcardStr, wxFD_FILE_MUST_EXIST | wxFD_OPEN));
 	if (filename.length() == 0)
 		return;
 	setSetupFile(filename);
@@ -215,7 +216,7 @@ void mainFrame::stop()
 		return;
 	m_checkForNewDataTimer->Stop();
 	m_progressReporter->setShouldStop(true);
-	if( m_plotting)
+	if (m_plotting)
 		m_logText->AppendText("Stopping...\n");
 	else
 		m_logText->AppendText("Stopped\n\n");
@@ -260,7 +261,7 @@ void mainFrame::process()
 	ProcessFlagger plottingFlagger(&m_plotting);
 
 	//check if we have the setup data - if not then read it
-	if(!m_isSetup)
+	if (!m_isSetup)
 		readSetupFile();
 	//if this did not work for some reason then return
 	if (!m_isSetup)
@@ -268,11 +269,11 @@ void mainFrame::process()
 
 	for (size_t i = 0; i < m_instrumentProcessors.size(); ++i)
 		process(*m_instrumentProcessors[i]);
-	
+
 	//Tell the user we are done for now
 	if (m_progressReporter->shouldStop())
 		m_logText->AppendText("Stopped\n\n");
-	else if ( m_processingOptions.checkForNewFiles)
+	else if (m_processingOptions.checkForNewFiles)
 		(*m_progressReporter) << sU("Processed all files found. Waiting approx 10 mins to check again.\n\n");
 	else
 	{
@@ -292,14 +293,14 @@ void mainFrame::process(InstrumentProcessor &processor)
 	//updateSnapshotFile() was called. 
 	std::unique_ptr<FolderChangesLister> plotChangesLister;
 	std::unique_ptr<FolderChangesLister> ncChangesLister;
-	
+
 	if (m_processingOptions.onlyProcessNewFiles)
 	{
 		//This class in particular assumes that when
 		//it performs a search of previously existing files, the last one alphabetically
 		//will have changed, but the rest will not.
 		plotChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFiles.txt")));
-		ncChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister (m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFiles.txt")));
+		ncChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFiles.txt")));
 	}
 	else
 	{
@@ -334,8 +335,8 @@ void mainFrame::process(InstrumentProcessor &processor)
 void mainFrame::checkDirectoryStructue()
 {
 	//ensure that the input and output directories end with a slash or are empty
-	if (m_processingOptions.inputDirectory.length() > 0 && m_processingOptions.inputDirectory.back()!= sU('/') && m_processingOptions.inputDirectory.back()!= sU('\\'))
-		m_processingOptions.inputDirectory = m_processingOptions.inputDirectory +sU("/");
+	if (m_processingOptions.inputDirectory.length() > 0 && m_processingOptions.inputDirectory.back() != sU('/') && m_processingOptions.inputDirectory.back() != sU('\\'))
+		m_processingOptions.inputDirectory = m_processingOptions.inputDirectory + sU("/");
 	if (m_processingOptions.outputDirectory.length() > 0 && m_processingOptions.outputDirectory.back() != sU('/') && m_processingOptions.outputDirectory.back() != sU('\\'))
 		m_processingOptions.outputDirectory = m_processingOptions.outputDirectory + sU("/");
 
@@ -350,7 +351,7 @@ void mainFrame::checkDirectoryStructue()
 	}
 
 	//check the input directory exists
-	if(!wxDirExists(sci::nativeUnicode(m_processingOptions.inputDirectory)))
+	if (!wxDirExists(sci::nativeUnicode(m_processingOptions.inputDirectory)))
 	{
 		sci::ostringstream message;
 		message << sU("The input directory ") << m_processingOptions.inputDirectory << sU(" does not exist.");
@@ -441,7 +442,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 		std::vector<std::vector<sci::string>> dayFileSets = processor.groupFilesPerDayForReprocessing(newNcFiles, allFiles);
 		for (size_t i = 0; i < dayFileSets.size(); ++i)
 		{
-			(*m_progressReporter) << sU("Day ") << i+1 << sU(": Found the following files:\n");
+			(*m_progressReporter) << sU("Day ") << i + 1 << sU(": Found the following files:\n");
 			for (size_t j = 0; j < dayFileSets[i].size(); ++j)
 				(*m_progressReporter) << dayFileSets[i][j] << sU("\n");
 			(*m_progressReporter) << sU("\nReading...\n\n");

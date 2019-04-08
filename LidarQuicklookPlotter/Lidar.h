@@ -257,7 +257,7 @@ const uint8_t lidarDopplerOutOfRangeFlag = 5;
 const uint8_t lidarUserChangedGatesFlag = 6;
 const uint8_t lidarClippedWindProfileFlag = 7;
 
-const std::vector<std::pair<uint8_t,sci::string>> lidarDopplerFlags
+const std::vector<std::pair<uint8_t, sci::string>> lidarDopplerFlags
 {
 { lidarUnusedFlag, sU("not_used") },
 {lidarGoodDataFlag, sU("good_data")},

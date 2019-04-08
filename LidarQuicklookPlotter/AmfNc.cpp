@@ -78,7 +78,7 @@ sci::string getFormattedTimeOnly(const sci::UtcTime &time, sci::string separator
 sci::string getBoundsString(const std::vector<degree> & latitudes, const std::vector<degree> &longitudes)
 {
 	sci::stringstream result;
-	if (latitudes.size()==1)
+	if (latitudes.size() == 1)
 	{
 		result << latitudes[0].value<degree>() << sU(" N ") << longitudes[0].value<degree>() << sU(" E");
 	}
@@ -111,7 +111,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	m_hours.resize(m_times.size());
 	m_minutes.resize(m_times.size());
 	m_seconds.resize(m_times.size());
-	for (size_t i=0; i<times.size(); ++i)
+	for (size_t i = 0; i < times.size(); ++i)
 	{
 		m_years[i] = times[i].getYear();
 		m_months[i] = times[i].getMonth();
@@ -159,7 +159,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		AttitudeAverage roll;
 		for (size_t i = 0; i < m_times.size(); ++i)
 		{
-			platform.getLocation(m_times[i], m_times[i]+dataInfo.averagingPeriod, m_latitudes[i], m_longitudes[i], altitude);
+			platform.getLocation(m_times[i], m_times[i] + dataInfo.averagingPeriod, m_latitudes[i], m_longitudes[i], altitude);
 			platform.getInstrumentAttitudes(m_times[i], m_times[i] + dataInfo.averagingPeriod, elevation, azimuth, roll);
 			m_elevations[i] = elevation.m_mean;
 			m_elevationStdevs[i] = elevation.m_stdev;
@@ -243,7 +243,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 				sci::string thisExistingHistory = previous.getGlobalAttribute<sci::string>(sU("history"));
 				sci::string previousVersionString = previous.getGlobalAttribute<sci::string>(sU("product_version"));
 				sci::assertThrow(previousVersionString.length() > 1 && previousVersionString[0] == 'v', sci::err(sci::SERR_USER, 0, sU("Previous version of the file has an ill formatted product version.")));
-				
+
 				int thisPrevVersion;
 				sci::istringstream versionStream(previousVersionString.substr(1));
 				versionStream >> thisPrevVersion;
@@ -284,7 +284,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("processing_software_url"), processingsoftwareInfo.url));
 	write(sci::NcAttribute(sU("processing_software_version"), processingsoftwareInfo.version));
 	write(sci::NcAttribute(sU("calibration_sensitivity"), calibrationInfo.calibrationDescription));
-	if(calibrationInfo.certificationDate == sci::UtcTime(0,1,1,0,0,0))
+	if (calibrationInfo.certificationDate == sci::UtcTime(0, 1, 1, 0, 0, 0))
 		write(sci::NcAttribute(sU("calibration_certification_date"), sU("Not available")));
 	else
 		write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate, sU("-"), sU(":"), sU("T"))));
@@ -304,9 +304,9 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	write(sci::NcAttribute(sU("acknowledgement"), sci::string(sU("Acknowledgement of NCAS as the data provider is required whenever and wherever these data are used"))));
 	write(sci::NcAttribute(sU("platform"), platform.getPlatformInfo().name));
 	write(sci::NcAttribute(sU("platform_type"), g_platformTypeStrings[platform.getPlatformInfo().platformType]));
-	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings[platform.getPlatformInfo().deploymentMode] ));
+	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings[platform.getPlatformInfo().deploymentMode]));
 	write(sci::NcAttribute(sU("title"), title));
-	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings[ dataInfo.featureType ] ));
+	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings[dataInfo.featureType]));
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(m_latitudes, m_longitudes)));
@@ -331,8 +331,8 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		locationKeywords << ", " << platform.getPlatformInfo().locationKeywords[i];
 	write(sci::NcAttribute(sU("location_keywords"), locationKeywords.str()));
 	write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/tree/v0.2.3"))));
-	write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science."): sU(""))));
-	
+	write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science.") : sU(""))));
+
 
 	sci::string processingReason = dataInfo.reasonForProcessing;
 	if (processingReason.length() == 0)
@@ -357,7 +357,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	//we also need to add a lat and lon dimension, although we don't actually use them
 	//this helps indexing. They have size 1 for stationary platforms or same as time
 	//for moving platforms.
-	sci::NcDimension longitudeDimension(sU("longitude"), platform.getPlatformInfo().platformType==pt_stationary ? 1 : times.size());
+	sci::NcDimension longitudeDimension(sU("longitude"), platform.getPlatformInfo().platformType == pt_stationary ? 1 : times.size());
 	sci::NcDimension latitudeDimension(sU("latitude"), platform.getPlatformInfo().platformType == pt_stationary ? 1 : times.size());
 	write(longitudeDimension);
 	write(latitudeDimension);
@@ -368,7 +368,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	//create the time variables, but do not write the data as we need to stay in define mode
 	//so the user can add other variables
 	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension(), m_times));
-	m_dayOfYearVariable.reset(new AmfNcVariable<double, std::vector<double>>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU(""), sU("1"), m_dayOfYears));
+	m_dayOfYearVariable.reset(new AmfNcVariable<double, std::vector<double>>(sU("day_of_year"), *this, getTimeDimension(), sU("Day of Year"), sU(""), sU("1"), m_dayOfYears));
 	m_yearVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("year"), *this, getTimeDimension(), sU("Year"), sU(""), sU("1"), m_years));
 	m_monthVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("month"), *this, getTimeDimension(), sU("Month"), sU(""), sU("1"), m_months));
 	m_dayVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("day"), *this, getTimeDimension(), sU("Day"), sU(""), sU("1"), m_dayOfMonths));
@@ -384,7 +384,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		m_courseVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), m_courses));
 		m_speedVariable.reset(new AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), m_speeds));
 		m_orientationVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), sU("platform_orientation"), m_headings));
-		
+
 		m_instrumentPitchVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_pitch_angle"), *this, getTimeDimension(), sU("Instrument Pitch Angle"), sU(""), m_elevations));
 		m_instrumentPitchStdevVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_pitch_standard_deviation"), *this, getTimeDimension(), sU("Instrument Pitch Angle Standard Deviation"), sU(""), m_elevationStdevs));
 		m_instrumentPitchMinVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_pitch_minimum"), *this, getTimeDimension(), sU("Instrument Pitch Angle Minimum"), sU(""), m_elevationMins));
@@ -411,7 +411,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		secondsAfterEpoch[i] = times[i] - epoch;
 	//this will end define mode!
 	write(AmfNcTimeVariable(*this, m_timeDimension), secondsAfterEpoch);*/
-	
+
 }
 
 void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
@@ -461,7 +461,7 @@ void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 		write(*m_orientationVariable, m_headings);
 	}
 
-	
+
 }
 
 /*OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,

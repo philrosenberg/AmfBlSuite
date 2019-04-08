@@ -66,7 +66,7 @@ private:
 			if (empty)
 				result[i] = std::numeric_limits<T>::quiet_NaN();
 			else
-				result[i] = T(std::pow(10,atof(line.substr(3 + i * 7, 7).c_str())/10.0));
+				result[i] = T(std::pow(10, atof(line.substr(3 + i * 7, 7).c_str()) / 10.0));
 		}
 		return result;
 	}

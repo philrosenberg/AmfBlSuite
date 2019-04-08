@@ -62,13 +62,13 @@ public:
 		double brightnessRange = endBrightness - startBrightness;
 		for (size_t i = 0; i < colours.size(); ++i)
 		{
-			double brightness = startBrightness + (values[i] - values[0]) / valuesRange*brightnessRange;
-			double angle = M_2PI*(startHue / 3.0 + 1.0 + hueRotation / 360.0*brightness);
+			double brightness = startBrightness + (values[i] - values[0]) / valuesRange * brightnessRange;
+			double angle = M_2PI * (startHue / 3.0 + 1.0 + hueRotation / 360.0*brightness);
 			double gammaBrightness = std::pow(brightness, gamma);
-			double amplitude = saturation*gammaBrightness*(1 - gammaBrightness) / 2.0;
-			double red = gammaBrightness + amplitude*(-0.14861*std::cos(angle) + 1.78277*std::sin(angle));
-			double green = gammaBrightness + amplitude*(-0.29227*std::cos(angle) - 0.90649*std::sin(angle));
-			double blue = gammaBrightness + amplitude*(1.97294*std::cos(angle));
+			double amplitude = saturation * gammaBrightness*(1 - gammaBrightness) / 2.0;
+			double red = gammaBrightness + amplitude * (-0.14861*std::cos(angle) + 1.78277*std::sin(angle));
+			double green = gammaBrightness + amplitude * (-0.29227*std::cos(angle) - 0.90649*std::sin(angle));
+			double blue = gammaBrightness + amplitude * (1.97294*std::cos(angle));
 			colours[i] = rgbcolour(red, green, blue);
 		}
 		//std::fstream fout;

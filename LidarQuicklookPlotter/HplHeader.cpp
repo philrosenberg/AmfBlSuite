@@ -135,7 +135,7 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 	catch (sci::err err)
 	{
 		//throw a sightly different error if we did't find the first variable
-		if( err.getErrorCode() == 1) //missing variable uses error code 1
+		if (err.getErrorCode() == 1) //missing variable uses error code 1
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("The file is not a lidar profile. Lidar profile files should start with a \"Filename:\" parameter.")));
 		else
 			throw;
@@ -157,7 +157,7 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 	std::getline(stream, tempString);
 	sci::assertThrow(tempString == "Altitude of measurement (center of gate) = (range gate + 0.5) * Gate length",
 		sci::err(sci::SERR_USER, 0, sU("Did not find the expected altitude of measurement equation. Incorrect file format.")));
-	
+
 	std::getline(stream, tempString);
 	sci::assertThrow(tempString == "Data line 1: Decimal time (hours)  Azimuth (degrees)  Elevation (degrees) Pitch (degrees) Roll (degrees)",
 		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 descriptor. Incorrect file format.")));
@@ -173,7 +173,7 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 	std::getline(stream, tempString);
 	sci::assertThrow(tempString == "i3,1x,f6.4,1x,f8.6,1x,e12.6 - repeat for no. gates",
 		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 format. Incorrect file format.")));
-	
+
 	std::getline(stream, tempString);
 	sci::assertThrow(tempString == "****",
 		sci::err(sci::SERR_USER, 0, sU("Did not find the expected **** header ending. Incorrect file format.")));

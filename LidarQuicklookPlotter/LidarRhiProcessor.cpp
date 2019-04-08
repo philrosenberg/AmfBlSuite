@@ -23,7 +23,7 @@ public:
 
 void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
-	sci::assertThrow(getNFilesRead()==1, sci::err(sci::SERR_USER, 0, "Attempted to plot an RHI with either no files or multiple files. This code can only plot one file at a time."));
+	sci::assertThrow(getNFilesRead() == 1, sci::err(sci::SERR_USER, 0, "Attempted to plot an RHI with either no files or multiple files. This code can only plot one file at a time."));
 	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{
 		sci::ostringstream rangeLimitedfilename;

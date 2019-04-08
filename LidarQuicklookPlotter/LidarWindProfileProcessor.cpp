@@ -32,10 +32,10 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 		else
 		{
 			hplFilename = inputFilenames[i];
-			wxFileName processedFilenameWx(filename.GetPath(), "Processed_"+filename.GetName(), filename.GetExt());
+			wxFileName processedFilenameWx(filename.GetPath(), "Processed_" + filename.GetName(), filename.GetExt());
 			processedFilename = sci::fromWxString(processedFilenameWx.GetFullPath());
 		}
-		
+
 		//if we had both processed and hpl files passed then we may have already generated this pair so check
 		bool isNew = true;
 		for (size_t j = 0; j < processedFilenames.size(); ++j)
@@ -52,7 +52,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 
 	m_profiles.reserve(processedFilenames.size());
 
-	for (size_t i=0; i<processedFilenames.size(); ++i)
+	for (size_t i = 0; i < processedFilenames.size(); ++i)
 	{
 		Profile thisProfile(getInstrumentInfo(), getCalibrationInfo());
 		bool readProfileWithoutErrors = true;
@@ -135,7 +135,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 				metrePerSecond u = thisProfile.m_instrumentRelativeWindSpeeds[j] * sci::sin(thisProfile.m_motionCorrectedWindDirections[j]) + platformU;
 				metrePerSecond v = thisProfile.m_instrumentRelativeWindSpeeds[j] * sci::cos(thisProfile.m_motionCorrectedWindDirections[j]) + platformV;
 				thisProfile.m_motionCorrectedWindSpeeds[j] = sci::root<2>(sci::pow<2>(u) + sci::pow<2>(v));
-				thisProfile.m_motionCorrectedWindDirections[j] = sci::atan2(u,v);
+				thisProfile.m_motionCorrectedWindDirections[j] = sci::atan2(u, v);
 				sci::replacenans(thisProfile.m_motionCorrectedWindSpeeds, metrePerSecond(OutputAmfNcFile::getFillValue()));
 				sci::replacenans(thisProfile.m_motionCorrectedWindDirections, degree(OutputAmfNcFile::getFillValue()));
 			}
@@ -162,10 +162,10 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 		catch (std::exception err)
 		{
 			WarningSetter setter(&progressReporter);
-			progressReporter << sU("File not included in processing\n") <<  sci::fromCodepage(err.what()) << "\n";
+			progressReporter << sU("File not included in processing\n") << sci::fromCodepage(err.what()) << "\n";
 			readProfileWithoutErrors = false;
 		}
-		if(readProfileWithoutErrors)
+		if (readProfileWithoutErrors)
 			m_profiles.push_back(thisProfile);
 		else
 		{
@@ -271,7 +271,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		scanStartTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
-		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back()+ (unitless(m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0));//the second bit of this adds the duration of each ray
+		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back() + (unitless(m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0));//the second bit of this adds the duration of each ray
 	}
 
 	//work out the averaging time - this is the difference between the scan start and end times.
@@ -293,7 +293,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
 		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
-	
+
 	std::vector<sci::NcDimension*> nonTimeDimensions;
 
 	sci::NcDimension indexDimension(sU("index"), m_profiles[0].m_heights.size());
