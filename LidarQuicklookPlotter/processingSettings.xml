@@ -72,7 +72,8 @@
   -->
 
   <comment>This is a test file</comment>
-  <inputDirectory>Y:\MOCCHA\raw\</inputDirectory>
+ <!-- <inputDirectory>Y:\MOCCHA\raw\</inputDirectory>-->
+  <inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTest</inputDirectory>
   <outputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTestOutput\</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>

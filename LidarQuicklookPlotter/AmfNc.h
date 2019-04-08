@@ -1008,7 +1008,7 @@ void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
 		if (thisMin != getDefault<U>())
 		{
 			min = std::min(min, thisMin);
-			max = std::max(thisMax, thisMax);
+			max = std::max(max, thisMax);
 		}
 	}
 }
