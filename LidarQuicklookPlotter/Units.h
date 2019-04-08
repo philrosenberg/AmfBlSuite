@@ -38,4 +38,6 @@ public:
 	{
 		return sci::Physical<sci::Unitless>(std::log10(value.value<typename REFERENCE_UNIT::unit>())*10.0);
 	}
+	typedef sci::Physical<typename REFERENCE_UNIT::unit> referencePhysical;
+	typedef typename REFERENCE_UNIT::unit referenceUnit;
 };

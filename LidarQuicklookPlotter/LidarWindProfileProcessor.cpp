@@ -335,16 +335,16 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 			windFlags[i].resize(maxLevels, lidarUserChangedGatesFlag);
 		}
 
-		AmfNcVariable<metre> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), sci::min<metre>(altitudes), sci::max<metre>(altitudes));
-		AmfNcVariable<metrePerSecond> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), sci::min<metrePerSecond>(windSpeeds), sci::max<metrePerSecond>(windSpeeds));
-		AmfNcVariable<degree> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), sci::min<degree>(windDirections), sci::max<degree>(windDirections));
+		AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes);
+		AmfNcVariable<metrePerSecond, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds);
+		AmfNcVariable<degree, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), windDirections);
 		AmfNcFlagVariable windFlagVariable(sU("wind_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
 		file.writeTimeAndLocationData(platform);
 
-		file.write(altitudeVariable, altitudes);
-		file.write(windSpeedVariable, windSpeeds);
-		file.write(windDirectionVariable, windDirections);
+		file.write(altitudeVariable);
+		file.write(windSpeedVariable);
+		file.write(windDirectionVariable);
 		file.write(windFlagVariable, windFlags);
 	}
 }

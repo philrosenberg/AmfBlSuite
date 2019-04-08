@@ -367,41 +367,41 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 
 	//create the time variables, but do not write the data as we need to stay in define mode
 	//so the user can add other variables
-	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension(), m_times.front(), m_times.back()));
-	m_dayOfYearVariable.reset(new AmfNcVariable<double>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU(""), sU("1"), sci::min<double>(m_dayOfYears), sci::max<double>(m_dayOfYears)));
-	m_yearVariable.reset(new AmfNcVariable<int>(sU("year"), *this, getTimeDimension(), sU("Year"), sU(""), sU("1"), sci::min<int>(m_years), sci::max<int>(m_years)));
-	m_monthVariable.reset(new AmfNcVariable<int>(sU("month"), *this, getTimeDimension(), sU("Month"), sU(""), sU("1"), sci::min<int>(m_months), sci::max<int>(m_months)));
-	m_dayVariable.reset(new AmfNcVariable<int>(sU("day"), *this, getTimeDimension(), sU("Day"), sU(""), sU("1"), sci::min<int>(m_dayOfMonths), sci::max<int>(m_dayOfMonths)));
-	m_hourVariable.reset(new AmfNcVariable<int>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU(""), sU("1"), sci::min<int>(m_hours), sci::max<int>(m_hours)));
-	m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU(""), sU("1"), sci::min<int>(m_minutes), sci::max<int>(m_minutes)));
-	m_secondVariable.reset(new AmfNcVariable<double>(sU("second"), *this, getTimeDimension(), sU("Second"), sU(""), sU("1"), sci::min<double>(m_seconds), sci::max<double>(m_seconds)));
+	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension(), m_times));
+	m_dayOfYearVariable.reset(new AmfNcVariable<double, std::vector<double>>(sU("day_of_year"), *this, getTimeDimension(),sU("Day of Year"), sU(""), sU("1"), m_dayOfYears));
+	m_yearVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("year"), *this, getTimeDimension(), sU("Year"), sU(""), sU("1"), m_years));
+	m_monthVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("month"), *this, getTimeDimension(), sU("Month"), sU(""), sU("1"), m_months));
+	m_dayVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("day"), *this, getTimeDimension(), sU("Day"), sU(""), sU("1"), m_dayOfMonths));
+	m_hourVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU(""), sU("1"), m_hours));
+	m_minuteVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU(""), sU("1"), m_minutes));
+	m_secondVariable.reset(new AmfNcVariable<double, std::vector<double>>(sU("second"), *this, getTimeDimension(), sU("Second"), sU(""), sU("1"), m_seconds));
 
-	m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, sci::min<degree>(m_longitudes), sci::max<degree>(m_longitudes)));
-	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, sci::min<degree>(m_latitudes), sci::max<degree>(m_latitudes)));
+	m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, m_longitudes));
+	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, m_latitudes));
 
 	if (platform.getPlatformInfo().platformType == pt_moving)
 	{
-		m_courseVariable.reset(new AmfNcVariable<degree>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), sci::min<degree>(m_courses), sci::max<degree>(m_courses)));
-		m_speedVariable.reset(new AmfNcVariable<metrePerSecond>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), sci::min<metrePerSecond>(m_speeds), sci::min<metrePerSecond>(m_speeds)));
-		m_orientationVariable.reset(new AmfNcVariable<degree>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), sU("platform_orientation"), sci::min<degree>(m_headings), sci::max<degree>(m_headings)));
+		m_courseVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), m_courses));
+		m_speedVariable.reset(new AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), m_speeds));
+		m_orientationVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), sU("platform_orientation"), m_headings));
 		
-		m_instrumentPitchVariable.reset(new AmfNcVariable<degree>(sU("instrument_pitch_angle"), *this, getTimeDimension(), sU("Instrument Pitch Angle"), sU(""), sci::min<degree>(m_elevations), sci::max<degree>(m_elevations)));
-		m_instrumentPitchStdevVariable.reset(new AmfNcVariable<degree>(sU("instrument_pitch_standard_deviation"), *this, getTimeDimension(), sU("Instrument Pitch Angle Standard Deviation"), sU(""), sci::min<degree>(m_elevationStdevs), sci::max<degree>(m_elevationStdevs)));
-		m_instrumentPitchMinVariable.reset(new AmfNcVariable<degree>(sU("instrument_pitch_minimum"), *this, getTimeDimension(), sU("Instrument Pitch Angle Minim"), sU(""), sci::min<degree>(m_elevationMins), sci::max<degree>(m_elevationMins)));
-		m_instrumentPitchMaxVariable.reset(new AmfNcVariable<degree>(sU("instrument_pitch_maximum"), *this, getTimeDimension(), sU("Instrument Pitch Angle Maximum"), sU(""), sci::min<degree>(m_elevationMaxs), sci::max<degree>(m_elevationMaxs)));
-		m_instrumentPitchRateVariable.reset(new AmfNcVariable<degreePerSecond>(sU("instrument_pitch_rate"), *this, getTimeDimension(), sU("Instrument Pitch Angle Rate of Change"), sU(""),sci::min<degreePerSecond>(m_elevationRates), sci::max<degreePerSecond>(m_elevationRates)));
+		m_instrumentPitchVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_pitch_angle"), *this, getTimeDimension(), sU("Instrument Pitch Angle"), sU(""), m_elevations));
+		m_instrumentPitchStdevVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_pitch_standard_deviation"), *this, getTimeDimension(), sU("Instrument Pitch Angle Standard Deviation"), sU(""), m_elevationStdevs));
+		m_instrumentPitchMinVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_pitch_minimum"), *this, getTimeDimension(), sU("Instrument Pitch Angle Minimum"), sU(""), m_elevationMins));
+		m_instrumentPitchMaxVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_pitch_maximum"), *this, getTimeDimension(), sU("Instrument Pitch Angle Maximum"), sU(""), m_elevationMaxs));
+		m_instrumentPitchRateVariable.reset(new AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>(sU("instrument_pitch_rate"), *this, getTimeDimension(), sU("Instrument Pitch Angle Rate of Change"), sU(""), m_elevationRates));
 
-		m_instrumentYawVariable.reset(new AmfNcVariable<degree>(sU("instrument_yaw_angle"), *this, getTimeDimension(), sU("Instrument Yaw Angle"), sU(""), sci::min<degree>(m_azimuths), sci::max<degree>(m_azimuths)));
-		m_instrumentYawStdevVariable.reset(new AmfNcVariable<degree>(sU("instrument_yaw_standard_deviation"), *this, getTimeDimension(), sU("Instrument Yaw Angle Standard Deviation"), sU(""), sci::min<degree>(m_azimuthStdevs), sci::max<degree>(m_azimuthStdevs)));
-		m_instrumentYawMinVariable.reset(new AmfNcVariable<degree>(sU("instrument_yaw_minimum"), *this, getTimeDimension(), sU("Instrument Yaw Angle Minim"), sU(""), sci::min<degree>(m_azimuthMins), sci::max<degree>(m_azimuthMins)));
-		m_instrumentYawMaxVariable.reset(new AmfNcVariable<degree>(sU("instrument_yaw_maximum"), *this, getTimeDimension(), sU("Instrument Yaw Angle Maximum"), sU(""), sci::min<degree>(m_azimuthMaxs), sci::max<degree>(m_azimuthMaxs)));
-		m_instrumentYawRateVariable.reset(new AmfNcVariable<degreePerSecond>(sU("instrument_yaw_rate"), *this, getTimeDimension(), sU("Instrument Yaw Angle Rate of Change"), sU(""), sci::min<degreePerSecond>(m_azimuthRates), sci::max<degreePerSecond>(m_azimuthRates)));
+		m_instrumentYawVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_yaw_angle"), *this, getTimeDimension(), sU("Instrument Yaw Angle"), sU(""), m_azimuths));
+		m_instrumentYawStdevVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_yaw_standard_deviation"), *this, getTimeDimension(), sU("Instrument Yaw Angle Standard Deviation"), sU(""), m_azimuthStdevs));
+		m_instrumentYawMinVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_yaw_minimum"), *this, getTimeDimension(), sU("Instrument Yaw Angle Minimum"), sU(""), m_azimuthMins));
+		m_instrumentYawMaxVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_yaw_maximum"), *this, getTimeDimension(), sU("Instrument Yaw Angle Maximum"), sU(""), m_azimuthMaxs));
+		m_instrumentYawRateVariable.reset(new AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>(sU("instrument_yaw_rate"), *this, getTimeDimension(), sU("Instrument Yaw Angle Rate of Change"), sU(""), m_azimuthRates));
 
-		m_instrumentRollVariable.reset(new AmfNcVariable<degree>(sU("instrument_roll_angle"), *this, getTimeDimension(), sU("Instrument Roll Angle"), sU(""), sci::min<degree>(m_rolls), sci::max<degree>(m_rolls)));
-		m_instrumentRollStdevVariable.reset(new AmfNcVariable<degree>(sU("instrument_roll_standard_deviation"), *this, getTimeDimension(), sU("Instrument Roll Angle Standard Deviation"), sU(""), sci::min<degree>(m_rollStdevs), sci::max<degree>(m_rollStdevs)));
-		m_instrumentRollMinVariable.reset(new AmfNcVariable<degree>(sU("instrument_roll_minimum"), *this, getTimeDimension(), sU("Instrument Roll Angle Minim"), sU(""), sci::min<degree>(m_rollMins), sci::max<degree>(m_rollMins)));
-		m_instrumentRollMaxVariable.reset(new AmfNcVariable<degree>(sU("instrument_roll_maximum"), *this, getTimeDimension(), sU("Instrument Roll Angle Maximum"), sU(""), sci::min<degree>(m_rollMaxs), sci::max<degree>(m_rollMaxs)));
-		m_instrumentRollRateVariable.reset(new AmfNcVariable<degreePerSecond>(sU("instrument_roll_rate"), *this, getTimeDimension(), sU("Instrument Roll Angle Rate of Change"), sU(""), sci::min<degreePerSecond>(m_rollRates), sci::max<degreePerSecond>(m_rollRates)));
+		m_instrumentRollVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_roll_angle"), *this, getTimeDimension(), sU("Instrument Roll Angle"), sU(""), m_rolls));
+		m_instrumentRollStdevVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_roll_standard_deviation"), *this, getTimeDimension(), sU("Instrument Roll Angle Standard Deviation"), sU(""), m_rollStdevs));
+		m_instrumentRollMinVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_roll_minimum"), *this, getTimeDimension(), sU("Instrument Roll Angle Minimum"), sU(""), m_rollMins));
+		m_instrumentRollMaxVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("instrument_roll_maximum"), *this, getTimeDimension(), sU("Instrument Roll Angle Maximum"), sU(""), m_rollMaxs));
+		m_instrumentRollRateVariable.reset(new AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>(sU("instrument_roll_rate"), *this, getTimeDimension(), sU("Instrument Roll Angle Rate of Change"), sU(""), m_rollRates));
 
 	}
 	//and the time variable

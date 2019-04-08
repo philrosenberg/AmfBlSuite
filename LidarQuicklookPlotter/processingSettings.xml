@@ -2,7 +2,7 @@
   <!--This file contains the settings for a run of the processing software-->
   <author type ="amfEntity/person" id="1"></author>
   <project type="amfEntity/project" id="1"></project>
-  <platform type="amfEntity/platform" id="3"></platform>
+  <platform type="amfEntity/platform" id="1"></platform>
   <processor>
     <name>MicroRainRadarProcessor</name>
     <instrument type="amfEntity/instrument" id="3"></instrument>
@@ -72,8 +72,8 @@
   -->
 
   <comment>This is a test file</comment>
-  <inputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Mob data\</inputDirectory>
-  <outputDirectory>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\Mob data out\</outputDirectory>
+  <inputDirectory>Y:\MOCCHA\raw\</inputDirectory>
+  <outputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTestOutput\</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>
   <!--<startTime>
@@ -94,19 +94,19 @@
   </endTime>-->
   <startTime>
     <year>2018</year>
-    <month>7</month>
-    <day>11</day>
+    <month>8</month>
+    <day>1</day>
     <hour>0</hour>
     <minute>0</minute>
     <second>0</second>
   </startTime>
   <endTime>
     <year>2018</year>
-    <month>7</month>
-    <day>11</day>
-    <hour>10</hour>
-    <minute>00</minute>
-    <second>59</second>
+    <month>8</month>
+    <day>1</day>
+    <hour>23</hour>
+    <minute>59</minute>
+    <second>59.99</second>
   </endTime>
   <startImmediately>true</startImmediately>
   <checkForNewFiles>false</checkForNewFiles>

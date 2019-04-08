@@ -834,19 +834,210 @@ private:
 	unitless m_cosInstrumentRoll;
 };
 
-template <class T>
+class AmfNcTimeVariable;
+class AmfNcLatitudeVariable;
+class AmfNcLongitudeVariable;
+template<class T, class U>
+class AmfNcVariable;
+
+
+class OutputAmfNcFile : public sci::OutputNcFile
+{
+public:
+	OutputAmfNcFile(const sci::string &directory,
+		const InstrumentInfo &instrumentInfo,
+		const PersonInfo &author,
+		const ProcessingSoftwareInfo &processingsoftwareInfo,
+		const CalibrationInfo &calibrationInfo,
+		const DataInfo &dataInfo,
+		const ProjectInfo &projectInfo,
+		const Platform &platform,
+		const std::vector<sci::UtcTime> &times,
+		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0));
+	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
+	void writeTimeAndLocationData(const Platform &platform);
+	static double getFillValue() { return -1e20; }
+	template<class T>
+	void write(const T &variable)
+	{
+		sci::OutputNcFile::write(variable, variable.getData());
+	}
+	template<>
+	void write<sci::NcAttribute>(const sci::NcAttribute & attribute)
+	{
+		sci::OutputNcFile::write(attribute);
+	}
+	template<>
+	void write<sci::NcDimension>(const sci::NcDimension & dimension)
+	{
+		sci::OutputNcFile::write(dimension);
+	}
+	template<class T, class U>
+	void write(const T &variable, const U &data)
+	{
+		sci::OutputNcFile::write(variable, data);
+	}
+private:
+	sci::NcDimension m_timeDimension;
+	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
+	std::unique_ptr<AmfNcLatitudeVariable> m_latitudeVariable;
+	std::unique_ptr<AmfNcLongitudeVariable> m_longitudeVariable;
+	std::unique_ptr<AmfNcVariable<double, std::vector<double>>> m_dayOfYearVariable;
+	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_yearVariable;
+	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_monthVariable;
+	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_dayVariable;
+	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_hourVariable;
+	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_minuteVariable;
+	std::unique_ptr<AmfNcVariable<double, std::vector<double>>> m_secondVariable;
+
+	//only used for moving platforms
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_courseVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_orientationVariable;
+	std::unique_ptr<AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>>> m_speedVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentPitchVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentPitchStdevVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentPitchMinVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentPitchMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>> m_instrumentPitchRateVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentRollVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentRollStdevVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentRollMinVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentRollMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>> m_instrumentRollRateVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentYawVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentYawStdevVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentYawMinVariable;
+	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentYawMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>> m_instrumentYawRateVariable;
+
+	std::vector<sci::UtcTime> m_times;
+	std::vector<int> m_years;
+	std::vector<int> m_months;
+	std::vector<int> m_dayOfMonths;
+	std::vector<double> m_dayOfYears;
+	std::vector<int> m_hours;
+	std::vector<int> m_minutes;
+	std::vector<double> m_seconds;
+	std::vector<degree> m_latitudes;
+	std::vector<degree> m_longitudes;
+	std::vector<degree> m_elevations;
+	std::vector<degree> m_elevationStdevs;
+	std::vector<degree> m_elevationMins;
+	std::vector<degree> m_elevationMaxs;
+	std::vector<degreePerSecond> m_elevationRates;
+	std::vector<degree> m_azimuths;
+	std::vector<degree> m_azimuthStdevs;
+	std::vector<degree> m_azimuthMins;
+	std::vector<degree> m_azimuthMaxs;
+	std::vector<degreePerSecond> m_azimuthRates;
+	std::vector<degree> m_rolls;
+	std::vector<degree> m_rollStdevs;
+	std::vector<degree> m_rollMins;
+	std::vector<degree> m_rollMaxs;
+	std::vector<degreePerSecond> m_rollRates;
+	std::vector<degree> m_courses;
+	std::vector<metrePerSecond> m_speeds;
+	std::vector<degree> m_headings;
+};
+
+template<class T>
+typename std::enable_if<!std::is_integral<T>::value, T>::type getDefault()
+{
+	//this is the version that will be called for floating points and physicals
+	return T(OutputAmfNcFile::getFillValue());
+}
+//for integers we cannot use fill value use max instead
+template<class T>
+typename std::enable_if<std::is_integral<T>::value, T>::type getDefault()
+{
+	return std::numeric_limits<T>::max();
+}
+
+template<class T>
+void getMinMax(const std::vector<T> &data, T &min, T &max)
+{
+	min = getDefault<T>();
+	max = getDefault<T>();
+	//find the first non fill value
+	auto iter = data.begin();
+	for (; iter != data.end(); ++iter)
+	{
+		if (*iter != getDefault<T>())
+		{
+			min = *iter;
+			max = *iter;
+			break;
+		}
+	}
+	//now go through the remaining data and find the min/max
+	for (; iter != data.end(); ++iter)
+	{
+		if (*iter != getDefault<T>())
+		{
+			min = std::min(min, *iter);
+			max = std::max(max, *iter);
+		}
+	}
+}
+
+template<class T, class U>
+void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
+{
+	min = getDefault<U>();
+	max = getDefault<U>();
+	//find the first element which has a min/max which are not fill values
+	auto iter = data.begin();
+	for (; iter != data.end(); ++iter)
+	{
+		U thisMin;
+		U thisMax;
+		getMinMax(*iter, thisMin, thisMax);
+		if (thisMin != getDefault<U>())
+		{
+			min = thisMin;
+			max = thisMax;
+			break;
+		}
+	}
+	//now go through the remaining data and find the min/max
+	for (; iter != data.end(); ++iter)
+	{
+		U thisMin;
+		U thisMax;
+		getMinMax(*iter, thisMin, thisMax);
+		if (thisMin != getDefault<U>())
+		{
+			min = std::min(min, thisMin);
+			max = std::max(thisMax, thisMax);
+		}
+	}
+}
+
+template <class T, class U>
 class AmfNcVariable : public sci::NcVariable<T>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimension)
 	{
+		m_data = data;
+		T validMin;
+		T validMax;
+		getMinMax(m_data, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, units, validMin, validMax, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimensions)
 	{
+		m_data = data;
+		T validMin;
+		T validMax;
+		getMinMax(m_data, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, units, validMin, validMax, comment);
+	}
+	const U& getData() const
+	{
+		return m_data;
 	}
 private:
 	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, const sci::string &comment)
@@ -866,6 +1057,7 @@ private:
 		if (standardName.length() > 0)
 			addAttribute(standardNameAttribute, ncFile);
 	}
+	U m_data;
 };
 
 class AmfNcFlagVariable : public sci::NcVariable<uint8_t>
@@ -888,19 +1080,33 @@ public:
 };
 
 //create a partial specialization for any AmfNcVariable based on a sci::Physical value
-template <class T>
-class AmfNcVariable<sci::Physical<T>> : public sci::NcVariable<sci::Physical<T>>
+template <class T, class U>
+class AmfNcVariable<sci::Physical<T>, U> : public sci::NcVariable<sci::Physical<T>>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::Physical<T> validMin, sci::Physical<T> validMax, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T>>(name, ncFile, dimension)
 	{
+		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
+		m_data = data;
+		sci::Physical<T> validMin;
+		sci::Physical<T> validMax;
+		getMinMax(m_data, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, sci::Physical<T> validMin, sci::Physical<T> validMax, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T>>(name, ncFile, dimensions)
 	{
+		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
+		m_data = data;
+		sci::Physical<T> validMin;
+		sci::Physical<T> validMax;
+		getMinMax(m_data, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
+	}
+	const U& getData() const
+	{
+		return m_data;
 	}
 
 private:
@@ -913,6 +1119,7 @@ private:
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<T>());
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
+		addAttribute(unitsAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
 		if (comment.length() > 0)
@@ -920,6 +1127,7 @@ private:
 		if (standardName.length() > 0)
 			addAttribute(standardNameAttribute, ncFile);
 	}
+	U m_data;
 };
 
 //Specialize sci::NcVariable for Decibels - this is so that we can convert the valuse from linear units to decibels
@@ -969,46 +1177,67 @@ public:
 //logarithmic variables are a bit different, so need their own class which inherits from the Decibel specialization above
 //note that when we do the write, this must be called with the linear unit or a compatible linear unit. If it
 //is a compatible linear unit it will be converted to the reference unit before logging
-template < class REFERENCE_UNIT>
-class AmfNcVariable<Decibel<REFERENCE_UNIT>> : public sci::NcVariable<Decibel<REFERENCE_UNIT>>
+template < class REFERENCE_UNIT, class U>
+class AmfNcVariable<Decibel<REFERENCE_UNIT>, U> : public sci::NcVariable<Decibel<REFERENCE_UNIT>>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, bool isDbZ, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimension)
 	{
+		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<typename REFERENCE_UNIT::unit>>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
+		m_dataDb = sci::log10(sci::physicalsToValues<referencePhysical>(data))*10.0;
+		m_isDbZ = isDbZ;
+		double validMin;
+		double validMax;
+		getMinMax(m_dataDb, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, bool isDbZ, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
 	{
+		static_assert(std::is_same<sci::VectorTraits<U>::baseType, referencePhysical>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
+		m_dataDb = sci::log10(sci::physicalsToValues<referencePhysical>(data))*10.0;
+		m_isDbZ = isDbZ;
+		double validMin;
+		double validMax;
+		getMinMax(m_dataDb, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
 	}
-
+	const U& getData() const
+	{
+		//return m_data;
+		return U();
+	}
+	typedef typename Decibel<REFERENCE_UNIT>::referencePhysical referencePhysical;
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<typename REFERENCE_UNIT::unit> validMin, sci::Physical<typename REFERENCE_UNIT::unit> validMax, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, double validMinDb, double validMaxDb, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
-		sci::NcAttribute unitsAttribute(sU("units"), sU("dB"));
-		sci::NcAttribute validMinAttribute(sU("valid_min"), std::log10(validMin.value<REFERENCE_UNIT>())*10.0);
-		sci::NcAttribute validMaxAttribute(sU("valid_max"), std::log10(validMax.value<REFERENCE_UNIT>()*10.0));
-		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), REFERENCE_UNIT::getShortUnitString());
+		sci::NcAttribute unitsAttribute(sU("units"), m_isDbZ ? sU("dBZ") : sU("dB"));
+		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referencePhysical::getShortUnitString());
+		sci::NcAttribute validMinAttribute(sU("valid_min"), validMinDb);
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMaxDb);
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
-		/*addAttribute(longNameAttribute, ncFile);
+		addAttribute(longNameAttribute, ncFile);
+		addAttribute(unitsAttribute, ncFile);
+		addAttribute(referenceUnitAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
-			addAttribute(standardNameAttribute, ncFile);*/
+			addAttribute(standardNameAttribute, ncFile);
 	}
+	decltype(sci::physicalsToValues<referencePhysical>(U())) m_dataDb;
+	bool m_isDbZ;
 };
 
-class AmfNcTimeVariable : public AmfNcVariable<double>
+class AmfNcTimeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
-	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, sci::UtcTime minTime, sci::UtcTime maxTime)
-		:AmfNcVariable<double>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), (minTime-sci::UtcTime(1970, 1, 1, 0, 0, 0)).value<second>(), (maxTime - sci::UtcTime(1970, 1, 1, 0, 0, 0)).value<second>())
+	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<sci::UtcTime> &times)
+		:AmfNcVariable<double, std::vector<double>>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second>(times-sci::UtcTime(1970, 1, 1, 0, 0, 0)))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
 		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);
@@ -1022,120 +1251,21 @@ public:
 		return secondsAfterEpoch;
 	}
 };
-class AmfNcLongitudeVariable : public AmfNcVariable<double>
+class AmfNcLongitudeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
-	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, degree min, degree max)
-		:AmfNcVariable<double>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_north"), min.value<degree>(), max.value<degree>())
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &longitudes)
+		:AmfNcVariable<double, std::vector<double>>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_north"), sci::physicalsToValues<degree>(longitudes))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
 };
-class AmfNcLatitudeVariable : public AmfNcVariable<double>
+class AmfNcLatitudeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
-	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, degree min, degree max)
-		:AmfNcVariable<double>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_east"), min.value<degree>(), max.value<degree>())
+	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &latitudes)
+		:AmfNcVariable<double, std::vector<double>>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_east"), sci::physicalsToValues<degree>(latitudes))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
-};
-
-
-class OutputAmfNcFile : public sci::OutputNcFile
-{
-public:
-	OutputAmfNcFile(const sci::string &directory,
-		const InstrumentInfo &instrumentInfo,
-		const PersonInfo &author,
-		const ProcessingSoftwareInfo &processingsoftwareInfo,
-		const CalibrationInfo &calibrationInfo,
-		const DataInfo &dataInfo,
-		const ProjectInfo &projectInfo,
-		const Platform &platform,
-		const std::vector<sci::UtcTime> &times,
-		const std::vector<sci::NcDimension *> &nonTimeDimensions= std::vector<sci::NcDimension *>(0));
-	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
-	void writeTimeAndLocationData( const Platform &platform );
-	static double getFillValue() { return -1e20; }
-private:
-	sci::NcDimension m_timeDimension;
-	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
-	std::unique_ptr<AmfNcLatitudeVariable> m_latitudeVariable;
-	std::unique_ptr<AmfNcLongitudeVariable> m_longitudeVariable;
-	std::unique_ptr<AmfNcVariable<double>> m_dayOfYearVariable;
-	std::unique_ptr<AmfNcVariable<int32_t>> m_yearVariable;
-	std::unique_ptr<AmfNcVariable<int32_t>> m_monthVariable;
-	std::unique_ptr<AmfNcVariable<int32_t>> m_dayVariable;
-	std::unique_ptr<AmfNcVariable<int32_t>> m_hourVariable;
-	std::unique_ptr<AmfNcVariable<int32_t>> m_minuteVariable;
-	std::unique_ptr<AmfNcVariable<double>> m_secondVariable;
-
-	//only used for moving platforms
-	std::unique_ptr<AmfNcVariable<degree>> m_courseVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_orientationVariable;
-	std::unique_ptr<AmfNcVariable<metrePerSecond>> m_speedVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchStdevVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchMinVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentPitchMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecond>> m_instrumentPitchRateVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollStdevVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollMinVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentRollMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecond>> m_instrumentRollRateVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawStdevVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawMinVariable;
-	std::unique_ptr<AmfNcVariable<degree>> m_instrumentYawMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecond>> m_instrumentYawRateVariable;
-
-	std::vector<sci::UtcTime> m_times;
-	std::vector<int> m_years;
-	std::vector<int> m_months;
-	std::vector<int> m_dayOfMonths;
-	std::vector<double> m_dayOfYears;
-	std::vector<int> m_hours;
-	std::vector<int> m_minutes;
-	std::vector<double> m_seconds;
-	std::vector<degree> m_latitudes;
-	std::vector<degree> m_longitudes;
-	std::vector<degree> m_elevations;
-	std::vector<degree> m_elevationStdevs;
-	std::vector<degree> m_elevationMins;
-	std::vector<degree> m_elevationMaxs;
-	std::vector<degreePerSecond> m_elevationRates;
-	std::vector<degree> m_azimuths;
-	std::vector<degree> m_azimuthStdevs;
-	std::vector<degree> m_azimuthMins;
-	std::vector<degree> m_azimuthMaxs;
-	std::vector<degreePerSecond> m_azimuthRates;
-	std::vector<degree> m_rolls;
-	std::vector<degree> m_rollStdevs;
-	std::vector<degree> m_rollMins;
-	std::vector<degree> m_rollMaxs;
-	std::vector<degreePerSecond> m_rollRates;
-	std::vector<degree> m_courses;
-	std::vector<metrePerSecond> m_speeds;
-	std::vector<degree> m_headings;
-};
-
-
-class OutputAmfSeaNcFile : public OutputAmfNcFile
-{
-public:
-	OutputAmfSeaNcFile(const sci::string &directory,
-		const InstrumentInfo &instrumentInfo,
-		const PersonInfo &author,
-		const ProcessingSoftwareInfo &processingsoftwareInfo,
-		const CalibrationInfo &calibrationInfo,
-		const DataInfo &dataInfo,
-		const ProjectInfo &projectInfo,
-		const PlatformInfo &platformInfo,
-		const sci::string &comment,
-		const std::vector<sci::UtcTime> &times,
-		const std::vector<double> &latitudes,
-		const std::vector<double> &longitudes,
-		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0));
 };

@@ -40,7 +40,7 @@
     <locationKeyword>Arctic</locationKeyword>
     <locationKeyword>Sweden</locationKeyword>
     <locationKeyword>Norway</locationKeyword>
-    <locationFile>C:\Users\pdros\OneDrive\Documents\Work\Leeds\MOCCHA\MocchaLidarMotion.nc</locationFile>
+    <locationFile>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\MocchaLidarMotion.nc</locationFile>
     <platformRelative>false</platformRelative>
   </platform>
   
@@ -63,7 +63,7 @@
 
   <!--This is an example of a stationary platform-->
   <platform id="3">
-    <name>AMF-Compound</name>
+    <name>AMF Compound</name>
     <type>stationary</type>
     <deploymentMode>land</deploymentMode>
     <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->
@@ -92,7 +92,7 @@
   </instrument>
 
   <instrument id="2">
-    <name>ncas-ceilometer-1</name>
+    <name>ncas ceilometer 1</name>
     <description>NCAS Lidar Ceilometer unit 1</description>
     <manufacturer>Campbel</manufacturer>
     <model>CS135</model>
