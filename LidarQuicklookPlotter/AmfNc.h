@@ -334,6 +334,20 @@ private:
 //	std::vector<metrePerSecond> m_shipSpeeds;
 //};
 
+//this function takes an array of angles and starting from
+//the second element it adds or subtracts mutiples of 360 degrees
+//so that the absolute differnce between two elements is never
+//more than 180 degrees
+void makeContinuous(std::vector<degree> &angles);
+
+
+//this function puts an angle into the -180 to +180 degree range
+inline degree rangeLimitAngle(degree angle)
+{
+	degree jumpAmount = sci::ceil((angle - degree(180)) / degree(360))*degree(360);
+	return angle - jumpAmount;
+}
+
 class ShipPlatform : public Platform
 {
 public:
@@ -362,31 +376,11 @@ public:
 
 		//set up a series of azimuths that do not jump at the 0/360 point
 		m_shipAzimuthsNoJumps = shipAzimuths;
-		for (size_t i = 1; i < m_shipAzimuthsNoJumps.size(); ++i)
-		{
-			while (m_shipAzimuthsNoJumps[i] - m_shipAzimuthsNoJumps[i - 1] > degree(180))
-			{
-				m_shipAzimuthsNoJumps[i] -= degree(360);
-			}
-			while (m_shipAzimuthsNoJumps[i] - m_shipAzimuthsNoJumps[i - 1] < degree(-180))
-			{
-				m_shipAzimuthsNoJumps[i] += degree(360);
-			}
-		}
+		makeContinuous(m_shipAzimuthsNoJumps);
 
 		//set up a series of courses that do not jump at the 0/360 point
 		m_shipCoursesNoJumps = shipCourses;
-		for (size_t i = 1; i < m_shipCoursesNoJumps.size(); ++i)
-		{
-			while (m_shipCoursesNoJumps[i] - m_shipCoursesNoJumps[i - 1] > degree(180))
-			{
-				m_shipCoursesNoJumps[i] -= degree(360);
-			}
-			while (m_shipCoursesNoJumps[i] - m_shipCoursesNoJumps[i - 1] < degree(-180))
-			{
-				m_shipCoursesNoJumps[i] += degree(360);
-			}
-		}
+		makeContinuous(m_shipCoursesNoJumps);
 
 
 		m_instrumentElevationsAbsolute = std::vector<degree>(times.size(), degree(0.0));
@@ -458,17 +452,7 @@ public:
 
 		//set up a series of instrument azimuths that do not jump at the 0/360 point
 		m_instrumentAzimuthsAbsoluteNoJumps = shipAzimuths;
-		for (size_t i = 1; i < m_instrumentAzimuthsAbsoluteNoJumps.size(); ++i)
-		{
-			while (m_instrumentAzimuthsAbsoluteNoJumps[i] - m_instrumentAzimuthsAbsoluteNoJumps[i - 1] > degree(180))
-			{
-				m_instrumentAzimuthsAbsoluteNoJumps[i] -= degree(360);
-			}
-			while (m_instrumentAzimuthsAbsoluteNoJumps[i] - m_instrumentAzimuthsAbsoluteNoJumps[i - 1] < degree(-180))
-			{
-				m_instrumentAzimuthsAbsoluteNoJumps[i] += degree(360);
-			}
-		}
+		makeContinuous(m_instrumentAzimuthsAbsoluteNoJumps);
 	}
 	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationShipRelative, degree instrumentAzimuthShipRelative, degree instrumentRollShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
 		:Platform(name, pt_moving, dm_sea, locationKeywords)
@@ -497,45 +481,15 @@ public:
 
 		//set up a series of azimuths that do not jump at the 0/360 point
 		m_shipAzimuthsNoJumps = shipAzimuths;
-		for (size_t i = 1; i < m_shipAzimuthsNoJumps.size(); ++i)
-		{
-			while (m_shipAzimuthsNoJumps[i] - m_shipAzimuthsNoJumps[i - 1] > degree(180))
-			{
-				m_shipAzimuthsNoJumps[i] -= degree(360);
-			}
-			while (m_shipAzimuthsNoJumps[i] - m_shipAzimuthsNoJumps[i - 1] < degree(-180))
-			{
-				m_shipAzimuthsNoJumps[i] += degree(360);
-			}
-		}
+		makeContinuous(m_shipAzimuthsNoJumps);
 
 		//set up a series of courses that do not jump at the 0/360 point
 		m_shipCoursesNoJumps = shipCourses;
-		for (size_t i = 1; i < m_shipCoursesNoJumps.size(); ++i)
-		{
-			while (m_shipCoursesNoJumps[i] - m_shipCoursesNoJumps[i - 1] > degree(180))
-			{
-				m_shipCoursesNoJumps[i] -= degree(360);
-			}
-			while (m_shipCoursesNoJumps[i] - m_shipCoursesNoJumps[i - 1] < degree(-180))
-			{
-				m_shipCoursesNoJumps[i] += degree(360);
-			}
-		}
+		makeContinuous(m_shipCoursesNoJumps);
 
 		//set up a series of longitudes that do not jump at the 0/360 point
 		m_longitudesNoJumps = longitudes;
-		for (size_t i = 1; i < m_longitudesNoJumps.size(); ++i)
-		{
-			while (m_longitudesNoJumps[i] - m_longitudesNoJumps[i - 1] > degree(180))
-			{
-				m_longitudesNoJumps[i] -= degree(360);
-			}
-			while (m_longitudesNoJumps[i] - m_longitudesNoJumps[i - 1] < degree(-180))
-			{
-				m_longitudesNoJumps[i] += degree(360);
-			}
-		}
+		makeContinuous(m_longitudesNoJumps);
 
 		m_instrumentElevationsAbsolute = std::vector<degree>(times.size(), degree(0.0));
 		m_instrumentAzimuthsAbsolute = std::vector<degree>(times.size(), degree(0.0));
@@ -614,25 +568,13 @@ public:
 
 		//set up a series of instrument azimuths that do not jump at the 0/360 point
 		m_instrumentAzimuthsAbsoluteNoJumps = shipAzimuths;
-		for (size_t i = 1; i < m_instrumentAzimuthsAbsoluteNoJumps.size(); ++i)
-		{
-			while (m_instrumentAzimuthsAbsoluteNoJumps[i] - m_instrumentAzimuthsAbsoluteNoJumps[i - 1] > degree(180))
-			{
-				m_instrumentAzimuthsAbsoluteNoJumps[i] -= degree(360);
-			}
-			while (m_instrumentAzimuthsAbsoluteNoJumps[i] - m_instrumentAzimuthsAbsoluteNoJumps[i - 1] < degree(-180))
-			{
-				m_instrumentAzimuthsAbsoluteNoJumps[i] += degree(360);
-			}
-		}
+		makeContinuous(m_instrumentAzimuthsAbsoluteNoJumps);
 	}
 	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degree &latitude, degree &longitude, metre &altitude) const
 	{
 		latitude = findMean(startTime, endTime, m_latitudes);
 		longitude = findMean(startTime, endTime, m_longitudesNoJumps);
-		longitude -= sci::floor(longitude / degree(360))*degree(360);
-		if (longitude > degree(180))
-			longitude -= degree(360);
+		longitude = rangeLimitAngle(longitude);
 		altitude = m_altitude;
 	}
 	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const override
@@ -661,24 +603,20 @@ public:
 		findStatistics(startTime, endTime, m_instrumentElevationsAbsolute, elevation.m_mean, elevation.m_stdev, elevation.m_min, elevation.m_max, elevation.m_rate);
 		findStatistics(startTime, endTime, m_instrumentAzimuthsAbsoluteNoJumps, azimuth.m_mean, azimuth.m_stdev, azimuth.m_min, azimuth.m_max, azimuth.m_rate);
 		findStatistics(startTime, endTime, m_instrumentRollsAbsolute, roll.m_mean, roll.m_stdev, roll.m_min, roll.m_max, roll.m_rate);
-		degree azimuthOffset = sci::floor(azimuth.m_mean / degree(360))*degree(360);
-		if (azimuth.m_mean - azimuthOffset > degree(180))
-			azimuthOffset += degree(180);
-		azimuth.m_mean -= azimuthOffset;
-		azimuth.m_max -= azimuthOffset;
-		azimuth.m_min -= azimuthOffset;
+		degree azimuthOffset = rangeLimitAngle(azimuth.m_mean) - azimuth.m_mean;
+		azimuth.m_mean += azimuthOffset;
+		azimuth.m_max += azimuthOffset;
+		azimuth.m_min += azimuthOffset;
 	}
 	virtual void getPlatformAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const override
 	{
 		findStatistics(startTime, endTime, m_shipElevations, elevation.m_mean, elevation.m_stdev, elevation.m_min, elevation.m_max, elevation.m_rate);
 		findStatistics(startTime, endTime, m_shipAzimuthsNoJumps, azimuth.m_mean, azimuth.m_stdev, azimuth.m_min, azimuth.m_max, azimuth.m_rate);
 		findStatistics(startTime, endTime, m_shipRolls, roll.m_mean, roll.m_stdev, roll.m_min, roll.m_max, roll.m_rate);
-		degree azimuthOffset = sci::floor(azimuth.m_mean / degree(360))*degree(360);
-		if (azimuth.m_mean - azimuthOffset > degree(180))
-			azimuthOffset += degree(180);
-		azimuth.m_mean -= azimuthOffset;
-		azimuth.m_max -= azimuthOffset;
-		azimuth.m_min -= azimuthOffset;
+		degree azimuthOffset = rangeLimitAngle(azimuth.m_mean) - azimuth.m_mean;
+		azimuth.m_mean += azimuthOffset;
+		azimuth.m_max += azimuthOffset;
+		azimuth.m_min += azimuthOffset;
 	}
 	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
 	{
@@ -856,11 +794,12 @@ public:
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0));
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
 	void writeTimeAndLocationData(const Platform &platform);
-	static double getFillValue() { return -1e20; }
 	template<class T>
 	void write(const T &variable)
 	{
-		sci::OutputNcFile::write(variable, variable.getData());
+		auto data = variable.getData();
+		sci::replacenans(data, getFillValue<sci::VectorTraits<decltype(data)>::baseType>());
+		sci::OutputNcFile::write(variable, data);
 	}
 	template<>
 	void write<sci::NcAttribute>(const sci::NcAttribute & attribute)

@@ -91,6 +91,38 @@ sci::string getBoundsString(const std::vector<degree> & latitudes, const std::ve
 	return result.str();
 }
 
+//this function takes an array of angles and starting from
+//the second element it adds or subtracts mutiples of 360 degrees
+//so that the absolute differnce between two elements is never
+//more than 180 degrees
+void makeContinuous(std::vector<degree> &angles)
+{
+	if (angles.size() < 2)
+		return;
+
+	//find the first valid angle
+	auto iter = angles.begin();
+	for (; iter != angles.end(); ++iter)
+	{
+		if (*iter == *iter)
+			break;
+	}
+	if (iter == angles.end())
+		return;
+
+	//if we get to here then we have found the first valid angle.
+	//move to the next angle which is the first one we may need
+	//to modify
+	++iter;
+
+	//Now move throught the array incrementing the points as needed
+	for (; iter != angles.end(); ++iter)
+	{
+		degree jumpAmount = sci::ceil((*(iter - 1) - *iter - degree(180)) / degree(360))*degree(360);
+		*iter += jumpAmount;
+	}
+}
+
 OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const InstrumentInfo &instrumentInfo,
 	const PersonInfo &author,
