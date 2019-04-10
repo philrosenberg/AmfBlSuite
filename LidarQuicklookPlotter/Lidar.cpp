@@ -109,9 +109,6 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 			else if (nRead % 10 == 0)
 				progressReporter << sU(", ") << nRead - 9 << sU("-") << nRead;
 		}
-		sci::replacenans(m_correctedDopplerVelocities, metrePerSecond(OutputAmfNcFile::getFillValue()));
-		sci::replacenans(m_correctedElevations, degree(OutputAmfNcFile::getFillValue()));
-		sci::replacenans(m_correctedAzimuths, degree(OutputAmfNcFile::getFillValue()));
 		if (progressReporter.shouldStop())
 			break;
 
@@ -274,8 +271,8 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 {
 	DataInfo dataInfo;
 	dataInfo.continuous = true;
-	dataInfo.samplingInterval = second(OutputAmfNcFile::getFillValue());//set to fill value initially - calculate it later
-	dataInfo.averagingPeriod = second(OutputAmfNcFile::getFillValue());//set to fill value initially - calculate it later
+	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
 	dataInfo.featureType = ft_timeSeriesPoint;
@@ -453,19 +450,19 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	//expand the arrays, padding with fill value as needed
 	for (size_t i = 0; i < ranges.size(); ++i)
 	{
-		ranges[i].resize(maxNGates, metre(OutputAmfNcFile::getFillValue()));
-		instrumentRelativeAzimuthAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
-		attitudeCorrectedAzimuthAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
-		instrumentRelativeElevationAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
-		attitudeCorrectedElevationAngles[i].resize(maxProfilesPerScan, degree(OutputAmfNcFile::getFillValue()));
+		ranges[i].resize(maxNGates, std::numeric_limits<metre>::quiet_NaN());
+		instrumentRelativeAzimuthAngles[i].resize(maxProfilesPerScan, std::numeric_limits<degree>::quiet_NaN());
+		attitudeCorrectedAzimuthAngles[i].resize(maxProfilesPerScan, std::numeric_limits<degree>::quiet_NaN());
+		instrumentRelativeElevationAngles[i].resize(maxProfilesPerScan, std::numeric_limits<degree>::quiet_NaN());
+		attitudeCorrectedElevationAngles[i].resize(maxProfilesPerScan, std::numeric_limits<degree>::quiet_NaN());
 		instrumentRelativeDopplerVelocities[i].resize(maxNGates);
 		motionCorrectedDopplerVelocities[i].resize(maxNGates);
 		backscatters[i].resize(maxNGates);
 		for (size_t j = 0; j < maxNGates; ++j)
 		{
-			instrumentRelativeDopplerVelocities[i][j].resize(maxProfilesPerScan, metrePerSecond(OutputAmfNcFile::getFillValue()));
-			motionCorrectedDopplerVelocities[i][j].resize(maxProfilesPerScan, metrePerSecond(OutputAmfNcFile::getFillValue()));
-			backscatters[i][j].resize(maxProfilesPerScan, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
+			instrumentRelativeDopplerVelocities[i][j].resize(maxProfilesPerScan, std::numeric_limits<metrePerSecond>::quiet_NaN());
+			motionCorrectedDopplerVelocities[i][j].resize(maxProfilesPerScan, std::numeric_limits<metrePerSecond>::quiet_NaN());
+			backscatters[i][j].resize(maxProfilesPerScan, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
 			dopplerVelocityFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
 			backscatterFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
 		}

@@ -6,6 +6,13 @@
 #include<cmath>
 #include<locale>
 
+
+const double OutputAmfNcFile::Fill<double>::value = -1e20;
+const float OutputAmfNcFile::Fill<float>::value = -1e20f;
+const int16_t OutputAmfNcFile::Fill<int16_t>::value = 10000;
+const int32_t OutputAmfNcFile::Fill<int32_t>::value = 1000000000;
+const int64_t OutputAmfNcFile::Fill<int64_t>::value = 1000000000000000000;
+
 void correctDirection(degree measuredElevation, degree measuredAzimuth, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, degree &correctedElevation, degree &correctedAzimuth)
 {
 	//create a unit vector in the measured direction

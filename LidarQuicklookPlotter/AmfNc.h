@@ -812,11 +812,53 @@ public:
 		sci::OutputNcFile::write(dimension);
 	}
 	template<class T, class U>
-	void write(const T &variable, const U &data)
+	void write(const T &variable, U data)
 	{
+		sci::replacenans(data, getFillValue<sci::VectorTraits<U>::baseType>());
 		sci::OutputNcFile::write(variable, data);
 	}
 private:
+	template<class T>
+	struct Fill
+	{
+	};
+	template<>
+	struct Fill<double>
+	{
+		static const double value;
+	};
+	template<>
+	struct Fill<float>
+	{
+		static const float value;
+	};
+	template<class T>
+	struct Fill<sci::Physical<T>>
+	{
+		static const sci::Physical<T> value;
+	};
+	template<>
+	struct Fill<int16_t>
+	{
+		static const int16_t value;
+	};
+	template<>
+	struct Fill<int32_t>
+	{
+		static const int32_t value;
+	};
+	template<>
+	struct Fill<int64_t>
+	{
+		static const int64_t value;
+	};
+
+	template<class T>
+	static T getFillValue()
+	{
+		return Fill<T>::value;
+	}
+
 	sci::NcDimension m_timeDimension;
 	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
 	std::unique_ptr<AmfNcLatitudeVariable> m_latitudeVariable;
@@ -880,6 +922,15 @@ private:
 };
 
 template<class T>
+const sci::Physical<T> OutputAmfNcFile::Fill<sci::Physical<T>>::value = sci::Physical<T>(-1e20);
+
+template<class T>
+T constexpr getDefault()
+{
+	return std::numeric_limits<T>::has_quiet_NaN ? std::numeric_limits<T>::quiet_NaN() : std::numeric_limits<T>::max();
+}
+
+/*template<class T>
 typename std::enable_if<!std::is_integral<T>::value, T>::type getDefault()
 {
 	//this is the version that will be called for floating points and physicals
@@ -890,6 +941,15 @@ template<class T>
 typename std::enable_if<std::is_integral<T>::value, T>::type getDefault()
 {
 	return std::numeric_limits<T>::max();
+}*/
+
+template<class T>
+bool constexpr isValid(const T &value)
+{
+	if (std::numeric_limits<T>::has_quiet_NaN)
+		return value == value;
+	else
+		return value != getDefault<T>();
 }
 
 template<class T>
@@ -901,7 +961,7 @@ void getMinMax(const std::vector<T> &data, T &min, T &max)
 	auto iter = data.begin();
 	for (; iter != data.end(); ++iter)
 	{
-		if (*iter != getDefault<T>())
+		if (isValid(*iter))
 		{
 			min = *iter;
 			max = *iter;
@@ -911,7 +971,7 @@ void getMinMax(const std::vector<T> &data, T &min, T &max)
 	//now go through the remaining data and find the min/max
 	for (; iter != data.end(); ++iter)
 	{
-		if (*iter != getDefault<T>())
+		if (isValid(*iter))
 		{
 			min = std::min(min, *iter);
 			max = std::max(max, *iter);
@@ -931,7 +991,7 @@ void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
 		U thisMin;
 		U thisMax;
 		getMinMax(*iter, thisMin, thisMax);
-		if (thisMin != getDefault<U>())
+		if (isValid(thisMin))
 		{
 			min = thisMin;
 			max = thisMax;
@@ -944,7 +1004,7 @@ void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
 		U thisMin;
 		U thisMax;
 		getMinMax(*iter, thisMin, thisMax);
-		if (thisMin != getDefault<U>())
+		if (isValid(thisMin))
 		{
 			min = std::min(min, thisMin);
 			max = std::max(max, thisMax);

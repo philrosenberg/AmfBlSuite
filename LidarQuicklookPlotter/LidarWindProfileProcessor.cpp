@@ -136,8 +136,6 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 				metrePerSecond v = thisProfile.m_instrumentRelativeWindSpeeds[j] * sci::cos(thisProfile.m_motionCorrectedWindDirections[j]) + platformV;
 				thisProfile.m_motionCorrectedWindSpeeds[j] = sci::root<2>(sci::pow<2>(u) + sci::pow<2>(v));
 				thisProfile.m_motionCorrectedWindDirections[j] = sci::atan2(u, v);
-				sci::replacenans(thisProfile.m_motionCorrectedWindSpeeds, metrePerSecond(OutputAmfNcFile::getFillValue()));
-				sci::replacenans(thisProfile.m_motionCorrectedWindDirections, degree(OutputAmfNcFile::getFillValue()));
 			}
 
 
@@ -249,8 +247,8 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
-	dataInfo.averagingPeriod = second(OutputAmfNcFile::getFillValue());
-	dataInfo.samplingInterval = second(OutputAmfNcFile::getFillValue());
+	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();
+	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();
 	dataInfo.continuous = true;
 	dataInfo.startTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
 	dataInfo.endTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
@@ -326,12 +324,12 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		{
 			//We may have some missing data recorded as zeros instead of fill value as some data is set to
 			//zero in the data file. Change it to fill value
-			sci::assign(windSpeeds[i], windFlags[i] == lidarClippedWindProfileFlag, metrePerSecond(OutputAmfNcFile::getFillValue()));
-			sci::assign(windDirections[i], windFlags[i] == lidarClippedWindProfileFlag, degree(OutputAmfNcFile::getFillValue()));
+			sci::assign(windSpeeds[i], windFlags[i] == lidarClippedWindProfileFlag, std::numeric_limits<metrePerSecond>::quiet_NaN());
+			sci::assign(windDirections[i], windFlags[i] == lidarClippedWindProfileFlag, std::numeric_limits<degree>::quiet_NaN());
 
-			altitudes[i].resize(maxLevels, metre(OutputAmfNcFile::getFillValue()));
-			windSpeeds[i].resize(maxLevels, metrePerSecond(OutputAmfNcFile::getFillValue()));
-			windDirections[i].resize(maxLevels, degree(OutputAmfNcFile::getFillValue()));
+			altitudes[i].resize(maxLevels, std::numeric_limits<metre>::quiet_NaN());
+			windSpeeds[i].resize(maxLevels, std::numeric_limits<metrePerSecond>::quiet_NaN());
+			windDirections[i].resize(maxLevels, std::numeric_limits<degree>::quiet_NaN());
 			windFlags[i].resize(maxLevels, lidarUserChangedGatesFlag);
 		}
 

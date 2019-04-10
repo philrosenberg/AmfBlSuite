@@ -198,8 +198,8 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo1d;
-	dataInfo1d.averagingPeriod = second(OutputAmfNcFile::getFillValue());
-	dataInfo1d.samplingInterval = second(OutputAmfNcFile::getFillValue());
+	dataInfo1d.averagingPeriod = std::numeric_limits<second>::quiet_NaN();
+	dataInfo1d.samplingInterval = std::numeric_limits<second>::quiet_NaN();
 	dataInfo1d.continuous = true;
 	dataInfo1d.startTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
 	dataInfo1d.endTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
@@ -308,14 +308,6 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		sci::assign(flags1d[i], missing, microRainRadarBelowNoiseFloorFlag);
 	}
 
-	//replace nans with fill value
-	sci::replacenans(rainfallRates, millimetrePerHour(OutputAmfNcFile::getFillValue()));
-	sci::replacenans(rainLiquidWaterContent, gramPerMetreCubed(OutputAmfNcFile::getFillValue()));
-	sci::replacenans(rainfallVelocity, metrePerSecond(OutputAmfNcFile::getFillValue()));
-	sci::replacenans(radarReflectivity, reflectivity(OutputAmfNcFile::getFillValue()));
-	sci::replacenans(radarReflectivityAttenuated, reflectivity(OutputAmfNcFile::getFillValue()));
-	sci::replacenans(pathIntegratedAttenuation, unitless(OutputAmfNcFile::getFillValue()));
-
 	//Output the one D parameters
 
 	std::vector<sci::NcDimension*> nonTimeDimensions1D;
@@ -407,10 +399,6 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 			sci::assign(sizeDistributionFlags[i][j], missing, microRainRadarDiameterNotDerivedFlag);
 		}
 	}
-
-	sci::replacenans(spectralReflectivity, perMetre(OutputAmfNcFile::getFillValue()));
-	sci::replacenans(dropDiameters, millimetre(OutputAmfNcFile::getFillValue()));
-	sci::replacenans(sizeDistributions, perMetreCubedPerMillimetre(OutputAmfNcFile::getFillValue()));
 
 
 	//create and write the file

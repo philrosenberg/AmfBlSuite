@@ -61,8 +61,8 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 {
 	DataInfo dataInfo;
 	dataInfo.continuous = true;
-	dataInfo.samplingInterval = second(OutputAmfNcFile::getFillValue());//set to fill value initially - calculate it later
-	dataInfo.averagingPeriod = second(OutputAmfNcFile::getFillValue());//set to fill value initially - calculate it later
+	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
 	dataInfo.featureType = ft_timeSeriesPoint;
@@ -97,10 +97,10 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	}
 	for (size_t i = 0; i < times.size(); ++i)
 	{
-		instrumentRelativeDopplerVelocities[i].resize(maxNGates, metrePerSecond(OutputAmfNcFile::getFillValue()));
-		motionCorrectedDopplerVelocities[i].resize(maxNGates, metrePerSecond(OutputAmfNcFile::getFillValue()));
-		backscatters[i].resize(maxNGates, perSteradianPerMetre(OutputAmfNcFile::getFillValue()));
-		ranges[i].resize(maxNGates, metre(OutputAmfNcFile::getFillValue()));
+		instrumentRelativeDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
+		motionCorrectedDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
+		backscatters[i].resize(maxNGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
+		ranges[i].resize(maxNGates, std::numeric_limits<metre>::quiet_NaN());
 		dopplerVelocityFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
 		backscatterFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
 	}
