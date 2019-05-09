@@ -781,6 +781,7 @@ class AmfNcVariable;
 
 class OutputAmfNcFile : public sci::OutputNcFile
 {
+	//friend class AmfNcVariable;
 public:
 	OutputAmfNcFile(const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
@@ -817,6 +818,11 @@ public:
 		sci::replacenans(data, getFillValue<sci::VectorTraits<U>::baseType>());
 		sci::OutputNcFile::write(variable, data);
 	}
+	template<class T>
+	static T getFillValue()
+	{
+		return Fill<T>::value;
+	}
 private:
 	template<class T>
 	struct Fill
@@ -838,6 +844,11 @@ private:
 		static const sci::Physical<T> value;
 	};
 	template<>
+	struct Fill<uint8_t>
+	{
+		static const uint8_t value;
+	};
+	template<>
 	struct Fill<int16_t>
 	{
 		static const int16_t value;
@@ -852,12 +863,6 @@ private:
 	{
 		static const int64_t value;
 	};
-
-	template<class T>
-	static T getFillValue()
-	{
-		return Fill<T>::value;
-	}
 
 	sci::NcDimension m_timeDimension;
 	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
@@ -1016,36 +1021,37 @@ template <class T, class U>
 class AmfNcVariable : public sci::NcVariable<T>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimension)
 	{
 		m_data = data;
 		T validMin;
 		T validMax;
 		getMinMax(m_data, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, units, validMin, validMax, comment);
+		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimensions)
 	{
 		m_data = data;
 		T validMin;
 		T validMax;
 		getMinMax(m_data, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, units, validMin, validMax, comment);
+		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, comment);
 	}
 	const U& getData() const
 	{
 		return m_data;
 	}
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, bool hasFillValue, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), units);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax);
+		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_data)>::baseType>());
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
 		addAttribute(unitsAttribute, ncFile);
@@ -1055,6 +1061,8 @@ private:
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
 			addAttribute(standardNameAttribute, ncFile);
+		if (hasFillValue)
+			addAttribute(fillValueAttribute, ncFile);
 	}
 	U m_data;
 };
@@ -1083,7 +1091,7 @@ template <class T, class U>
 class AmfNcVariable<sci::Physical<T>, U> : public sci::NcVariable<sci::Physical<T>>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T>>(name, ncFile, dimension)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
@@ -1091,9 +1099,9 @@ public:
 		sci::Physical<T> validMin;
 		sci::Physical<T> validMax;
 		getMinMax(m_data, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T>>(name, ncFile, dimensions)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
@@ -1101,7 +1109,7 @@ public:
 		sci::Physical<T> validMin;
 		sci::Physical<T> validMax;
 		getMinMax(m_data, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, comment);
 	}
 	const U& getData() const
 	{
@@ -1109,13 +1117,14 @@ public:
 	}
 
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<T> validMin, sci::Physical<T> validMax, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<T> validMin, sci::Physical<T> validMax, bool hasFillValue, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T>::getShortUnitString());
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>());
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<T>());
+		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_data)>::baseType>());
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
 		addAttribute(unitsAttribute, ncFile);
@@ -1125,6 +1134,8 @@ private:
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
 			addAttribute(standardNameAttribute, ncFile);
+		if (hasFillValue)
+			addAttribute(fillValueAttribute, ncFile);
 	}
 	U m_data;
 };
@@ -1180,7 +1191,7 @@ template < class REFERENCE_UNIT, class U>
 class AmfNcVariable<Decibel<REFERENCE_UNIT>, U> : public sci::NcVariable<Decibel<REFERENCE_UNIT>>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, bool isDbZ, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, bool isDbZ, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimension)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<typename REFERENCE_UNIT::unit>>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
@@ -1189,9 +1200,9 @@ public:
 		double validMin;
 		double validMax;
 		getMinMax(m_dataDb, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, bool isDbZ, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, bool isDbZ, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, referencePhysical>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
@@ -1200,7 +1211,7 @@ public:
 		double validMin;
 		double validMax;
 		getMinMax(m_dataDb, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, comment);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, comment);
 	}
 	const U& getData() const
 	{
@@ -1209,7 +1220,7 @@ public:
 	}
 	typedef typename Decibel<REFERENCE_UNIT>::referencePhysical referencePhysical;
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, double validMinDb, double validMaxDb, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, double validMinDb, double validMaxDb, bool hasFillValue, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
@@ -1217,6 +1228,7 @@ private:
 		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referencePhysical::getShortUnitString());
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMinDb);
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMaxDb);
+		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_dataDb)>::baseType>());
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
 		addAttribute(unitsAttribute, ncFile);
@@ -1227,6 +1239,8 @@ private:
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
 			addAttribute(standardNameAttribute, ncFile);
+		if (hasFillValue)
+			addAttribute(fillValueAttribute, ncFile);
 	}
 	decltype(sci::physicalsToValues<referencePhysical>(U())) m_dataDb;
 	bool m_isDbZ;
@@ -1236,7 +1250,7 @@ class AmfNcTimeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
 	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<sci::UtcTime> &times)
-		:AmfNcVariable<double, std::vector<double>>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)))
+		:AmfNcVariable<double, std::vector<double>>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)), true)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
 		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);
@@ -1254,7 +1268,7 @@ class AmfNcLongitudeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
 	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &longitudes)
-		:AmfNcVariable<double, std::vector<double>>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_north"), sci::physicalsToValues<degree>(longitudes))
+		:AmfNcVariable<double, std::vector<double>>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_north"), sci::physicalsToValues<degree>(longitudes), true)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
@@ -1263,7 +1277,7 @@ class AmfNcLatitudeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
 	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &latitudes)
-		:AmfNcVariable<double, std::vector<double>>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_east"), sci::physicalsToValues<degree>(latitudes))
+		:AmfNcVariable<double, std::vector<double>>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_east"), sci::physicalsToValues<degree>(latitudes), true)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
