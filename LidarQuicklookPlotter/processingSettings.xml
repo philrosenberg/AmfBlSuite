@@ -2,7 +2,12 @@
   <!--This file contains the settings for a run of the processing software-->
   <author type ="amfEntity/person" id="1"></author>
   <project type="amfEntity/project" id="1"></project>
-  <platform type="amfEntity/platform" id="1"></platform>
+  <platform type="amfEntity/platform" id="4"></platform>
+  <processor>
+    <name>SondeProcessor</name>
+    <instrument type ="amfEntity/instrument" id="4"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="4">></calibrationInfo>
+  </processor>
   <processor>
     <name>MicroRainRadarProcessor</name>
     <instrument type="amfEntity/instrument" id="3"></instrument>
@@ -73,7 +78,8 @@
 
   <comment>This is a test file</comment>
  <!-- <inputDirectory>Y:\MOCCHA\raw\</inputDirectory>-->
-  <inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTest</inputDirectory>
+  <!--<inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTest</inputDirectory>-->
+  <inputDirectory>C:\Sondes\</inputDirectory>
   <outputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTestOutput\</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>
@@ -96,7 +102,7 @@
   <startTime>
     <year>2018</year>
     <month>8</month>
-    <day>1</day>
+    <day>3</day>
     <hour>0</hour>
     <minute>0</minute>
     <second>0</second>
@@ -104,7 +110,7 @@
   <endTime>
     <year>2018</year>
     <month>8</month>
-    <day>1</day>
+    <day>3</day>
     <hour>23</hour>
     <minute>59</minute>
     <second>59.99</second>

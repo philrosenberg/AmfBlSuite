@@ -333,9 +333,9 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 			windFlags[i].resize(maxLevels, lidarUserChangedGatesFlag);
 		}
 
-		AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes);
-		AmfNcVariable<metrePerSecond, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds);
-		AmfNcVariable<degree, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), windDirections);
+		AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true);
+		AmfNcVariable<metrePerSecond, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds, true);
+		AmfNcVariable<degree, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), windDirections, true);
 		AmfNcFlagVariable windFlagVariable(sU("wind_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
 		file.writeTimeAndLocationData(platform);

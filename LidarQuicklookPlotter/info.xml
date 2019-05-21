@@ -80,6 +80,24 @@
     <locationKeyword>NCAS Fairbairn House</locationKeyword>
   </platform>
   
+  <!--This is the oden sonde release platform with 14m altitude-->
+  <platform id="4">
+    <name>Oden</name>
+    <type>moving</type>
+    <deploymentMode>sea</deploymentMode>
+    <!--AltitudeMetres is the altitude relative to the sea line of the ship-->
+    <altitudeMetres>14</altitudeMetres>
+    <!--The attitude variables are of the instrument relative to the ship-->
+    <elevationDegree>0</elevationDegree>
+    <azimuthDegree>0</azimuthDegree>
+    <rollDegree> 0</rollDegree>
+    <locationKeyword>Arctic</locationKeyword>
+    <locationKeyword>Sweden</locationKeyword>
+    <locationKeyword>Norway</locationKeyword>
+    <locationFile>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\MocchaLidarMotion.nc</locationFile>
+    <platformRelative>false</platformRelative>
+  </platform>
+  
   <!--Instruments-->
   <instrument id="1">
     <name>NCAS Doppler Aerosol Lidar unit 1</name>
@@ -109,6 +127,16 @@
     <serial>507114695</serial>
     <operatingSoftware>METEK MRR Control</operatingSoftware>
     <operatingSoftwareVersion>v6.0.0.6</operatingSoftwareVersion>
+  </instrument>
+
+  <instrument id="4">
+    <name>ncas radiosonde 2</name>
+    <description>NCAS Vaisala Sounding Station unit 2</description>
+    <manufacturer>Vaisala</manufacturer>
+    <model>MW41</model>
+    <serial>k3410032</serial>
+    <operatingSoftware>MW41 sounding software</operatingSoftware>
+    <operatingSoftwareVersion>v2.2.0-8</operatingSoftwareVersion>
   </instrument>
   
   <!--Calibration Info-->
@@ -151,6 +179,20 @@
       <second>0</second>
     </certificationDate>
     <certificateUrl>Not available</certificateUrl>
+  </calibrationInfo>
+  
+  <!--Sonde cal-->
+  <calibrationInfo id ="4">
+    <calibrationDescription>not applicable</calibrationDescription>
+    <certificationDate>
+      <year>0</year>
+      <month>1</month>
+      <day>1</day>
+      <hour>0</hour>
+      <minute>0</minute>
+      <second>0</second>
+    </certificationDate>
+    <certificateUrl>not applicable</certificateUrl>
   </calibrationInfo>
   
 </amfEntity>

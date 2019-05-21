@@ -206,8 +206,19 @@ void parseXmlNode(wxXmlNode *node, ITER begin, ITER end)
 			if (sci::fromWxString(child->GetName()) == iter->m_name && child->GetType() == wxXML_ELEMENT_NODE)
 			{
 				wxXmlNode *textNode = child->GetChildren();
-				sci::assertThrow(textNode != nullptr, sci::err(sci::SERR_USER, 0, "Could not parse xml data, the node does not have content."));
-				sci::assertThrow(textNode->GetType() == wxXML_TEXT_NODE, sci::err(sci::SERR_USER, 0, "Could not parse xml data, the content is not text."));
+				//get the fully qualified node name for any error reporting
+				sci::string nodeName = sU("<") + sci::fromWxString(child->GetName()) + sU(">");
+				wxXmlNode *parent = child->GetParent();
+				while (parent)
+				{
+					nodeName = sU("<") + sci::fromWxString(parent->GetName()) + sU(" ") + nodeName + sU(">");
+					parent = parent->GetParent();
+				}
+				wxString lineNumber;
+				lineNumber << child->GetLineNumber();
+				nodeName = nodeName + sU(" at line ") + sci::fromWxString(lineNumber);
+				sci::assertThrow(textNode != nullptr, sci::err(sci::SERR_USER, 0, sU("Could not parse xml data in node ") + nodeName + sU(", the node does not have content.")));
+				sci::assertThrow(textNode->GetType() == wxXML_TEXT_NODE, sci::err(sci::SERR_USER, 0, sU("Could not parse xml data in node ") + nodeName + sU(", the content is not text.")));
 				*(iter->m_var) = textToValue<std::remove_pointer<decltype(iter->m_var)>::type>(sci::fromWxString(textNode->GetContent()));
 				iter->m_read = true;
 			}
@@ -227,8 +238,19 @@ void parseXmlNode(wxXmlNode *node, const sci::string &name, CONTAINER &values, b
 		if (sci::fromWxString(child->GetName()) == name && child->GetType() == wxXML_ELEMENT_NODE)
 		{
 			wxXmlNode *textNode = child->GetChildren();
-			sci::assertThrow(textNode != nullptr, sci::err(sci::SERR_USER, 0, "Could not parse xml data, the node does not have content."));
-			sci::assertThrow(textNode->GetType() == wxXML_TEXT_NODE, sci::err(sci::SERR_USER, 0, "Could not parse xml data, the content is not text."));
+			//get the fully qualified node name for any error reporting
+			sci::string nodeName = sU("<") + sci::fromWxString(child->GetName()) + sU(">");
+			wxXmlNode *parent = child->GetParent();
+			while (parent)
+			{
+				nodeName = sU("<") + sci::fromWxString(parent->GetName()) + sU(" ") + nodeName + sU(">");
+				parent = parent->GetParent();
+			}
+			wxString lineNumber;
+			lineNumber << child->GetLineNumber();
+			nodeName = nodeName + sU(" at line ") + sci::fromWxString(lineNumber);
+			sci::assertThrow(textNode != nullptr, sci::err(sci::SERR_USER, 0, sU("Could not parse xml data in node ") + nodeName + sU(", the node does not have content.")));
+			sci::assertThrow(textNode->GetType() == wxXML_TEXT_NODE, sci::err(sci::SERR_USER, 0, sU("Could not parse xml data in node ") + nodeName + sU(", the content is not text.")));
 			values.push_back(textToValue<CONTAINER::value_type>(sci::fromWxString(textNode->GetContent())));
 			read = true;
 		}
@@ -602,8 +624,9 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 		else
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "Found an unrecognised deployment mode when parsing platform info. Valid values are land, sea, air"));
 	}
-	else
-		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Found an unrecognised platform type. Accepted values are moving, stationary (case sensitive).")));
+	
+	//if we get to here then we found an unrecognised platform type
+	sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Found an unrecognised platform type. Accepted values are moving, stationary (case sensitive).")));
 
 }
 

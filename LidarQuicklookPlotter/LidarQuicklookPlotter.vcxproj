@@ -176,6 +176,7 @@
     <ClCompile Include="AmfNc.cpp" />
     <ClCompile Include="Setup.cpp" />
     <ClCompile Include="InstrumentProcessor.cpp" />
+    <ClCompile Include="Sondes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h" />
@@ -184,7 +185,9 @@
     <ClInclude Include="FolderChangesLister.h" />
     <ClInclude Include="InstrumentProcessor.h" />
     <ClInclude Include="Lidar.h" />
+    <ClInclude Include="MetConversions.h" />
     <ClInclude Include="MicroRainRadar.h" />
+    <ClInclude Include="Sondes.h" />
     <ClInclude Include="TextCtrlProgressReporter.h" />
     <ClInclude Include="HplHeader.h" />
     <ClInclude Include="HplProfile.h" />

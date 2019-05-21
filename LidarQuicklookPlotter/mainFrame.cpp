@@ -128,9 +128,6 @@ void mainFrame::OnExit(wxCommandEvent& event)
 
 void mainFrame::OnRun(wxCommandEvent& event)
 {
-	//sci::string ampUnit = sci::Amp<>::getShortRepresentation();
-	//sci::string ampSqUnit = sci::Amp<2>::getShortRepresentation();
-	//sci::string milliAmpSqUnit = sci::Amp<2, -3>::getShortRepresentation(sU("#u"), sU("#d"));
 	start();
 }
 
@@ -141,7 +138,7 @@ void mainFrame::OnStop(wxCommandEvent& event)
 
 void mainFrame::OnSelectSetupFile(wxCommandEvent& event)
 {
-	if (m_plotting || !m_progressReporter->shouldStop())
+	if (m_plotting)
 	{
 		wxMessageBox("Please stop processing before attempting to change the setup file.");
 		return;
@@ -190,18 +187,22 @@ void mainFrame::readSetupFile()
 	if (m_isSetup)
 		(*m_progressReporter) << sU("Setup data read successfully\n\n");
 	else
-		(*m_progressReporter) << sU("Reading setup data failed\n\n");
+		(*m_progressReporter) << sU("Reading setup data failed. Correct the setup file or info.xml file, or select a different setup file, then rerun. \n\n");
 }
 
 void mainFrame::start()
 {
-	if (!m_progressReporter->shouldStop())
-		return; //the processing is already in a running state - just return
 	if (m_progressReporter->shouldStop() && m_plotting)
 	{
 		//The user has requested to stop but before the stop has happened they requested to start again
 		//Tell them to be patient
-		wxMessageBox("Although you have requested plotting to stop, the software is just waiting for code to finish execution before it can do so. Please wait for the current processing to halt before trying to restart.");
+		wxMessageBox("Although you have requested processing and plotting to stop, the software is just waiting for code to finish execution before it can do so. Please wait for the current processing to halt before trying to restart.");
+		return;
+	}
+	if (m_plotting)
+	{
+		wxMessageBox("The code is already processing or plotting data. If you wish to restart, then select Stop to stop the current operation, then select Start to restart processing.");
+		return;
 	}
 	m_progressReporter->setShouldStop(false);
 	m_logText->AppendText("Starting\n\n");

@@ -72,6 +72,9 @@
     <ClCompile Include="InstrumentProcessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Sondes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h">
@@ -120,6 +123,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="InstrumentProcessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sondes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MetConversions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

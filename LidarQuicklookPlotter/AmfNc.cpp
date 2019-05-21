@@ -130,6 +130,23 @@ void makeContinuous(std::vector<degree> &angles)
 		*iter += jumpAmount;
 	}
 }
+OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
+	const InstrumentInfo &instrumentInfo,
+	const PersonInfo &author,
+	const ProcessingSoftwareInfo &processingsoftwareInfo,
+	const CalibrationInfo &calibrationInfo,
+	const DataInfo &dataInfo,
+	const ProjectInfo &projectInfo,
+	const Platform &platform,
+	const std::vector<sci::UtcTime> &times,
+	const std::vector<sci::NcDimension *> &nonTimeDimensions,
+	bool incrementMajorVersion)
+	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
+{
+	initialise(directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
+		projectInfo, platform, times, std::vector<degree>(0), std::vector<degree>(0), nonTimeDimensions,
+		incrementMajorVersion);
+}
 
 OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const InstrumentInfo &instrumentInfo,
@@ -140,9 +157,32 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const ProjectInfo &projectInfo,
 	const Platform &platform,
 	const std::vector<sci::UtcTime> &times,
-	const std::vector<sci::NcDimension *> &nonTimeDimensions)
+	const std::vector<degree> &latitudes,
+	const std::vector<degree> &longitudes,
+	const std::vector<sci::NcDimension *> &nonTimeDimensions,
+	bool incrementMajorVersion)
 	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 {
+	initialise(directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
+		projectInfo, platform, times, latitudes, longitudes, nonTimeDimensions, incrementMajorVersion);
+}
+
+void OutputAmfNcFile::initialise(const sci::string &directory,
+	const InstrumentInfo &instrumentInfo,
+	const PersonInfo &author,
+	const ProcessingSoftwareInfo &processingsoftwareInfo,
+	const CalibrationInfo &calibrationInfo,
+	const DataInfo &dataInfo,
+	const ProjectInfo &projectInfo,
+	const Platform &platform,
+	const std::vector<sci::UtcTime> &times,
+	const std::vector<degree> &latitudes,
+	const std::vector<degree> &longitudes,
+	const std::vector<sci::NcDimension *> &nonTimeDimensions,
+	bool incrementMajorVersion)
+{
+	sci::assertThrow(latitudes.size() == longitudes.size(), sci::err(sci::SERR_USER, 0, sU("Cannot create a netcdf file with latitude data a different length to longitude data.")));
+	sci::assertThrow(latitudes.size() == 0 || latitudes.size() == times.size(), sci::err(sci::SERR_USER, 0, sU("Cannot create a netcdf with latitude and longitude data a different length to time data.")));
 	//construct the position and time variables;
 	m_years.resize(m_times.size());
 	m_months.resize(m_times.size());
@@ -162,63 +202,76 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		m_seconds[i] = times[i].getSecond();
 	}
 	//sort out the position and attitude data
-	if (platform.getPlatformInfo().platformType == pt_stationary)
+	bool overriddenPlatformPosition = false;
+	if (latitudes.size() > 0)
 	{
-		degree longitude;
-		degree latitude;
-		metre altitude;
-		platform.getLocation(times[times.size() / 2], times[times.size() / 2], latitude, longitude, altitude);
-		m_longitudes = { longitude };
-		m_latitudes = { latitude };
+		//This means we are overriding the platform position data with instrument position data
+		//This would be the case for e.g. sondes
+		m_longitudes = longitudes;
+		m_latitudes = latitudes;
+		overriddenPlatformPosition = true;
 	}
 	else
 	{
-		m_longitudes.resize(m_times.size(), degree(0));
-		m_latitudes.resize(m_times.size(), degree(0));
-		m_elevations.resize(m_times.size(), degree(0));
-		m_elevationStdevs.resize(m_times.size(), degree(0));
-		m_elevationMins.resize(m_times.size(), degree(0));
-		m_elevationMaxs.resize(m_times.size(), degree(0));
-		m_elevationRates.resize(m_times.size(), degreePerSecond(0));
-		m_azimuths.resize(m_times.size(), degree(0));
-		m_azimuthStdevs.resize(m_times.size(), degree(0));
-		m_azimuthMins.resize(m_times.size(), degree(0));
-		m_azimuthMaxs.resize(m_times.size(), degree(0));
-		m_azimuthRates.resize(m_times.size(), degreePerSecond(0));
-		m_rolls.resize(m_times.size(), degree(0));
-		m_rollStdevs.resize(m_times.size(), degree(0));
-		m_rollMins.resize(m_times.size(), degree(0));
-		m_rollMaxs.resize(m_times.size(), degree(0));
-		m_rollRates.resize(m_times.size(), degreePerSecond(0));
-		m_courses.resize(m_times.size(), degree(0));
-		m_speeds.resize(m_times.size(), metrePerSecond(0));
-		m_headings.resize(m_times.size(), degree(0));
-		metre altitude;
-		AttitudeAverage elevation;
-		AttitudeAverage azimuth;
-		AttitudeAverage roll;
-		for (size_t i = 0; i < m_times.size(); ++i)
+		//This means we didn't override the platform position
+		if (platform.getPlatformInfo().platformType == pt_stationary)
 		{
-			platform.getLocation(m_times[i], m_times[i] + dataInfo.averagingPeriod, m_latitudes[i], m_longitudes[i], altitude);
-			platform.getInstrumentAttitudes(m_times[i], m_times[i] + dataInfo.averagingPeriod, elevation, azimuth, roll);
-			m_elevations[i] = elevation.m_mean;
-			m_elevationStdevs[i] = elevation.m_stdev;
-			m_elevationMins[i] = elevation.m_min;
-			m_elevationMaxs[i] = elevation.m_max;
-			m_elevationRates[i] = elevation.m_rate;
-			m_azimuths[i] = azimuth.m_mean;
-			m_azimuthStdevs[i] = azimuth.m_stdev;
-			m_azimuthMins[i] = azimuth.m_min;
-			m_azimuthMaxs[i] = azimuth.m_max;
-			m_azimuthRates[i] = azimuth.m_rate;
-			m_rolls[i] = roll.m_mean;
-			m_rollStdevs[i] = roll.m_stdev;
-			m_rollMins[i] = roll.m_min;
-			m_rollMaxs[i] = roll.m_max;
-			m_rollRates[i] = roll.m_rate;
-			platform.getInstrumentVelocity(m_times[i], m_times[i] + dataInfo.averagingPeriod, m_speeds[i], m_courses[i]);
-			platform.getPlatformAttitudes(m_times[i], m_times[i] + dataInfo.averagingPeriod, elevation, azimuth, roll);
-			m_headings[i] = azimuth.m_mean;
+			degree longitude;
+			degree latitude;
+			metre altitude;
+			platform.getLocation(times[times.size() / 2], times[times.size() / 2], latitude, longitude, altitude);
+			m_longitudes = { longitude };
+			m_latitudes = { latitude };
+		}
+		else
+		{
+			m_longitudes.resize(m_times.size(), degree(0));
+			m_latitudes.resize(m_times.size(), degree(0));
+			m_elevations.resize(m_times.size(), degree(0));
+			m_elevationStdevs.resize(m_times.size(), degree(0));
+			m_elevationMins.resize(m_times.size(), degree(0));
+			m_elevationMaxs.resize(m_times.size(), degree(0));
+			m_elevationRates.resize(m_times.size(), degreePerSecond(0));
+			m_azimuths.resize(m_times.size(), degree(0));
+			m_azimuthStdevs.resize(m_times.size(), degree(0));
+			m_azimuthMins.resize(m_times.size(), degree(0));
+			m_azimuthMaxs.resize(m_times.size(), degree(0));
+			m_azimuthRates.resize(m_times.size(), degreePerSecond(0));
+			m_rolls.resize(m_times.size(), degree(0));
+			m_rollStdevs.resize(m_times.size(), degree(0));
+			m_rollMins.resize(m_times.size(), degree(0));
+			m_rollMaxs.resize(m_times.size(), degree(0));
+			m_rollRates.resize(m_times.size(), degreePerSecond(0));
+			m_courses.resize(m_times.size(), degree(0));
+			m_speeds.resize(m_times.size(), metrePerSecond(0));
+			m_headings.resize(m_times.size(), degree(0));
+			metre altitude;
+			AttitudeAverage elevation;
+			AttitudeAverage azimuth;
+			AttitudeAverage roll;
+			for (size_t i = 0; i < m_times.size(); ++i)
+			{
+				platform.getLocation(m_times[i], m_times[i] + dataInfo.averagingPeriod, m_latitudes[i], m_longitudes[i], altitude);
+				platform.getInstrumentAttitudes(m_times[i], m_times[i] + dataInfo.averagingPeriod, elevation, azimuth, roll);
+				m_elevations[i] = elevation.m_mean;
+				m_elevationStdevs[i] = elevation.m_stdev;
+				m_elevationMins[i] = elevation.m_min;
+				m_elevationMaxs[i] = elevation.m_max;
+				m_elevationRates[i] = elevation.m_rate;
+				m_azimuths[i] = azimuth.m_mean;
+				m_azimuthStdevs[i] = azimuth.m_stdev;
+				m_azimuthMins[i] = azimuth.m_min;
+				m_azimuthMaxs[i] = azimuth.m_max;
+				m_azimuthRates[i] = azimuth.m_rate;
+				m_rolls[i] = roll.m_mean;
+				m_rollStdevs[i] = roll.m_stdev;
+				m_rollMins[i] = roll.m_min;
+				m_rollMaxs[i] = roll.m_max;
+				m_rollRates[i] = roll.m_rate;
+				platform.getInstrumentVelocity(m_times[i], m_times[i] + dataInfo.averagingPeriod, m_speeds[i], m_courses[i]);
+				platform.getPlatformAttitudes(m_times[i], m_times[i] + dataInfo.averagingPeriod, elevation, azimuth, roll);
+				m_headings[i] = azimuth.m_mean;
+			}
 		}
 	}
 
@@ -258,7 +311,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	{
 		baseFilename = baseFilename + sU('/');
 	}
-	baseFilename = baseFilename + title + sU("_v");
+	baseFilename = baseFilename + title;
 
 #ifdef _WIN32
 	//It is worth checking that the ansi version of the filename doesn't get corrupted
@@ -271,7 +324,8 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 
 	//Check if there is an existing file and get its history
 	sci::string existingHistory;
-	int prevVersion = -1;
+	size_t prevMajorVersion = 0;
+	size_t prevMinorVersion = 0;
 	std::vector<sci::string> existingFiles = sci::getAllFiles(directory, false, true);
 	for (size_t i = 0; i < existingFiles.size(); ++i)
 	{
@@ -284,13 +338,33 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 				sci::string previousVersionString = previous.getGlobalAttribute<sci::string>(sU("product_version"));
 				sci::assertThrow(previousVersionString.length() > 1 && previousVersionString[0] == 'v', sci::err(sci::SERR_USER, 0, sU("Previous version of the file has an ill formatted product version.")));
 
-				int thisPrevVersion;
-				sci::istringstream versionStream(previousVersionString.substr(1));
-				versionStream >> thisPrevVersion;
-
-				if (thisPrevVersion > prevVersion)
+				int thisPrevMajorVersion;
+				int thisPrevMinorVersion;
+				//remove the v from the beginning of the version string
+				previousVersionString = previousVersionString.substr(1);
+				//replace the . with a space
+				if (previousVersionString.find_first_of(sU('.')) != sci::string::npos)
 				{
-					prevVersion = thisPrevVersion;
+					previousVersionString[previousVersionString.find_first_of(sU('.'))] = sU(' ');
+
+					//replace the b in beta (if it is there) with a space
+					if (previousVersionString.find_first_of(sU('b')) != sci::string::npos)
+					{
+						previousVersionString[previousVersionString.find_first_of(sU('b'))] = sU(' ');
+					}
+				}
+				else
+					previousVersionString = previousVersionString + sU(" 0"); //if the minor version isn't there, then add it
+
+				//put the string into a stream and read out the major and minor versions
+				sci::istringstream versionStream(previousVersionString);
+				versionStream >> thisPrevMajorVersion;
+				versionStream >> thisPrevMinorVersion;
+
+				if (thisPrevMajorVersion > prevMajorVersion || (thisPrevMajorVersion == prevMajorVersion && thisPrevMinorVersion > prevMinorVersion))
+				{
+					prevMajorVersion = thisPrevMajorVersion;
+					prevMinorVersion = thisPrevMinorVersion;
 					existingHistory = thisExistingHistory;
 				}
 			}
@@ -302,9 +376,25 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 		}
 	}
 
+	size_t majorVersion;
+	size_t minorVersion;
+	if (incrementMajorVersion || prevMajorVersion == 0)
+	{
+		majorVersion = prevMajorVersion+1;
+		minorVersion = 0;
+	}
+	else
+	{
+		majorVersion = prevMajorVersion;
+		minorVersion = prevMinorVersion + 1;
+	}
+
+	sci::ostringstream versionString;
+	versionString << sU("v") << majorVersion << sU(".") << minorVersion << (dataInfo.processingOptions.beta ? sU("beta") : sU(""));
+
 	//Now construct the final filename
 	sci::ostringstream filenameStream;
-	filenameStream << baseFilename << prevVersion + 1 << (dataInfo.processingOptions.beta ? sU("beta") : sU("")) << sU(".nc");
+	filenameStream << baseFilename << sU("_") << versionString.str() << sU(".nc");
 	sci::string filename = filenameStream.str();
 
 	//create the new file
@@ -385,10 +475,8 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 
 	sci::UtcTime now = sci::UtcTime::now();
 	sci::ostringstream history;
-	history << existingHistory + sU("\n") + getFormattedDateTime(now, sU("-"), sU(":"), sU("T")) + sU(" - v") << prevVersion + 1 << sU(" ") + processingReason;
+	history << existingHistory + sU("\n") + getFormattedDateTime(now, sU("-"), sU(":"), sU("T")) + sU(" ") + versionString.str() << sU(" ") + processingReason;
 	write(sci::NcAttribute(sU("history"), history.str()));
-	sci::ostringstream versionString;
-	versionString << sU("v") << prevVersion + 1 << (dataInfo.processingOptions.beta ? sU("beta") : sU(""));
 	write(sci::NcAttribute(sU("product_version"), versionString.str()));
 	write(sci::NcAttribute(sU("last_revised_date"), getFormattedDateTime(now, sU("-"), sU(":"), sU("T"))));
 
@@ -397,8 +485,8 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	//we also need to add a lat and lon dimension, although we don't actually use them
 	//this helps indexing. They have size 1 for stationary platforms or same as time
 	//for moving platforms.
-	sci::NcDimension longitudeDimension(sU("longitude"), platform.getPlatformInfo().platformType == pt_stationary ? 1 : times.size());
-	sci::NcDimension latitudeDimension(sU("latitude"), platform.getPlatformInfo().platformType == pt_stationary ? 1 : times.size());
+	sci::NcDimension longitudeDimension(sU("longitude"), m_longitudes.size());
+	sci::NcDimension latitudeDimension(sU("latitude"), m_latitudes.size());
 	write(longitudeDimension);
 	write(latitudeDimension);
 	//and any other dimensions
@@ -419,7 +507,7 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, m_longitudes));
 	m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, m_latitudes));
 
-	if (platform.getPlatformInfo().platformType == pt_moving)
+	if (platform.getPlatformInfo().platformType == pt_moving && !overriddenPlatformPosition)
 	{
 		m_courseVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), m_courses, true));
 		m_speedVariable.reset(new AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), m_speeds, true));
@@ -476,7 +564,7 @@ void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 	write(*m_latitudeVariable, sci::physicalsToValues<degree>(m_latitudes));
 	write(*m_longitudeVariable, sci::physicalsToValues<degree>(m_longitudes));
 
-	if (platform.getPlatformInfo().platformType == pt_moving)
+	if (m_speeds.size() > 0)
 	{
 		write(*m_instrumentPitchVariable, m_elevations);
 		write(*m_instrumentPitchStdevVariable, m_elevationStdevs);

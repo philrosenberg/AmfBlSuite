@@ -23,6 +23,7 @@ typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<-3>, sci::Metre<-1, 
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<-3>, sci::Metre<-6, -3>>> reflectivity;
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<1, -3>, sci::Hour<-1>>> millimetrePerHour;
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Gram<>, sci::Metre<-3>>> gramPerMetreCubed;
+typedef sci::Physical<sci::Pascal<1, 2>> hectoPascal;
 
 
 template<class REFERENCE_UNIT>

@@ -65,9 +65,10 @@ struct CalibrationInfo
 
 enum FeatureType
 {
-	ft_timeSeriesPoint
+	ft_timeSeriesPoint,
+	ft_trajectory
 };
-const std::vector<sci::string> g_featureTypeStrings{ sU("timeSeriesPoint") };
+const std::vector<sci::string> g_featureTypeStrings{ sU("timeSeriesPoint"), sU("trajectory") };
 
 struct DataInfo
 {
@@ -783,6 +784,7 @@ class OutputAmfNcFile : public sci::OutputNcFile
 {
 	//friend class AmfNcVariable;
 public:
+	//use this constructor to get the position info from the platform
 	OutputAmfNcFile(const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
 		const PersonInfo &author,
@@ -792,7 +794,22 @@ public:
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
 		const std::vector<sci::UtcTime> &times,
-		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0));
+		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
+		bool incrementMajorVersion = false);
+	//use this constructor to provide instrument derived lats and lons, e.g. for sondes
+	OutputAmfNcFile(const sci::string &directory,
+		const InstrumentInfo &instrumentInfo,
+		const PersonInfo &author,
+		const ProcessingSoftwareInfo &processingsoftwareInfo,
+		const CalibrationInfo &calibrationInfo,
+		const DataInfo &dataInfo,
+		const ProjectInfo &projectInfo,
+		const Platform &platform,
+		const std::vector<sci::UtcTime> &times,
+		const std::vector<degree> &latitudes,
+		const std::vector<degree> &longitudes,
+		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
+		bool incrementMajorVersion = false);
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
 	void writeTimeAndLocationData(const Platform &platform);
 	template<class T>
@@ -824,6 +841,19 @@ public:
 		return Fill<T>::value;
 	}
 private:
+	void initialise(const sci::string &directory,
+		const InstrumentInfo &instrumentInfo,
+		const PersonInfo &author,
+		const ProcessingSoftwareInfo &processingsoftwareInfo,
+		const CalibrationInfo &calibrationInfo,
+		const DataInfo &dataInfo,
+		const ProjectInfo &projectInfo,
+		const Platform &platform,
+		const std::vector<sci::UtcTime> &times,
+		const std::vector<degree> &latitudes,
+		const std::vector<degree> &longitudes,
+		const std::vector<sci::NcDimension *> &nonTimeDimensions,
+		bool incrementMajorVersion);
 	template<class T>
 	struct Fill
 	{
@@ -1268,7 +1298,7 @@ class AmfNcLongitudeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
 	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &longitudes)
-		:AmfNcVariable<double, std::vector<double>>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_north"), sci::physicalsToValues<degree>(longitudes), true)
+		:AmfNcVariable<double, std::vector<double>>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_east"), sci::physicalsToValues<degree>(longitudes), true)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
@@ -1277,7 +1307,7 @@ class AmfNcLatitudeVariable : public AmfNcVariable<double, std::vector<double>>
 {
 public:
 	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &latitudes)
-		:AmfNcVariable<double, std::vector<double>>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_east"), sci::physicalsToValues<degree>(latitudes), true)
+		:AmfNcVariable<double, std::vector<double>>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_north"), sci::physicalsToValues<degree>(latitudes), true)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
