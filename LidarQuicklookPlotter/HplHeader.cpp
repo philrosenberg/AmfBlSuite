@@ -42,12 +42,12 @@ std::istream & operator>> (std::istream & stream, ScanType &scanType)
 	return stream;
 }
 
-template <class T>
-void readHeaderVariable(std::istream &stream, sci::Physical<T> &variable)
+template <class T, class VALUE_TYPE>
+void readHeaderVariable(std::istream &stream, sci::Physical<T, VALUE_TYPE> &variable)
 {
-	double dVar;
+	VALUE_TYPE dVar;
 	stream >> dVar;
-	variable = sci::Physical <T>(dVar);
+	variable = sci::Physical <T, VALUE_TYPE>(dVar);
 }
 
 template <class T>

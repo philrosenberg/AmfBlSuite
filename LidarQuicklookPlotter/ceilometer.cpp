@@ -364,7 +364,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	if (heightAveragePeriod > 1)
 	{
 		for (size_t i = 0; i < data.size(); ++i)
-			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod, sci::PhysicalDivide<steradianPerMetre::unit>);
+			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod, sci::PhysicalDivide<steradianPerMetre::unit,steradianPerMetre::valueType>);
 	}
 
 	std::vector<second> xs(data.size() + 1);

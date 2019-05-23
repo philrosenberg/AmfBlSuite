@@ -196,7 +196,7 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 		m_years[i] = times[i].getYear();
 		m_months[i] = times[i].getMonth();
 		m_dayOfMonths[i] = times[i].getDayOfMonth();
-		m_dayOfYears[i] = std::floor(((sci::UtcTime((int)m_years[i], (unsigned int)m_months[i], (unsigned int)m_dayOfMonths[i], 0, 0, 0) - sci::UtcTime((int)m_years[i], 1, 1, 0, 0, 0)) / second(60.0 * 60.0 * 24.0)).value<unitless>());
+		m_dayOfYears[i] = (float)std::floor(((sci::UtcTime((int)m_years[i], (unsigned int)m_months[i], (unsigned int)m_dayOfMonths[i], 0, 0, 0) - sci::UtcTime((int)m_years[i], 1, 1, 0, 0, 0)) / second(60.0 * 60.0 * 24.0)).value<unitless>());
 		m_hours[i] = times[i].getHour();
 		m_minutes[i] = times[i].getMinute();
 		m_seconds[i] = times[i].getSecond();
@@ -496,7 +496,7 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 	//create the time variables, but do not write the data as we need to stay in define mode
 	//so the user can add other variables
 	m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension(), m_times));
-	m_dayOfYearVariable.reset(new AmfNcVariable<double, std::vector<double>>(sU("day_of_year"), *this, getTimeDimension(), sU("Day of Year"), sU(""), sU("1"), m_dayOfYears, false));
+	m_dayOfYearVariable.reset(new AmfNcVariable<float, std::vector<float>>(sU("day_of_year"), *this, getTimeDimension(), sU("Day of Year"), sU(""), sU("1"), m_dayOfYears, false));
 	m_yearVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("year"), *this, getTimeDimension(), sU("Year"), sU(""), sU("1"), m_years, false));
 	m_monthVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("month"), *this, getTimeDimension(), sU("Month"), sU(""), sU("1"), m_months, false));
 	m_dayVariable.reset(new AmfNcVariable<int, std::vector<int>>(sU("day"), *this, getTimeDimension(), sU("Day"), sU(""), sU("1"), m_dayOfMonths, false));

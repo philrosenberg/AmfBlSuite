@@ -269,7 +269,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		scanStartTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
-		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back() + (unitless(m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>>(15.0));//the second bit of this adds the duration of each ray
+		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back() + (unitless(m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0));//the second bit of this adds the duration of each ray
 	}
 
 	//work out the averaging time - this is the difference between the scan start and end times.

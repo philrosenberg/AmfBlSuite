@@ -32,11 +32,11 @@
 //g0-g7 constants for the wexler equation
 const double gWexler[] = { -2.9912729e3, -6.0170128e3, 1.887643854e1, -2.8354721e-2,
 						1.7838301e-5, -8.4150417e-10, 4.4412543e-13, 2.858487e0 };
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, sci::Kelvin<-1>>> heatCapacity;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<>, sci::Second<-2>>> acceleration;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Radian<>, sci::Second<-1>>> radianPerSecond;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>> joulePerKilogram;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Kilogram<>, sci::Metre<-3>>> kilogramPerMetreCubed;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, sci::Kelvin<-1>>, double> heatCapacity;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<>, sci::Second<-2>>, double> acceleration;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Radian<>, sci::Second<-1>>, double> radianPerSecond;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, double> joulePerKilogram;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Kilogram<>, sci::Metre<-3>>, double> kilogramPerMetreCubed;
 const heatCapacity dryAirGasConstant(287.04); //J kg-1 K-1
 const heatCapacity dryAirCp(1005.7); //J kg-1 K-1
 const unitless dryAirKappa(0.2854); //1-cv/cp or 1-gamma
@@ -85,13 +85,13 @@ inline hectoPascal vapourPressureBolton(kelvin dewpoint)
 
 inline hectoPascal vapourPressureWexler(kelvin dewpoint)
 {
-	unitless sum = sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 2>>(-2.9912729e3) *sci::pow<-2>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 1>>(-6.0170128e3) *sci::pow<-1>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 0>>(1.887643854e1) *sci::pow<0>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -1>>(-2.8354721e-2) *sci::pow<1>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -2>>(1.7838301e-5) *sci::pow<2>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -3>>(-8.4150417e-10) *sci::pow<3>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -4>>(4.4412543e-13) *sci::pow<4>(dewpoint);
+	unitless sum = sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 2>, double>(-2.9912729e3) *sci::pow<-2>(dewpoint) +
+		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 1>, double>(-6.0170128e3) *sci::pow<-1>(dewpoint) +
+		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 0>, double>(1.887643854e1) *sci::pow<0>(dewpoint) +
+		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -1>, double>(-2.8354721e-2) *sci::pow<1>(dewpoint) +
+		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -2>, double>(1.7838301e-5) *sci::pow<2>(dewpoint) +
+		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -3>, double>(-8.4150417e-10) *sci::pow<3>(dewpoint) +
+		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -4>, double>(4.4412543e-13) *sci::pow<4>(dewpoint);
 		
 	return sci::exp(sum + unitless(2.858487) * sci::ln(dewpoint/kelvin(1.0)))*hectoPascal(0.01);
 }

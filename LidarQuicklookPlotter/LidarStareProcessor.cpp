@@ -114,7 +114,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 			pulsesPerPoint[i] = getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays;
 		std::vector <size_t> sortedPulsesPerRay = pulsesPerPoint;
 		std::sort(sortedPulsesPerRay.begin(), sortedPulsesPerRay.end());
-		dataInfo.averagingPeriod = unitless(sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>>(15.0);
+		dataInfo.averagingPeriod = unitless(sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0);
 	}
 
 	//work out the sampling interval.
