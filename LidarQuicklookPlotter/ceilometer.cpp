@@ -132,7 +132,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	nonTimeDimensions.push_back(&gateDimension);
 	//create the file and dimensions. The time variable is added automatically
 	OutputAmfNcFile ceilometerFile(directory, ceilometerInfo, author, processingSoftwareInfo, ceilometerCalibrationInfo, dataInfo,
-		projectInfo, platform, times, nonTimeDimensions);
+		projectInfo, platform, sU("ceilometer profile"), times, nonTimeDimensions);
 
 	//add the data variables
 
@@ -387,7 +387,14 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	for (size_t i = 0; i < ys.size(); ++i)
 		ys[i] = unitless(i * heightAveragePeriod)*header.rangeGateLength;
 
-	std::shared_ptr<GridData> gridData(new GridData(sci::physicalsToValues<second>(xs), sci::physicalsToValues<metre>(ys), sci::physicalsToValues<steradianPerMetre>(data), g_lidarColourscale, true, true));
+	std::vector<double> xsTemp;
+	std::vector<double> ysTemp;
+	std::vector<std::vector<double>> zsTemp;
+	sci::convert(xsTemp, sci::physicalsToValues<second>(xs));
+	sci::convert(ysTemp, sci::physicalsToValues<metre>(ys));
+	sci::convert(zsTemp, sci::physicalsToValues<steradianPerMetre>(data));
+
+	std::shared_ptr<GridData> gridData(new GridData(xsTemp, ysTemp, zsTemp, g_lidarColourscale, true, true));
 
 	plot->addData(gridData);
 

@@ -905,17 +905,20 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	//Output the parameters
 
 	OutputAmfNcFile file(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
-		projectInfo, platform, m_time, m_latitude, m_longitude);
+		projectInfo, platform, sU("radio sonde trajectory"), m_time, m_latitude, m_longitude);
 
-	AmfNcVariable<metre, std::vector<metre>> altitudesVariable(sU("altitude"), file, file.getTimeDimension(), sU("Geometric height above geoid (WGS84)"), sU("altitude"), m_altitude, true);
-	AmfNcVariable<hectoPascal, std::vector<hectoPascal>> airPressureVariable(sU("air_pressure"), file, file.getTimeDimension(), sU("Air Pressure"), sU("air_pressure"), m_airPressure, true);
-	AmfNcVariable<kelvin, std::vector<kelvin>> airTemperatureVariable(sU("air_temperature"), file, file.getTimeDimension(), sU("Air Temperature"), sU("air_temperature"), m_temperature, true);
-	//AmfNcVariable<kelvin, std::vector<kelvin>> dewPointVariable(sU("dew_point_temperature"), file, file.getTimeDimension(), sU("Dew Point Temperature"), sU("dew_point_temperature"), m_dewpoint, true);
-	AmfNcVariable<percent, std::vector<percent>> dewPointVariable(sU("relative_humidity"), file, file.getTimeDimension(), sU("Relative Humidity"), sU("relative_humidity"), m_relativeHumidity, true);
-	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> windSpeedVariable(sU("wind_speed"), file, file.getTimeDimension(), sU("Wind Speed"), sU("wind_speed"), m_windSpeed, true);
-	AmfNcVariable<degree, std::vector<degree>> windDirectionVariable(sU("wind_from_direction"), file, file.getTimeDimension(), sU("Wind From Direction"), sU("wind_from_direction"), m_windFromDirection, true);
-	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> upwardBalloonVelocityVariable(sU("upward_balloon_velocity"), file, file.getTimeDimension(), sU("Balloon Ascent Rate"), sU("upward_balloon_velocity"), m_balloonUpwardVelocity, true);
-	AmfNcVariable<second, std::vector<second>> elapsedTimeVariable(sU("elapsed_time"), file, file.getTimeDimension(), sU("Elapsed Time"), sU("elapsed_time"), m_elapsedTime, true);
+	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_point} };
+	std::vector<sci::string> coordinates{ sU("longitude"), sU("latitude"), sU("altitude") };
+
+	AmfNcAltitudeVariable altitudesVariable(file, file.getTimeDimension(), m_altitude, dataInfo.featureType);
+	AmfNcVariable<hectoPascal, std::vector<hectoPascal>> airPressureVariable(sU("air_pressure"), file, file.getTimeDimension(), sU("Air Pressure"), sU("air_pressure"), m_airPressure, true, coordinates, cellMethods);
+	AmfNcVariable<kelvin, std::vector<kelvin>> airTemperatureVariable(sU("air_temperature"), file, file.getTimeDimension(), sU("Air Temperature"), sU("air_temperature"), m_temperature, true, coordinates, cellMethods);
+	//AmfNcVariable<kelvin, std::vector<kelvin>> dewPointVariable(sU("dew_point_temperature"), file, file.getTimeDimension(), sU("Dew Point Temperature"), sU("dew_point_temperature"), m_dewpoint, true, coordinates, cellMethods);
+	AmfNcVariable<percent, std::vector<percent>> dewPointVariable(sU("relative_humidity"), file, file.getTimeDimension(), sU("Relative Humidity"), sU("relative_humidity"), m_relativeHumidity, true, coordinates, cellMethods);
+	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> windSpeedVariable(sU("wind_speed"), file, file.getTimeDimension(), sU("Wind Speed"), sU("wind_speed"), m_windSpeed, true, coordinates, cellMethods);
+	AmfNcVariable<degree, std::vector<degree>> windDirectionVariable(sU("wind_from_direction"), file, file.getTimeDimension(), sU("Wind From Direction"), sU("wind_from_direction"), m_windFromDirection, true, coordinates, cellMethods);
+	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> upwardBalloonVelocityVariable(sU("upward_balloon_velocity"), file, file.getTimeDimension(), sU("Balloon Ascent Rate"), sU(""), m_balloonUpwardVelocity, true, coordinates, cellMethods);
+	AmfNcVariable<secondf, std::vector<secondf>> elapsedTimeVariable(sU("elapsed_time"), file, file.getTimeDimension(), sU("Elapsed Time"), sU(""), m_elapsedTime, true, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), cm_point}});
 	AmfNcFlagVariable flagVariable(sU("qc_flag"), sondeFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
 
 	file.writeTimeAndLocationData(platform);

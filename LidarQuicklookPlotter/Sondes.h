@@ -35,7 +35,7 @@ private:
 	std::vector<metrePerSecond> m_windSpeed;
 	std::vector<degree> m_windFromDirection;
 	std::vector<metrePerSecond> m_balloonUpwardVelocity;
-	std::vector<second> m_elapsedTime;
+	std::vector<secondf> m_elapsedTime;
 	std::vector<sci::UtcTime> m_time;
 	std::vector<unsigned char> m_flags;
 	sci::string m_sondeSerialNumber;

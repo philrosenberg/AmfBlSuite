@@ -6,7 +6,7 @@
     <name>Phil Rosenberg</name>
     <email>p.d.rosenberg@leeds.ac.uk</email>
     <orcidUrl>https://orcid.org/0000-0002-6920-0559</orcidUrl>
-    <institution>University of Leeds</institution>
+    <institution>National Centre for Atmospheric Science (NCAS)</institution>
   </person>
   <person id="2">
     <name>Ian Brooks</name>
@@ -17,7 +17,7 @@
   
   <!--Projects-->
   <project id="1">
-    <name>MOCCHA</name>
+    <name>Microbiology-Ocean-Cloud-Coupling in the High Arctic (MOCCHA)</name>
     <!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
     <principalInvestigator type="amfEntity/person" id="2"></principalInvestigator>
   </project>

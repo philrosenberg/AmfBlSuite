@@ -680,7 +680,7 @@ private:
 		return sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
 	}
 	template<class T>
-	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property, T &mean, T &stdev, T &min, T &max, decltype(T(1) / second(1)) &rate) const
+	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property, T &mean, T &stdev, T &min, T &max, decltype(T(1) / sci::Physical<sci::Second<>, T::valueType>(1)) &rate) const
 	{
 
 		if (startTime < m_times[0] || endTime > m_times.back())
@@ -793,6 +793,7 @@ public:
 		const DataInfo &dataInfo,
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
+		const sci::string &title,
 		const std::vector<sci::UtcTime> &times,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
 		bool incrementMajorVersion = false);
@@ -805,6 +806,7 @@ public:
 		const DataInfo &dataInfo,
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
+		const sci::string &title,
 		const std::vector<sci::UtcTime> &times,
 		const std::vector<degree> &latitudes,
 		const std::vector<degree> &longitudes,
@@ -840,6 +842,11 @@ public:
 	{
 		return Fill<T>::value;
 	}
+	template<class T>
+	static sci::string getTypeName()
+	{
+		return TypeName<T>::name;
+	}
 private:
 	void initialise(const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
@@ -849,6 +856,7 @@ private:
 		const DataInfo &dataInfo,
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
+		sci::string title,
 		const std::vector<sci::UtcTime> &times,
 		const std::vector<degree> &latitudes,
 		const std::vector<degree> &longitudes,
@@ -898,6 +906,56 @@ private:
 	{
 		static const int64_t value;
 	};
+	template<class T>
+	struct TypeName
+	{
+
+	};
+	template<>
+	struct TypeName<double>
+	{
+		static const sci::string name;
+	};
+	template<>
+	struct TypeName<float>
+	{
+		static const sci::string name;
+	};
+	template<class T>
+	struct TypeName<sci::Physical<T, double>>
+	{
+		static const sci::string name;
+	};
+	template<class T>
+	struct TypeName<sci::Physical<T, float>>
+	{
+		static const sci::string name;
+	};
+	template<>
+	struct TypeName<int8_t>
+	{
+		static const sci::string name;
+	};
+	template<>
+	struct TypeName<uint8_t>
+	{
+		static const sci::string name;
+	};
+	template<>
+	struct TypeName<int16_t>
+	{
+		static const sci::string name;
+	};
+	template<>
+	struct TypeName<int32_t>
+	{
+		static const sci::string name;
+	};
+	template<>
+	struct TypeName<int64_t>
+	{
+		static const sci::string name;
+	};
 
 	sci::NcDimension m_timeDimension;
 	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
@@ -909,7 +967,7 @@ private:
 	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_dayVariable;
 	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_hourVariable;
 	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_minuteVariable;
-	std::unique_ptr<AmfNcVariable<double, std::vector<double>>> m_secondVariable;
+	std::unique_ptr<AmfNcVariable<float, std::vector<float>>> m_secondVariable;
 
 	//only used for moving platforms
 	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_courseVariable;
@@ -938,7 +996,7 @@ private:
 	std::vector<float> m_dayOfYears;
 	std::vector<int> m_hours;
 	std::vector<int> m_minutes;
-	std::vector<double> m_seconds;
+	std::vector<float> m_seconds;
 	std::vector<degree> m_latitudes;
 	std::vector<degree> m_longitudes;
 	std::vector<degree> m_elevations;
@@ -965,6 +1023,10 @@ template<class T>
 const sci::Physical<T, double> OutputAmfNcFile::Fill<sci::Physical<T, double>>::value = sci::Physical<T, double>(-1e20);
 template<class T>
 const sci::Physical<T, float> OutputAmfNcFile::Fill<sci::Physical<T, float>>::value = sci::Physical<T, float>(-1e20);
+template<class T>
+const sci::string OutputAmfNcFile::TypeName<sci::Physical<T, double>>::name = sU("float64");
+template<class T>
+const sci::string OutputAmfNcFile::TypeName<sci::Physical<T, float>>::name = sU("float32");
 
 template<class T>
 T constexpr getDefault()
@@ -1054,52 +1116,129 @@ void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
 	}
 }
 
+enum CellMethod
+{
+	cm_none,
+	cm_point,
+	cm_sum,
+	cm_mean,
+	cm_max,
+	cm_min,
+	cm_midRange,
+	cm_standardDeviation,
+	cm_variance,
+	cm_mode,
+	cm_median
+};
+
+inline sci::string getCellMethodString(CellMethod cellMethod)
+{
+	if (cellMethod == cm_none)
+		return sU("");
+	if (cellMethod == cm_point)
+		return sU("point");
+	if (cellMethod == cm_sum)
+		return sU("sum");
+	if (cellMethod == cm_mean)
+		return sU("mean");
+	if (cellMethod == cm_max)
+		return sU("maximum");
+	if (cellMethod == cm_min)
+		return sU("minimum");
+	if (cellMethod == cm_midRange)
+		return sU("mid_range");
+	if (cellMethod == cm_standardDeviation)
+		return sU("standard_deviation");
+	if (cellMethod == cm_variance)
+		return sU("variance");
+	if (cellMethod == cm_mode)
+		return sU("mode");
+	if (cellMethod == cm_median)
+		return sU("median");
+
+	return sU("unknown");
+}
+
+inline sci::string getCoordinatesAttributeText(const std::vector<sci::string> &coordinates)
+{
+	if (coordinates.size() == 0)
+		return sU("");
+	sci::ostringstream result;
+	result << coordinates[0];
+	for (size_t i = 1; i < coordinates.size(); ++i)
+	{
+		result << sU(" ") << coordinates[i];
+	}
+	return result.str();
+}
+
+inline sci::string getCellMethodsAttributeText(const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
+{
+	if (cellMethods.size() == 0)
+		return sU("");
+	sci::ostringstream result;
+	result << cellMethods[0].first << sU(": ") << getCellMethodString(cellMethods[0].second);
+	for (size_t i = 1; i < cellMethods.size(); ++i)
+	{
+		result << sU(" ") << cellMethods[i].first << sU(": ") << getCellMethodString(cellMethods[i].second);
+	}
+	return result.str();
+}
+
 template <class T, class U>
 class AmfNcVariable : public sci::NcVariable<T>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimension)
 	{
 		m_data = data;
 		T validMin;
 		T validMax;
 		getMinMax(m_data, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, comment);
+		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
 		:NcVariable<T>(name, ncFile, dimensions)
 	{
 		m_data = data;
 		T validMin;
 		T validMax;
 		getMinMax(m_data, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, comment);
+		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	const U& getData() const
 	{
 		return m_data;
 	}
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, bool hasFillValue, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), units);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax);
+		sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<T>());
 		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_data)>::baseType>());
+		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
+		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
 		addAttribute(unitsAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
+		addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
 			addAttribute(standardNameAttribute, ncFile);
 		if (hasFillValue)
 			addAttribute(fillValueAttribute, ncFile);
+		if (coordinates.size() > 0)
+			addAttribute(coordinatesAttribute, ncFile);
+		if(cellMethods.size() > 0)
+			addAttribute(cellMethodsAttribute, ncFile);
 	}
 	U m_data;
 };
@@ -1119,7 +1258,9 @@ public:
 		}
 		addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag")), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues), ncFile);
-		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptions), ncFile);
+		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptions, sci::string(sU("\n"))), ncFile);
+		addAttribute(sci::NcAttribute(sU("type"), OutputAmfNcFile::getTypeName<uint8_t>()), ncFile);
+		addAttribute(sci::NcAttribute(sU("unit"), sU("1")), ncFile);
 	}
 };
 
@@ -1128,7 +1269,7 @@ template <class T, class VALUE_TYPE, class U>
 class AmfNcVariable<sci::Physical<T, VALUE_TYPE>, U> : public sci::NcVariable<sci::Physical<T, VALUE_TYPE>>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T, VALUE_TYPE>>(name, ncFile, dimension)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T, VALUE_TYPE>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
@@ -1136,9 +1277,9 @@ public:
 		sci::Physical<T, VALUE_TYPE> validMin;
 		sci::Physical<T, VALUE_TYPE> validMax;
 		getMinMax(m_data, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, comment);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T, VALUE_TYPE>>(name, ncFile, dimensions)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T, VALUE_TYPE>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
@@ -1146,7 +1287,7 @@ public:
 		sci::Physical<T, VALUE_TYPE> validMin;
 		sci::Physical<T, VALUE_TYPE> validMax;
 		getMinMax(m_data, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, comment);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	const U& getData() const
 	{
@@ -1154,25 +1295,33 @@ public:
 	}
 
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<T, VALUE_TYPE> validMin, sci::Physical<T, VALUE_TYPE> validMax, bool hasFillValue, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<T, VALUE_TYPE> validMin, sci::Physical<T, VALUE_TYPE> validMax, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), sci::Physical<T, VALUE_TYPE>::getShortUnitString());
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>());
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<T>());
+		sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<sci::Physical<T,VALUE_TYPE>>());
 		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_data)>::baseType>());
+		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
+		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
 		addAttribute(unitsAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
+		addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
 			addAttribute(standardNameAttribute, ncFile);
 		if (hasFillValue)
 			addAttribute(fillValueAttribute, ncFile);
+		if (coordinates.size() > 0)
+			addAttribute(coordinatesAttribute, ncFile);
+		if(cellMethods.size() > 0)
+			addAttribute(cellMethodsAttribute, ncFile);
 	}
 	U m_data;
 };
@@ -1232,7 +1381,7 @@ public:
 	//typedef typename Decibel<REFERENCE_UNIT>::referencePhysical::valueType valueType;
 	typedef typename Decibel<REFERENCE_UNIT>::referencePhysical referencePhysical;
 	//Data must be passed in in linear units, not decibels!!!
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, bool isDbZ, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimension)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<typename REFERENCE_UNIT::unit>>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
@@ -1241,25 +1390,25 @@ public:
 		referencePhysical validMin;
 		referencePhysical validMax;
 		getMinMax(m_dataLinear, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, comment);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, bool isDbZ, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
 	{
-		static_assert(std::is_same<sci::VectorTraits<U>::baseType, referencePhysical>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
+		//static_assert(std::is_same<sci::VectorTraits<U>::baseType, referencePhysical>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
 		m_dataLinear = dataLinear;
 		m_isDbZ = isDbZ; 
-		referencePhysical validMin;
-		referencePhysical validMax;
+		sci::VectorTraits<U>::baseType validMin;
+		sci::VectorTraits<U>::baseType validMax;
 		getMinMax(m_dataLinear, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, comment);
+		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	const U& getData() const
 	{
 		return m_dataLinear;
 	}
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, referencePhysical validMinLinear, referencePhysical validMaxLinear, bool hasFillValue, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, referencePhysical validMinLinear, referencePhysical validMaxLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
@@ -1267,19 +1416,27 @@ private:
 		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referencePhysical::getShortUnitString());
 		sci::NcAttribute validMinAttribute(sU("valid_min"), Decibel<REFERENCE_UNIT>::linearToDecibel(validMinLinear));
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), Decibel<REFERENCE_UNIT>::linearToDecibel(validMaxLinear));
+		sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<Decibel<REFERENCE_UNIT>::valueType>());
 		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<U>::baseType>());
+		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
+		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
 		addAttribute(unitsAttribute, ncFile);
 		addAttribute(referenceUnitAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
+		addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
 			addAttribute(standardNameAttribute, ncFile);
 		if (hasFillValue)
 			addAttribute(fillValueAttribute, ncFile);
+		if (coordinates.size() > 0)
+			addAttribute(coordinatesAttribute, ncFile);
+		if(cellMethods.size() > 0)
+			addAttribute(cellMethodsAttribute, ncFile);
 	}
 
 	//this is in reference units and is a 1d or multi-d vector.
@@ -1291,7 +1448,7 @@ class AmfNcTimeVariable : public AmfNcVariable<typename second::valueType, std::
 {
 public:
 	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<sci::UtcTime> &times)
-		:AmfNcVariable<typename second::valueType, std::vector<typename second::valueType>>(sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)), true)
+		:AmfNcVariable<typename second::valueType, std::vector<typename second::valueType >> (sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)), false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
 		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);
@@ -1308,8 +1465,18 @@ public:
 class AmfNcLongitudeVariable : public AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>
 {
 public:
-	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &longitudes)
-		:AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>(sU("longitude"), ncFile, dimension, sU("Longitude"), sU("longitude"), sU("degrees_east"), sci::physicalsToValues<degree>(longitudes), true)
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &longitudes, FeatureType featureType)
+		:AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>(
+			sU("longitude"),
+			ncFile, 
+			dimension,
+			sU("Longitude"),
+			sU("longitude"),
+			sU("degrees_east"),
+			sci::physicalsToValues<degree>(longitudes),
+			true,
+			std::vector<sci::string>(0),
+			featureType == ft_trajectory ? std::vector<std::pair<sci::string, CellMethod>>{{sU("time"), cm_point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
@@ -1317,9 +1484,39 @@ public:
 class AmfNcLatitudeVariable : public AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>
 {
 public:
-	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &latitudes)
-		:AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>(sU("latitude"), ncFile, dimension, sU("Latitude"), sU("latitude"), sU("degrees_north"), sci::physicalsToValues<degree>(latitudes), true)
+	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &latitudes, FeatureType featureType)
+		:AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>(
+			sU("latitude"),
+			ncFile,
+			dimension,
+			sU("Latitude"),
+			sU("latitude"),
+			sU("degrees_north"),
+			sci::physicalsToValues<degree>(latitudes),
+			true,
+			std::vector<sci::string>(0),
+			featureType == ft_trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), cm_point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
+	}
+};
+
+class AmfNcAltitudeVariable : public AmfNcVariable<typename metre::valueType, std::vector<typename metre::valueType>>
+{
+public:
+	AmfNcAltitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<metre> &altitudes, FeatureType featureType)
+		:AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>(
+			sU("altitude"),
+			ncFile,
+			dimension,
+			sU("Geometric height above geoid (WGS84)"),
+			sU("altitude"),
+			sU("m"),
+			sci::physicalsToValues<metre>(altitudes),
+			true,
+			std::vector<sci::string>(0),
+			featureType == ft_trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), cm_point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
+	{
+		addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ncFile);
 	}
 };
