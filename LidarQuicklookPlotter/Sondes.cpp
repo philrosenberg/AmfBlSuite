@@ -660,6 +660,7 @@ const uint8_t sondeFirstPointNoAscentRateFlag = 2;
 const uint8_t sondeZeroAscentRateFlag = 3;
 const uint8_t sondeZeroWindSpeedFlag = 4;
 const uint8_t sondeRepeatedTimeFlag = 5;
+const uint8_t sondeNoWindFlag = 6;
 
 
 
@@ -670,7 +671,8 @@ const std::vector<std::pair<uint8_t, sci::string>> sondeFlags
 {sondeFirstPointNoAscentRateFlag, sU("first point - cannot calculate ascent rate") },
 {sondeZeroAscentRateFlag, sU("suspect data - ascent rate of zero")},
 {sondeZeroWindSpeedFlag, sU("suspect data - zero wind speed") },
-{sondeRepeatedTimeFlag, sU("time interval less than time resolution - the time change was not captured by the 1s time resolution. Ascent rate cannot be caltulated") }
+{sondeRepeatedTimeFlag, sU("time interval less than time resolution - the time change was not captured by the 1s time resolution. Ascent rate cannot be caltulated") },
+{sondeNoWindFlag, sU("wind data missing")}
 };
 
 
@@ -830,6 +832,19 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 		{
 			m_balloonUpwardVelocity[i] = std::numeric_limits<metrePerSecond>::quiet_NaN();
 			m_flags[i] = sondeRepeatedTimeFlag;
+		}
+	}
+
+	//If the wind data is missing then the wind direction is set to a value of 511 and
+	//the wind speed is set to a value of 409.5 (all 1s for the data in question)
+	//We can check for this by just checking the wind direction is greater than 360
+	for (size_t i = 0; i < m_time.size(); ++i)
+	{
+		if (m_windFromDirection[i] > degree(360))
+		{
+			m_windFromDirection[i] = std::numeric_limits<degree>::quiet_NaN();
+			m_windSpeed[i] = std::numeric_limits<metrePerSecond>::quiet_NaN();
+			m_flags[i] = sondeNoWindFlag;
 		}
 	}
 
