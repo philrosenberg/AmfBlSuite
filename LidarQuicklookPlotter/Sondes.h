@@ -37,6 +37,9 @@ private:
 	std::vector<metrePerSecond> m_balloonUpwardVelocity;
 	std::vector<secondf> m_elapsedTime;
 	std::vector<sci::UtcTime> m_time;
-	std::vector<unsigned char> m_flags;
+	std::vector<unsigned char> m_motionFlags;
+	std::vector<unsigned char> m_temperatureFlags;
+	std::vector<unsigned char> m_humidityFlags;
+	std::vector<unsigned char> m_pressureFlags;
 	sci::string m_sondeSerialNumber;
 };
