@@ -139,6 +139,16 @@
     <operatingSoftwareVersion>v2.2.0-8</operatingSoftwareVersion>
   </instrument>
   
+  <instrument id="5">
+    <name>met office lidar dop 1</name>
+    <description>Met Office Doppler Aerosol Lidar unit 1</description>
+    <manufacturer>HALO Photonics</manufacturer>
+    <model>StreamLine</model>
+    <serial>unknown</serial>
+    <operatingSoftware>StreamLine</operatingSoftware>
+    <operatingSoftwareVersion>unknown</operatingSoftwareVersion>
+  </instrument>
+  
   <!--Calibration Info-->
   <calibrationInfo id ="1">
     <calibrationDescription>Calibrated to manufacturers standard:: 0 to 19 ms-1</calibrationDescription>
