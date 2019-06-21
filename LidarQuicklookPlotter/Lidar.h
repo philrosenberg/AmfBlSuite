@@ -107,21 +107,21 @@ public:
 class LidarCopolarisedStareProcessor : public LidarStareProcessor
 {
 public:
-	LidarCopolarisedStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarStareProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]Proc[/\\\\]....[/\\\\]......[/\\\\]........[/\\\\]Stare_.._........_..\\.hpl$")) {}
+	LidarCopolarisedStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarStareProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]Proc[/\\\\]....[/\\\\]......[/\\\\]........[/\\\\]Stare_.{0,4}........_..\\.hpl$")) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("fixed"), sU("co") }; }
 };
 
 class LidarCrosspolarisedStareProcessor : public LidarStareProcessor
 {
 public:
-	LidarCrosspolarisedStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarStareProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]Proc[/\\\\]cross[/\\\\]....[/\\\\]......[/\\\\]........[/\\\\]Stare_.._........_..\\.hpl$")) {}
+	LidarCrosspolarisedStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarStareProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]Proc[/\\\\]cross[/\\\\]....[/\\\\]......[/\\\\]........[/\\\\]Stare_.{0,4}........_..\\.hpl$")) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("fixed"), sU("cr") }; }
 };
 
 class LidarRhiProcessor : public LidarScanningProcessor
 {
 public:
-	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarScanningProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]RHI_.._........_......\\.hpl$")) {}
+	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarScanningProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]RHI_.{0,4}........_......\\.hpl$")) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
@@ -147,7 +147,7 @@ private:
 class LidarVadProcessor : public ConicalScanningProcessor
 {
 public:
-	LidarVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]VAD_.._........_......\\.hpl$"), nSegmentsMin) {}
+	LidarVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]VAD_.{0,4}........_......\\.hpl$"), nSegmentsMin) {}
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("ppi") }; }
@@ -158,7 +158,7 @@ private:
 class LidarWindVadProcessor : public ConicalScanningProcessor
 {
 public:
-	LidarWindVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]Wind_Profile_.._........_......\\.hpl$"), nSegmentsMin) {}
+	LidarWindVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]Wind_Profile_.{0,4}........_......\\.hpl$"), nSegmentsMin) {}
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("wind ppi") }; }
@@ -180,42 +180,42 @@ private:
 class LidarUser1Processor : public LidarUserProcessor
 {
 public:
-	LidarUser1Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User1_.._........_......\\.hpl$")) {}
+	LidarUser1Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User1_.{0,4}........_......\\.hpl$")) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 1") }; }
 };
 
 class LidarUser2Processor : public LidarUserProcessor
 {
 public:
-	LidarUser2Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User2_.._........_......\\.hpl$")) {}
+	LidarUser2Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User2_.{0,4}........_......\\.hpl$")) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 2") }; }
 };
 
 class LidarUser3Processor : public LidarUserProcessor
 {
 public:
-	LidarUser3Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User3_.._........_......\\.hpl$")) {}
+	LidarUser3Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User3_.{0,4}........_......\\.hpl$")) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 3") }; }
 };
 
 class LidarUser4Processor : public LidarUserProcessor
 {
 public:
-	LidarUser4Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User4_.._........_......\\.hpl$")) {}
+	LidarUser4Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User4_.{0,4}........_......\\.hpl$")) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 4") }; }
 };
 
 class LidarUser5Processor : public LidarUserProcessor
 {
 public:
-	LidarUser5Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User5_.._........_......\\.hpl$")) {}
+	LidarUser5Processor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarUserProcessor(instrumentInfo, calibrationInfo, sU("[/\\\\]User5_.{0,4}........_......\\.hpl$")) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 5") }; }
 };
 
 class LidarWindProfileProcessor : public InstrumentProcessor
 {
 public:
-	LidarWindProfileProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) :InstrumentProcessor(sU("[/\\\\]Processed_Wind_Profile_.._........_......\\.hpl$")), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo) {}
+	LidarWindProfileProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) :InstrumentProcessor(sU("[/\\\\]Processed_Wind_Profile_.{0,4}........_......\\.hpl$")), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo) {}
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
