@@ -68,7 +68,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.featureType = ft_timeSeriesPoint;
 	dataInfo.processingLevel = 1;
 	dataInfo.options = getProcessingOptions();
-	dataInfo.productName = sU("backscatter radial winds");
+	dataInfo.productName = sU("aerosol backscatter radial winds");
 	dataInfo.processingOptions = processingOptions;
 
 	//build up our data arrays.
@@ -136,17 +136,23 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
 		projectInfo, platform, sU("doppler lidar stare"), times, nonTimeDimensions);
 
-	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_point}, { sU("range"), cm_mean } };
-	std::vector<sci::string> coordinates;
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean } };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ {sU("time"), cm_point} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
+	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude"), sU("range") };
+	std::vector<sci::string> coordinatesAngles{ sU("latitude"), sU("longitude") };
+	std::vector<sci::string> coordinatesAnglesEarthFrame{ sU("latitude"), sU("longitude") };
+	std::vector<sci::string> coordinatesRange{ sU("latitude"), sU("longitude") };
 
-	AmfNcVariable<metre, decltype(ranges)> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), ranges, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0));
-	AmfNcVariable<degree, decltype(instrumentRelativeAzimuthAngles)> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning head azimuth angle"), sU("sensor_azimuth_angle"), instrumentRelativeAzimuthAngles, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0), sU("Relative to the instrument with 0 degrees being to the \"front\" of the instruments."));
-	AmfNcVariable<degree, decltype(instrumentRelativeElevationAngles)> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning head elevation angle"), sU("sensor_view_angle"), instrumentRelativeElevationAngles, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0), sU("Relative to the instruments with 0 degrees being \"horizontal\", positive being upwards, negative being downwards."));
-	AmfNcVariable<metrePerSecond, decltype(instrumentRelativeDopplerVelocities)> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), instrumentRelativeDopplerVelocities, true, coordinates, cellMethods, sU("Instrument relative. Positive is away, negative is towards."));
-	AmfNcVariable<degree, decltype(attitudeCorrectedAzimuthAngles)> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning head azimuth angle Earth Frame"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0), sU("Relative to the geoid with 0 degrees being north."));
-	AmfNcVariable<degree, decltype(attitudeCorrectedElevationAngles)> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning head elevation angle Earth Frame"), sU(""), attitudeCorrectedElevationAngles, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0), sU("Relative to the geoid with 0 degrees being horizontal, positive being upwards, negative being downwards."));
-	AmfNcVariable<metrePerSecond, decltype(motionCorrectedDopplerVelocities)> dopplerVariableEarthFrame(sU("radial_velocity_of_scatterers_away_from_instrument_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument Earth Frame"), sU(""), motionCorrectedDopplerVelocities, true, coordinates, cellMethods, sU("Instrument relative. Positive is away, negative is towards."));
-	AmfNcVariable<perSteradianPerMetre, decltype(backscatters)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatters, true, coordinates, cellMethods);
+	AmfNcVariable<metre, decltype(ranges)> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), ranges, true, coordinatesRange, cellMethodsRange);
+	AmfNcVariable<degree, decltype(instrumentRelativeAzimuthAngles)> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning Head Azimuth Angle"), sU("sensor_azimuth_angle"), instrumentRelativeAzimuthAngles, true, coordinatesAngles, cellMethodsAngles, sU("Relative to the instrument with 0 degrees being to the \"front\" of the instruments."));
+	AmfNcVariable<degree, decltype(instrumentRelativeElevationAngles)> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning Head Elevation Angle"), sU("sensor_view_angle"), instrumentRelativeElevationAngles, true, coordinatesAngles, cellMethodsAngles, sU("Relative to the instruments with 0 degrees being \"horizontal\", positive being upwards, negative being downwards."));
+	AmfNcVariable<metrePerSecond, decltype(instrumentRelativeDopplerVelocities)> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), instrumentRelativeDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Instrument relative. Positive is away, negative is towards."));
+	AmfNcVariable<degree, decltype(attitudeCorrectedAzimuthAngles)> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning Head Azimuth Angle Earth Frame"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinatesAnglesEarthFrame, cellMethodsAnglesEarthFrame, sU("Relative to the geoid with 0 degrees being north."));
+	AmfNcVariable<degree, decltype(attitudeCorrectedElevationAngles)> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning Head Elevation Angle Earth Frame"), sU(""), attitudeCorrectedElevationAngles, true, coordinatesAnglesEarthFrame, cellMethodsAnglesEarthFrame, sU("Relative to the geoid with 0 degrees being horizontal, positive being upwards, negative being downwards."));
+	AmfNcVariable<metrePerSecond, decltype(motionCorrectedDopplerVelocities)> dopplerVariableEarthFrame(sU("radial_velocity_of_scatterers_away_from_instrument_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument - Earth Frame"), sU(""), motionCorrectedDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Instrument relative. Positive is away, negative is towards."));
+	AmfNcVariable<perSteradianPerMetre, decltype(backscatters)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatters, true, coordinatesData, cellMethodsData);
 	AmfNcFlagVariable dopplerFlagVariable(sU("radial_velocity_of_scatterers_away_from_instrument_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable backscatterFlagVariable(sU("attenuated_aerosol_backscatter_coefficient_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 
