@@ -100,7 +100,7 @@
   
   <!--Instruments-->
   <instrument id="1">
-    <name>NCAS Doppler Aerosol Lidar unit 1</name>
+    <name>ncas lidar dop 1</name>
     <description>NCAS Doppler Aerosol Lidar unit 1</description>
     <manufacturer>HALO Photonics</manufacturer>
     <model>StreamLine</model>
