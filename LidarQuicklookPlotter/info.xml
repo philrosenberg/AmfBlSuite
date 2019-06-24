@@ -28,7 +28,7 @@
   
   <!--This is an example of a ship platform-->
   <platform id="1">
-    <name>Oden</name>
+    <name>oden</name>
     <type>moving</type>
     <deploymentMode>sea</deploymentMode>
     <!--AltitudeMetres is the altitude relative to the sea line of the ship-->
