@@ -96,12 +96,12 @@ sci::string getBoundsString(const std::vector<degree> & latitudes, const std::ve
 	sci::stringstream result;
 	if (latitudes.size() == 1)
 	{
-		result << latitudes[0].value<degree>() << sU(" N ") << longitudes[0].value<degree>() << sU(" E");
+		result << latitudes[0].value<degree>() << sU("N ") << longitudes[0].value<degree>() << sU("E");
 	}
 	else
 	{
-		result << sci::min<degree>(latitudes).value<degree>() << " N " << sci::min<degree>(longitudes).value<degree>() << " E, "
-			<< sci::max<degree>(latitudes).value<degree>() << " N " << sci::min<degree>(longitudes).value<degree>() << " E";
+		result << sci::min<degree>(latitudes).value<degree>() << "N " << sci::min<degree>(longitudes).value<degree>() << "E, "
+			<< sci::max<degree>(latitudes).value<degree>() << "N " << sci::min<degree>(longitudes).value<degree>() << "E";
 	}
 
 	return result.str();

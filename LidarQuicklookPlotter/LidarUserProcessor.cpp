@@ -45,13 +45,3 @@ void LidarUserProcessor::plotData(const sci::string &outputFilename, const std::
 		createDirectoryAndWritePlot(window, rangeLimitedfilename.str(), 1000, 1000, progressReporter);
 	}
 }
-
-std::vector<std::vector<sci::string>> LidarUserProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
-{
-	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 9);
-}
-
-bool LidarUserProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
-{
-	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 9, 18, 20, 22, second(0));
-}

@@ -141,42 +141,93 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 			throw;
 	}
 
-	readHeaderLine(stream, hplHeader.systemId, "System ID");
-	readHeaderLine(stream, hplHeader.nGates, "Number of gates");
-	readHeaderLine(stream, hplHeader.rangeGateLength, "Range gate length (m)");
-	readHeaderLine(stream, hplHeader.pointsPerGate, "Gate length (pts)");
-	readHeaderLine(stream, hplHeader.pulsesPerRay, "Pulses/ray");
-	readHeaderLine(stream, hplHeader.nRays, "No. of rays in file");
-	readHeaderLine(stream, hplHeader.scanType, "Scan type");
-	readHeaderLine(stream, hplHeader.focusRange, "Focus range");
-	readHeaderLine(stream, hplHeader.startTime, "Start time");
-	readHeaderLine(stream, hplHeader.dopplerResolution, "Resolution (m/s)");
+	try
+	{
+		//newer files have System ID on second line, older files have operating mode instead
+		readHeaderLine(stream, hplHeader.systemId, "System ID");
+		hplHeader.oldType = false;
+	}
+	catch (...)
+	{
+		hplHeader.systemId = -1;
+		hplHeader.oldType = true;
+	}
+	if (!hplHeader.oldType)
+	{
+		readHeaderLine(stream, hplHeader.nGates, "Number of gates");
+		readHeaderLine(stream, hplHeader.rangeGateLength, "Range gate length (m)");
+		readHeaderLine(stream, hplHeader.pointsPerGate, "Gate length (pts)");
+		readHeaderLine(stream, hplHeader.pulsesPerRay, "Pulses/ray");
+		readHeaderLine(stream, hplHeader.nRays, "No. of rays in file");
+		readHeaderLine(stream, hplHeader.scanType, "Scan type");
+		readHeaderLine(stream, hplHeader.focusRange, "Focus range");
+		readHeaderLine(stream, hplHeader.startTime, "Start time");
+		readHeaderLine(stream, hplHeader.dopplerResolution, "Resolution (m/s)");
 
-	std::string tempString;
+		std::string tempString;
 
-	std::getline(stream, tempString);
-	sci::assertThrow(tempString == "Altitude of measurement (center of gate) = (range gate + 0.5) * Gate length",
-		sci::err(sci::SERR_USER, 0, sU("Did not find the expected altitude of measurement equation. Incorrect file format.")));
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "Altitude of measurement (center of gate) = (range gate + 0.5) * Gate length",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected altitude of measurement equation. Incorrect file format.")));
 
-	std::getline(stream, tempString);
-	sci::assertThrow(tempString == "Data line 1: Decimal time (hours)  Azimuth (degrees)  Elevation (degrees) Pitch (degrees) Roll (degrees)",
-		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 descriptor. Incorrect file format.")));
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "Data line 1: Decimal time (hours)  Azimuth (degrees)  Elevation (degrees) Pitch (degrees) Roll (degrees)",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 descriptor. Incorrect file format.")));
 
-	std::getline(stream, tempString);
-	sci::assertThrow(tempString == "f9.6,1x,f6.2,1x,f6.2",
-		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 format. Incorrect file format.")));
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "f9.6,1x,f6.2,1x,f6.2",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 format. Incorrect file format.")));
 
-	std::getline(stream, tempString);
-	sci::assertThrow(tempString == "Data line 2: Range Gate  Doppler (m/s)  Intensity (SNR + 1)  Beta (m-1 sr-1)",
-		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 descriptor. Incorrect file format.")));
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "Data line 2: Range Gate  Doppler (m/s)  Intensity (SNR + 1)  Beta (m-1 sr-1)",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 descriptor. Incorrect file format.")));
 
-	std::getline(stream, tempString);
-	sci::assertThrow(tempString == "i3,1x,f6.4,1x,f8.6,1x,e12.6 - repeat for no. gates",
-		sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 format. Incorrect file format.")));
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "i3,1x,f6.4,1x,f8.6,1x,e12.6 - repeat for no. gates",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 format. Incorrect file format.")));
 
-	std::getline(stream, tempString);
-	sci::assertThrow(tempString == "****",
-		sci::err(sci::SERR_USER, 0, sU("Did not find the expected **** header ending. Incorrect file format.")));
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "****",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected **** header ending. Incorrect file format.")));
+	}
+	else
+	{
+		std::string tempString;
+		readHeaderLine(stream, hplHeader.nGates, "Number of gates");
+		readHeaderLine(stream, hplHeader.rangeGateLength, "Range gate length (m)");
+		readHeaderLine(stream, hplHeader.pointsPerGate, "Gate length (pts)");
+		std::getline(stream, tempString); //Software version
+		readHeaderLine(stream, hplHeader.pulsesPerRay, "Pulses/ray");
+		readHeaderLine(stream, hplHeader.nRays, "No. of rays in file");
+		readHeaderLine(stream, hplHeader.scanType, "Scan type");
+		readHeaderLine(stream, hplHeader.focusRange, "Focus range");
+		readHeaderLine(stream, hplHeader.startTime, "Start time");
+		readHeaderLine(stream, hplHeader.dopplerResolution, "Resolution (m/s)");
+
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "Altitude of measurement (center of gate) = (range gate + 0.5) * Gate length",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected altitude of measurement equation. Incorrect file format.")));
+
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "Data line 1: Decimal time (hours)  Azimuth (degrees)  Elevation (degrees)",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 descriptor. Incorrect file format.")));
+
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "f7.4,1x,f6.2,1x,f6.2",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 1 format. Incorrect file format.")));
+
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "Data line 2: Range Gate  Doppler (m/s)  Intensity (SNR + 1)  Beta (m-1 sr-1)",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 descriptor. Incorrect file format.")));
+
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "i3,1x,f6.4,1x,f8.6,1x,e12.6 - repeat for no. gates",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected data line 2 format. Incorrect file format.")));
+
+		std::getline(stream, tempString);
+		sci::assertThrow(tempString == "****",
+			sci::err(sci::SERR_USER, 0, sU("Did not find the expected **** header ending. Incorrect file format.")));
+	}
 
 	return stream;
 }

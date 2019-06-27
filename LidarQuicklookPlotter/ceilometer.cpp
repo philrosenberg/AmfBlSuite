@@ -410,7 +410,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 
 std::vector<std::vector<sci::string>> CeilometerProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
-	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 0);
+	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 0, 8);
 }
 
 bool CeilometerProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const

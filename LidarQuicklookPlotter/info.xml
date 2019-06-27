@@ -45,7 +45,7 @@
   </platform>
   
   <platform id="2">
-    <name>OdenPlatformRelative</name>
+    <name>odenPlatformRelative</name>
     <type>moving</type>
     <deploymentMode>sea</deploymentMode>
     <!--AltitudeMetres is the altitude relative to the sea line of the ship-->
@@ -82,7 +82,7 @@
   
   <!--This is the oden sonde release platform with 14m altitude-->
   <platform id="4">
-    <name>Oden</name>
+    <name>oden</name>
     <type>moving</type>
     <deploymentMode>sea</deploymentMode>
     <!--AltitudeMetres is the altitude relative to the sea line of the ship-->

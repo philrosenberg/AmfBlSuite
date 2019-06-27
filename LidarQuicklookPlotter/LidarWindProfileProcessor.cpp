@@ -257,7 +257,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		dataInfo.startTime = m_profiles[0].m_VadProcessor.getTimesUtcTime()[0];
 		dataInfo.endTime = m_profiles.back().m_VadProcessor.getTimesUtcTime()[0];
 	}
-	dataInfo.featureType = ft_timeSeriesPoint;
+	dataInfo.featureType = ft_timeSeriesProfile;
 	dataInfo.options = std::vector<sci::string>(0);
 	dataInfo.processingLevel = 2;
 	dataInfo.productName = sU("mean winds profile");
@@ -333,12 +333,14 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 			windFlags[i].resize(maxLevels, lidarUserChangedGatesFlag);
 		}
 
-		std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_mean}, { sU("altitude"), cm_mean } };
+		//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
+		//std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_mean}, { sU("altitude"), cm_mean } };
+		std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_mean} };
 		std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
 		AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0));
-		AmfNcVariable<metrePerSecond, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level."));
-		AmfNcVariable<degree, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level."));
-		AmfNcFlagVariable windFlagVariable(sU("wind_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
+		AmfNcVariable<metrePerSecond, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));
+		AmfNcVariable<degree, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));
+		AmfNcFlagVariable windFlagVariable(sU("qc_flag_wind"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
 		file.writeTimeAndLocationData(platform);
 
@@ -347,14 +349,4 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		file.write(windDirectionVariable);
 		file.write(windFlagVariable, windFlags);
 	}
-}
-
-std::vector<std::vector<sci::string>> LidarWindProfileProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
-{
-	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 26);
-}
-
-bool LidarWindProfileProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
-{
-	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 26, 35, 37, 39, second(0));
 }

@@ -45,16 +45,6 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 	}
 }
 
-std::vector<std::vector<sci::string>> LidarStareProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
-{
-	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 9);
-}
-
-bool LidarStareProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
-{
-	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 9, 18, -1, -1, second(3599));
-}
-
 void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
@@ -65,7 +55,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
-	dataInfo.featureType = ft_timeSeriesPoint;
+	dataInfo.featureType = ft_timeSeriesProfile;
 	dataInfo.processingLevel = 1;
 	dataInfo.options = getProcessingOptions();
 	dataInfo.productName = sU("aerosol backscatter radial winds");
@@ -80,6 +70,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	std::vector<degree> attitudeCorrectedElevationAngles = getAttitudeCorrectedElevations();
 	std::vector<std::vector<metrePerSecond>> motionCorrectedDopplerVelocities = getMotionCorrectedDopplerVelocities();
 	std::vector<std::vector<perSteradianPerMetre>> backscatters = getBetas();
+	std::vector<std::vector<unitless>> snrPlusOne = getSignalToNoiseRatiosPlusOne();
 	std::vector<std::vector<uint8_t>> dopplerVelocityFlags = getDopplerFlags();
 	std::vector<std::vector<uint8_t>> backscatterFlags = getBetaFlags();
 	std::vector<std::vector<metre>> ranges(backscatters.size());
@@ -100,6 +91,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 		instrumentRelativeDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
 		motionCorrectedDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
 		backscatters[i].resize(maxNGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
+		snrPlusOne[i].resize(maxNGates, std::numeric_limits<unitless>::quiet_NaN());
 		ranges[i].resize(maxNGates, std::numeric_limits<metre>::quiet_NaN());
 		dopplerVelocityFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
 		backscatterFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
@@ -136,8 +128,11 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
 		projectInfo, platform, sU("doppler lidar stare"), times, nonTimeDimensions);
 
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean } };
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ {sU("time"), cm_point} };
+	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
+	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean } };
+	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ {sU("time"), cm_point} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), cm_mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
 	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude"), sU("range") };
@@ -153,19 +148,24 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	AmfNcVariable<degree, decltype(attitudeCorrectedElevationAngles)> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning Head Elevation Angle Earth Frame"), sU(""), attitudeCorrectedElevationAngles, true, coordinatesAnglesEarthFrame, cellMethodsAnglesEarthFrame, sU("Relative to the geoid with 0 degrees being horizontal, positive being upwards, negative being downwards."));
 	AmfNcVariable<metrePerSecond, decltype(motionCorrectedDopplerVelocities)> dopplerVariableEarthFrame(sU("radial_velocity_of_scatterers_away_from_instrument_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument - Earth Frame"), sU(""), motionCorrectedDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Instrument relative. Positive is away, negative is towards."));
 	AmfNcVariable<perSteradianPerMetre, decltype(backscatters)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatters, true, coordinatesData, cellMethodsData);
-	AmfNcFlagVariable dopplerFlagVariable(sU("radial_velocity_of_scatterers_away_from_instrument_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
-	AmfNcFlagVariable backscatterFlagVariable(sU("attenuated_aerosol_backscatter_coefficient_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
+	AmfNcVariable<unitless, decltype(snrPlusOne)> snrPlusOneVariable(sU("signal_to_noise_ratio_plus_1"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1"), sU(""), snrPlusOne, true, coordinatesData, cellMethodsData);
+	AmfNcFlagVariable dopplerFlagVariable(sU("qc_flag_radial_velocity_of_scatterers_away_from_instrument"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
+	AmfNcFlagVariable backscatterFlagVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 
 	file.writeTimeAndLocationData(platform);
 
 	file.write(rangeVariable);
 	file.write(azimuthVariable);
+	file.write(azimuthVariableEarthFrame);
 	file.write(elevationVariable);
+	file.write(elevationVariableEarthFrame);
 	file.write(dopplerVariable);
+	file.write(dopplerVariableEarthFrame);
 	file.write(azimuthVariable);
 	file.write(elevationVariable);
 	file.write(dopplerVariable);
 	file.write(backscatterVariable);
+	file.write(snrPlusOneVariable);
 	file.write(dopplerFlagVariable, dopplerVelocityFlags);
 	file.write(backscatterFlagVariable, backscatterFlags);
 }

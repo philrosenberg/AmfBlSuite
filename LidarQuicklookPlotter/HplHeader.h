@@ -29,6 +29,7 @@ struct HplHeader
 	size_t focusRange;
 	sci::UtcTime startTime;
 	double dopplerResolution;
+	bool oldType;
 };
 
 std::istream & operator>> (std::istream & stream, HplHeader &);

@@ -281,23 +281,3 @@ void ConicalScanningProcessor::getDataSortedByAzimuth(std::vector<std::vector<pe
 
 	azimuthBoundaries.back() = azimuthBoundaries[0] + degree(360.0);
 }
-
-std::vector<std::vector<sci::string>> LidarVadProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
-{
-	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 7);
-}
-
-bool LidarVadProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
-{
-	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 7, 16, 18, 20, second(0));
-}
-
-std::vector<std::vector<sci::string>> LidarWindVadProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
-{
-	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 16);
-}
-
-bool LidarWindVadProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
-{
-	return InstrumentProcessor::fileCoversTimePeriod(fileName, startTime, endTime, 16, 25, 27, 29, second(0));
-}

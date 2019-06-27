@@ -96,9 +96,9 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
 			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
 			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
-			sci::assign(betaFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
-			sci::assign(betaFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
-			sci::assign(betaFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
+			sci::assign(betaFlags, betaFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
+			sci::assign(betaFlags, betaFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
+			sci::assign(betaFlags, betaFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
 			m_betaFlags.push_back(betaFlags);
 			m_dopplerFlags.push_back(dopplerVelocityFlags);
 
@@ -175,6 +175,16 @@ std::vector<std::vector<unitless>> LidarBackscatterDopplerProcessor::getSignalTo
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		result[i] = m_profiles[i].getIntensities() - unitless(1.0);
+	}
+	return result;
+}
+
+std::vector<std::vector<unitless>> LidarBackscatterDopplerProcessor::getSignalToNoiseRatiosPlusOne() const
+{
+	std::vector<std::vector<unitless>> result(m_profiles.size());
+	for (size_t i = 0; i < m_profiles.size(); ++i)
+	{
+		result[i] = m_profiles[i].getIntensities();
 	}
 	return result;
 }
@@ -275,7 +285,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
-	dataInfo.featureType = ft_timeSeriesPoint;
+	dataInfo.featureType = ft_timeSeriesProfile;
 	dataInfo.options = getProcessingOptions();
 	dataInfo.processingLevel = 1;
 	dataInfo.productName = sU("aerosol backscatter radial winds");
@@ -297,6 +307,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	std::vector<std::vector<metrePerSecond>> allMotionCorrectedDopplerVelocities = getMotionCorrectedDopplerVelocities();
 	std::vector<std::vector<metrePerSecond>> allInstrumentRelativeDopplerVelocities = getInstrumentRelativeDopplerVelocities();
 	std::vector<std::vector<perSteradianPerMetre>> allBackscatters = getBetas();
+	std::vector<std::vector<unitless>> allSnrsPlusOne = getSignalToNoiseRatiosPlusOne();
 	std::vector<std::vector<uint8_t>> allDopplerVelocityFlags = getDopplerFlags();
 	std::vector<std::vector<uint8_t>> allBackscatterFlags = getBetaFlags();
 	std::vector<sci::UtcTime> scanStartTimes;
@@ -322,10 +333,12 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	instrumentRelativeDopplerVelocities.reserve(allTimes.size() / 6);
 	std::vector<std::vector<std::vector<metrePerSecond>>> motionCorrectedDopplerVelocities;
 	motionCorrectedDopplerVelocities.reserve(allTimes.size() / 6);
-	//a 3d array for backscatters (time, profile within a scan, elevation) - note this is not the order we need to output
+	//a 3d array for backscatters and snr+1 (time, profile within a scan, elevation) - note this is not the order we need to output
 	//so immediately after this code we transpose the second two dimensions (time, elevation, profile within a scan)
 	std::vector<std::vector<std::vector<perSteradianPerMetre>>> backscatters;
 	backscatters.reserve(allTimes.size() / 6);
+	std::vector<std::vector<std::vector<unitless>>> snrsPlusOne;
+	snrsPlusOne.reserve(allTimes.size() / 6);
 	//As above, but for the flags
 	std::vector < std::vector<std::vector<uint8_t>>> dopplerVelocityFlags(backscatters.size());
 	std::vector < std::vector<std::vector<uint8_t>>> backscatterFlags(backscatters.size());
@@ -367,6 +380,9 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		backscatters.resize(1);
 		backscatters.back().reserve(6);
 		backscatters.back().push_back(allBackscatters[0]);
+		snrsPlusOne.resize(1);
+		snrsPlusOne.back().reserve(6);
+		snrsPlusOne.back().push_back(allSnrsPlusOne[0]);
 		dopplerVelocityFlags.resize(1);
 		dopplerVelocityFlags.back().reserve(6);
 		dopplerVelocityFlags.back().push_back(allDopplerVelocityFlags[0]);
@@ -415,6 +431,8 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 				motionCorrectedDopplerVelocities.back().reserve(maxProfilesPerScan);
 				backscatters.resize(backscatters.size() + 1);
 				backscatters.back().reserve(maxProfilesPerScan);
+				snrsPlusOne.resize(snrsPlusOne.size() + 1);
+				snrsPlusOne.back().reserve(maxProfilesPerScan);
 				dopplerVelocityFlags.resize(dopplerVelocityFlags.size() + 1);
 				dopplerVelocityFlags.back().reserve(maxProfilesPerScan);
 				backscatterFlags.resize(backscatterFlags.size() + 1);
@@ -427,6 +445,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 			instrumentRelativeDopplerVelocities.back().push_back(allInstrumentRelativeDopplerVelocities[i]);
 			motionCorrectedDopplerVelocities.back().push_back(allMotionCorrectedDopplerVelocities[i]);
 			backscatters.back().push_back(allBackscatters[i]);
+			snrsPlusOne.back().push_back(allSnrsPlusOne[i]);
 			dopplerVelocityFlags.back().push_back(allDopplerVelocityFlags[i]);
 			backscatterFlags.back().push_back(allBackscatterFlags[i]);
 		}
@@ -442,6 +461,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		instrumentRelativeDopplerVelocities[i] = sci::transpose(instrumentRelativeDopplerVelocities[i]);
 		motionCorrectedDopplerVelocities[i] = sci::transpose(motionCorrectedDopplerVelocities[i]);
 		backscatters[i] = sci::transpose(backscatters[i]);
+		snrsPlusOne[i] = sci::transpose(snrsPlusOne[i]);
 		dopplerVelocityFlags[i] = sci::transpose(dopplerVelocityFlags[i]);
 		backscatterFlags[i] = sci::transpose(backscatterFlags[i]);
 	}
@@ -458,11 +478,13 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 		instrumentRelativeDopplerVelocities[i].resize(maxNGates);
 		motionCorrectedDopplerVelocities[i].resize(maxNGates);
 		backscatters[i].resize(maxNGates);
+		snrsPlusOne[i].resize(maxNGates);
 		for (size_t j = 0; j < maxNGates; ++j)
 		{
 			instrumentRelativeDopplerVelocities[i][j].resize(maxProfilesPerScan, std::numeric_limits<metrePerSecond>::quiet_NaN());
 			motionCorrectedDopplerVelocities[i][j].resize(maxProfilesPerScan, std::numeric_limits<metrePerSecond>::quiet_NaN());
 			backscatters[i][j].resize(maxProfilesPerScan, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
+			snrsPlusOne[i][j].resize(maxProfilesPerScan, std::numeric_limits<unitless>::quiet_NaN());
 			dopplerVelocityFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
 			backscatterFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
 		}
@@ -497,8 +519,11 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
 		projectInfo, platform, sU("doppler lidar scan"), scanStartTimes, nonTimeDimensions);
 
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean }, {sU("sensor_azimuth_angle"), cm_point}, {sU("sensor_view_angle"), cm_point} };
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ {sU("time"), cm_point} };
+	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
+	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean }, {sU("sensor_azimuth_angle"), cm_point}, {sU("sensor_view_angle"), cm_point} };
+	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ {sU("time"), cm_point} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), cm_mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
 	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude"), sU("range"), sU("sensor_azimuth_angle"), sU("sensor_view_angle") };
@@ -514,8 +539,9 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	AmfNcVariable<metrePerSecond, decltype(instrumentRelativeDopplerVelocities)> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), instrumentRelativeDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Instrument relative. Positive is away, negative is towards."));
 	AmfNcVariable<metrePerSecond, decltype(motionCorrectedDopplerVelocities)> dopplerVariableEarthFrame(sU("radial_velocity_of_scatterers_away_from_instrument_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Radial Velocity of Scatterers Away From Instrument Earth Frame"), sU(""), motionCorrectedDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Motion relative to the geoid in the direction specified by sensor_azimuth_angle_earth_frame and sensor_view_angle_earth_frame. Positive is in the direction specified, negative is in the opposite direction specified."));
 	AmfNcVariable<perSteradianPerMetre, decltype(backscatters)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatters, true, coordinatesData, cellMethodsData);
-	AmfNcFlagVariable dopplerFlagVariable(sU("radial_velocity_of_scatterers_away_from_instrument_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension });
-	AmfNcFlagVariable backscatterFlagVariable(sU("attenuated_aerosol_backscatter_coefficient_qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension });
+	AmfNcVariable<unitless, decltype(snrsPlusOne)> snrsPlusOneVariable(sU("signal_to_noise_ratio_plus_1"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension }, sU("Signal to Noise Ratio: SNR+1"), sU(""), snrsPlusOne, true, coordinatesData, cellMethodsData);
+	AmfNcFlagVariable dopplerFlagVariable(sU("qc_flag_radial_velocity_of_scatterers_away_from_instrument"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension });
+	AmfNcFlagVariable backscatterFlagVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, &angleIndexDimension });
 
 	file.writeTimeAndLocationData(platform);
 
@@ -526,5 +552,137 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	file.write(elevationVariableEarthFrame);
 	file.write(dopplerVariable);
 	file.write(dopplerVariableEarthFrame);
-	file.write(backscatterVariable, backscatters);
+	file.write(backscatterVariable);
+	file.write(snrsPlusOneVariable);
+	file.write(dopplerFlagVariable, dopplerVelocityFlags);
+	file.write(backscatterFlagVariable, backscatterFlags);
+}
+
+std::vector<std::vector<sci::string>> HplFileLidar::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+{
+	if (newFiles.size() == 0)
+		return std::vector<std::vector<sci::string>>(0);
+
+	sci::string croppedFilename = newFiles[0];
+	if (croppedFilename.find_last_of(sU("/\\")) != sci::string::npos)
+		croppedFilename = croppedFilename.substr(croppedFilename.find_last_of(sU("/\\")) + 1);
+
+	//find how many underscores there are. This will tell us if this is an old or new style file.
+	size_t nUnderscores = 0;
+	size_t firstUnderscorePosition = 0;
+	size_t secondUnderscorePosition = 0;
+	for (size_t i = m_filePrefix.length()+1; i < croppedFilename.length(); ++i)
+	{
+		if (croppedFilename[i] = sU('_'))
+		{
+			++nUnderscores;
+			if (nUnderscores == 1)
+				firstUnderscorePosition = i;
+			else if (nUnderscores == 2)
+				secondUnderscorePosition = i;
+		}
+	}
+
+	//we shouldn't need to do checks on the filenames as they should have already passed through other checking functions
+
+	//extract the date and time characters from the filename and put them in a string with spaces between
+	//in the format YYYY MM DD hh mm ss
+	sci::stringstream dateStream;
+	if (nUnderscores == 1)
+	{
+		//this is an old style filename
+		return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, m_filePrefix.length()+1, 6);
+	}
+	else
+	{
+		//this is an new style filename
+		//this is an old style filename
+		return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, firstUnderscorePosition + 1, 8);
+		
+	}
+}
+
+sci::UtcTime HplFileLidar::extractDateFromLidarFilename(const sci::string &filename) const
+{
+	//trim off the directory and the prefix
+	sci::string croppedFilename;
+	if (filename.find_last_of(sU("/\\")) != sci::string::npos)
+		croppedFilename = filename.substr(filename.find_last_of(sU("/\\")) + 2 + m_filePrefix.length());
+	else
+		croppedFilename = filename.substr(m_filePrefix.length() + 1);
+
+	//find how many underscores there are. This will tell us if this is an old or new style file.
+	size_t nUnderscores = 0;
+	size_t firstUnderscorePosition = 0;
+	size_t secondUnderscorePosition = 0;
+	for (size_t i = 0; i < croppedFilename.length(); ++i)
+	{
+		if (croppedFilename[i] == sU('_'))
+		{
+			++nUnderscores;
+			if (nUnderscores == 1)
+				firstUnderscorePosition = i;
+			else if (nUnderscores == 2)
+				secondUnderscorePosition = i;
+		}
+	}
+
+	//check we have one or two underscores in the filename
+	sci::stringstream messageStream;
+	messageStream << sU("The file ") << filename << sU(" has been identified as a lidar file, but the file name format does not match the expected pattern.");
+	sci::assertThrow(nUnderscores == 1 || nUnderscores == 2, sci::err(sci::SERR_USER, 0, messageStream.str()));
+
+	//extract the date and time characters from the filename and put them in a string with spaces between
+	//in the format YYYY MM DD hh mm ss
+	sci::stringstream dateStream;
+	if (nUnderscores == 1)
+	{
+		//this is an old style filename
+		sci::assertThrow(firstUnderscorePosition == 6, sci::err(sci::SERR_USER, 0, messageStream.str()));
+
+		dateStream << sU("20") << croppedFilename.substr(4, 2);
+		dateStream << sU(" ") << croppedFilename.substr(2, 2);
+		dateStream << sU(" ") << croppedFilename.substr(0, 2);
+		dateStream << sU(" ") << croppedFilename.substr(7, 2);
+		if (m_filePrefix==sU("Stare"))
+		{
+			dateStream << sU(" 00 00");
+		}
+		else
+		{
+			dateStream << sU(" ") << croppedFilename.substr(9, 2);
+			dateStream << sU(" ") << croppedFilename.substr(11, 2);
+		}
+	}
+	else
+	{
+		//this is a new style filename
+		sci::assertThrow((secondUnderscorePosition - firstUnderscorePosition) == 9, sci::err(sci::SERR_USER, 0, messageStream.str()));
+
+		dateStream << croppedFilename.substr(firstUnderscorePosition + 1, 4);
+		dateStream << sU(" ") << croppedFilename.substr(firstUnderscorePosition + 5, 2);
+		dateStream << sU(" ") << croppedFilename.substr(firstUnderscorePosition + 7, 2);
+		dateStream << sU(" ") << croppedFilename.substr(secondUnderscorePosition + 1, 2);
+		if (m_filePrefix == sU("Stare"))
+		{
+			dateStream << sU(" 00 00");
+		}
+		else
+		{
+			dateStream << sU(" ") << croppedFilename.substr(secondUnderscorePosition + 3, 2);
+			dateStream << sU(" ") << croppedFilename.substr(secondUnderscorePosition + 5, 2);
+		}
+	}
+
+	//extract the values from the string
+	int year;
+	unsigned int month;
+	unsigned int day;
+	unsigned int hour;
+	unsigned int minute;
+	double second;
+	dateStream >> year >> month >> day >> hour >> minute >> second;
+
+	//return the date
+	return sci::UtcTime(year, month, day, hour, minute, second);
 }

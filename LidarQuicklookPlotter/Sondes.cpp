@@ -983,10 +983,10 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	AmfNcVariable<degree, std::vector<degree>> windDirectionVariable(sU("wind_from_direction"), file, file.getTimeDimension(), sU("Wind From Direction"), sU("wind_from_direction"), m_windFromDirection, true, coordinates, cellMethods);
 	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> upwardBalloonVelocityVariable(sU("upward_balloon_velocity"), file, file.getTimeDimension(), sU("Balloon Ascent Rate"), sU(""), m_balloonUpwardVelocity, true, coordinates, cellMethods);
 	AmfNcVariable<secondf, std::vector<secondf>> elapsedTimeVariable(sU("elapsed_time"), file, file.getTimeDimension(), sU("Elapsed Time"), sU(""), m_elapsedTime, true, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), cm_point}});
-	AmfNcFlagVariable motionFlagVariable(sU("motion_flag"), sondeMotionFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
-	AmfNcFlagVariable temperatureFlagVariable(sU("temperature_flag"), sondeTemperatureFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
-	AmfNcFlagVariable humidityFlagVariable(sU("humidity_flag"), sondeHumidityFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
-	AmfNcFlagVariable pressureFlagVariable(sU("pressure_flag"), sondePressureFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
+	AmfNcFlagVariable motionFlagVariable(sU("qc_flag_motion"), sondeMotionFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
+	AmfNcFlagVariable temperatureFlagVariable(sU("qc_flag_temperature"), sondeTemperatureFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
+	AmfNcFlagVariable humidityFlagVariable(sU("qc_flag_humidity"), sondeHumidityFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
+	AmfNcFlagVariable pressureFlagVariable(sU("qc_flag_pressure"), sondePressureFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
 
 	file.writeTimeAndLocationData(platform);
 

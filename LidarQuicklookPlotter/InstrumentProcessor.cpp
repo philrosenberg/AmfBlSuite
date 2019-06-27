@@ -44,10 +44,10 @@ bool InstrumentProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTim
 	return fileStartTime < endTime && (fileStartTime + fileDuration) >= startTime;
 }
 
-std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter)
+std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter, size_t dateLength)
 {
 	//Here we grab the date from each file based on it starting at the given character in the filename (path removed)
-	//and assuming it is formatted yyyymmdd and use this to detemine which files belong to which day
+	//it doesn't matter what format the date is in, providing it is consistent as we just check for equality
 
 	std::vector<std::vector<sci::string>> result;
 	std::vector<sci::string> unassignedNewFiles = newFiles;
@@ -57,13 +57,13 @@ std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForRe
 	for (size_t i = 0; i < datesAllFiles.size(); ++i)
 	{
 		wxFileName fileNameToSplit(sci::nativeUnicode(allFiles[i]));
-		datesAllFiles[i] = sci::fromWxString(fileNameToSplit.GetFullName()).substr(dateStartCharacter, 8);
+		datesAllFiles[i] = sci::fromWxString(fileNameToSplit.GetFullName()).substr(dateStartCharacter, dateLength);
 	}
 	std::vector<sci::string> datesNewFiles(newFiles.size());
 	for (size_t i = 0; i < datesNewFiles.size(); ++i)
 	{
 		wxFileName fileNameToSplit(sci::nativeUnicode(newFiles[i]));
-		datesNewFiles[i] = sci::fromWxString(fileNameToSplit.GetFullName()).substr(dateStartCharacter, 8);
+		datesNewFiles[i] = sci::fromWxString(fileNameToSplit.GetFullName()).substr(dateStartCharacter, dateLength);
 	}
 
 
