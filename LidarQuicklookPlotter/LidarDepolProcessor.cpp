@@ -163,45 +163,39 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 		}
 	}
 
-	//check all the ranges are the same
+	//check that the number of range gates in the co and cross data are the same
+	if (rangesCo.size() > 0 && rangesCo[0].size() != rangesCross[0].size())
+	{
+		size_t maxGates = std::max(rangesCo[0].size(), rangesCross[0].size());
+		for (size_t i = 0; i < timesCo.size(); ++i)
+		{
+			backscattersCross[i].resize(maxGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
+			snrPlusOneCross[i].resize(maxGates, std::numeric_limits<unitless>::quiet_NaN());
+			backscatterFlagsCross[i].resize(maxGates, lidarPaddedBackscatter);
+			backscattersCo[i].resize(maxGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
+			snrPlusOneCo[i].resize(maxGates, std::numeric_limits<unitless>::quiet_NaN());
+			backscatterFlagsCo[i].resize(maxGates, lidarPaddedBackscatter);
+		}
+	}
+	//Check that the values of the ranges and the angles are the same for cross and co data
 	for (size_t i = 0; i < rangesCo.size(); ++i)
 	{
-		if (rangesCo[i].size() != rangesCross[i].size() || 
-			instrumentRelativeAzimuthAnglesCo[i] != instrumentRelativeAzimuthAnglesCross[i] ||
-			instrumentRelativeElevationAnglesCo[i] != instrumentRelativeAzimuthAnglesCross[i])
+		bool goodProfile = true;
+		goodProfile = goodProfile && sci::abs(instrumentRelativeAzimuthAnglesCo[i] - instrumentRelativeAzimuthAnglesCross[i]) < degree(0.01);
+		goodProfile = goodProfile && sci::abs(instrumentRelativeElevationAnglesCo[i] - instrumentRelativeElevationAnglesCross[i]) < degree(0.01);
+		for (size_t j = 0; j < rangesCo[i].size(); ++j)
 		{
-			size_t size = std::max(rangesCo[i].size(), rangesCross[i].size());
-			backscattersCross[i].assign(size, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
-			snrPlusOneCross[i].assign(size, std::numeric_limits<unitless>::quiet_NaN());
-			backscatterFlagsCross[i].assign(size, lidarNonMatchingRanges);
-			backscattersCo[i].assign(size, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
-			snrPlusOneCo[i].assign(size, std::numeric_limits<unitless>::quiet_NaN());
-			backscatterFlagsCo[i].assign(size, lidarNonMatchingRanges);
+			goodProfile = goodProfile && sci::abs(rangesCo[i][j] - rangesCross[i][j]) < metre(0.001);
 		}
-		else
+		if (!goodProfile)
 		{
-			for (size_t j = 0; j < rangesCo[i].size(); ++j)
-			{
-				if (sci::abs(rangesCross[i][j] - rangesCo[i][j]) > metre(0.001))
-				{
-					size_t size = rangesCross[i].size();
-
-					backscattersCross[i].resize(j);
-					snrPlusOneCross[i].resize(j);
-					backscatterFlagsCross[i].resize(j);
-					backscattersCo[i].resize(j);
-					snrPlusOneCo[i].resize(j);
-
-					backscattersCross[i].resize(size, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
-					snrPlusOneCross[i].resize(size, std::numeric_limits<unitless>::quiet_NaN());
-					backscatterFlagsCross[i].resize(size, lidarNonMatchingRanges);
-					backscattersCo[i].resize(size, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
-					snrPlusOneCo[i].resize(size, std::numeric_limits<unitless>::quiet_NaN());
-					backscatterFlagsCo[i].assign(size, lidarNonMatchingRanges);
-
-					break;
-				}
-			}
+			size_t nGates = rangesCo[i].size();
+			backscattersCross[i].assign(nGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
+			snrPlusOneCross[i].assign(nGates, std::numeric_limits<unitless>::quiet_NaN());
+			backscatterFlagsCross[i].assign(nGates, lidarNonMatchingRanges);
+			backscattersCo[i].assign(nGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
+			snrPlusOneCo[i].assign(nGates, std::numeric_limits<unitless>::quiet_NaN());
+			backscatterFlagsCo[i].assign(nGates, lidarNonMatchingRanges);
 		}
 	}
 
@@ -217,7 +211,7 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 
 		depolarisation[i].resize(backscattersCo[i].size());
 		depolarisationFlags[i] = backscatterFlagsCo[i];
-		for (size_t j = 0; j < depolarisation[j].size(); ++j)
+		for (size_t j = 0; j < depolarisation[i].size(); ++j)
 		{
 			depolarisation[i][j]=backscattersCross[i][j] / backscattersCo[i][j];
 			depolarisationFlags[i][j] = std::max(depolarisationFlags[i][j], backscatterFlagsCross[i][j]);
@@ -269,6 +263,7 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 	file.write(snrPlusOneCoVariable);
 	file.write(backscatterCrossVariable);
 	file.write(snrPlusOneCrossVariable);
+	file.write(depolarisationVariable);
 	file.write(backscatterFlagCoVariable, backscatterFlagsCo);
 	file.write(backscatterFlagCrossVariable, backscatterFlagsCross);
 	file.write(depolarisationFlagVariable, depolarisationFlags);
