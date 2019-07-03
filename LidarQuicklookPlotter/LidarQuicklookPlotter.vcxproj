@@ -165,6 +165,7 @@
     <ClCompile Include="HplHeader.cpp" />
     <ClCompile Include="HplProfile.cpp" />
     <ClCompile Include="Lidar.cpp" />
+    <ClCompile Include="LidarDepolProcessor.cpp" />
     <ClCompile Include="LidarRhiProcessor.cpp" />
     <ClCompile Include="LidarStareProcessor.cpp" />
     <ClCompile Include="LidarUserProcessor.cpp" />

@@ -39,6 +39,7 @@ public:
 	//ext
 	InstrumentProcessor(sci::string fileSearchRegEx) : m_fileSearchRegEx(fileSearchRegEx) {}
 	virtual ~InstrumentProcessor() {}
+	sci::string getFileSearchRegex() const { return m_fileSearchRegEx; }
 	//virtual void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) = 0;
 	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) = 0;

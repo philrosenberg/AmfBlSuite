@@ -75,6 +75,9 @@
     <ClCompile Include="Sondes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LidarDepolProcessor.cpp">
+      <Filter>Source Files\Lidar</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h">

@@ -60,68 +60,25 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.options = getProcessingOptions();
 	dataInfo.productName = sU("aerosol backscatter radial winds");
 	dataInfo.processingOptions = processingOptions;
+	std::vector<sci::UtcTime> times;
+	std::vector<degree> instrumentRelativeAzimuthAngles;
+	std::vector<degree> instrumentRelativeElevationAngles;
+	std::vector<std::vector<metrePerSecond>> instrumentRelativeDopplerVelocities;
+	std::vector<degree> attitudeCorrectedAzimuthAngles;
+	std::vector<degree> attitudeCorrectedElevationAngles;
+	std::vector<std::vector<metrePerSecond>> motionCorrectedDopplerVelocities;
+	std::vector<std::vector<perSteradianPerMetre>> backscatters;
+	std::vector<std::vector<unitless>> snrPlusOne;
+	std::vector<std::vector<uint8_t>> dopplerVelocityFlags;
+	std::vector<std::vector<uint8_t>> backscatterFlags;
+	std::vector<std::vector<metre>> ranges;
 
-	//build up our data arrays.
-	std::vector<sci::UtcTime> times = getTimesUtcTime();
-	std::vector<degree> instrumentRelativeAzimuthAngles = getInstrumentRelativeAzimuths();
-	std::vector<degree> instrumentRelativeElevationAngles = getInstrumentRelativeElevations();
-	std::vector<std::vector<metrePerSecond>> instrumentRelativeDopplerVelocities = getInstrumentRelativeDopplerVelocities();
-	std::vector<degree> attitudeCorrectedAzimuthAngles = getAttitudeCorrectedAzimuths();
-	std::vector<degree> attitudeCorrectedElevationAngles = getAttitudeCorrectedElevations();
-	std::vector<std::vector<metrePerSecond>> motionCorrectedDopplerVelocities = getMotionCorrectedDopplerVelocities();
-	std::vector<std::vector<perSteradianPerMetre>> backscatters = getBetas();
-	std::vector<std::vector<unitless>> snrPlusOne = getSignalToNoiseRatiosPlusOne();
-	std::vector<std::vector<uint8_t>> dopplerVelocityFlags = getDopplerFlags();
-	std::vector<std::vector<uint8_t>> backscatterFlags = getBetaFlags();
-	std::vector<std::vector<metre>> ranges(backscatters.size());
-	for (size_t i = 0; i < ranges.size(); ++i)
-	{
-		ranges[i] = getGateCentres(i);
-	}
-
-	//If the user changed the number of range gates during the day we need to expand the data arrays
-	//padding with fill value
-	size_t maxNGates = 0;
-	for (size_t i = 0; i < times.size(); ++i)
-	{
-		maxNGates = std::max(maxNGates, ranges[i].size());
-	}
-	for (size_t i = 0; i < times.size(); ++i)
-	{
-		instrumentRelativeDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
-		motionCorrectedDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
-		backscatters[i].resize(maxNGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
-		snrPlusOne[i].resize(maxNGates, std::numeric_limits<unitless>::quiet_NaN());
-		ranges[i].resize(maxNGates, std::numeric_limits<metre>::quiet_NaN());
-		dopplerVelocityFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
-		backscatterFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
-	}
-
-	//work out the averaging time - this is the difference between the scan start and end times.
-	//use the median as the value for the file
-	if (times.size() > 0)
-	{
-		std::vector <size_t> pulsesPerPoint(times.size());
-		for (size_t i = 0; i < times.size(); ++i)
-			pulsesPerPoint[i] = getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays;
-		std::vector <size_t> sortedPulsesPerRay = pulsesPerPoint;
-		std::sort(sortedPulsesPerRay.begin(), sortedPulsesPerRay.end());
-		dataInfo.averagingPeriod = unitless(sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0);
-	}
-
-	//work out the sampling interval.
-	//use the median as the value for the file
-	if (times.size() > 1)
-	{
-		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(times.begin() + 1, times.end()) - std::vector<sci::UtcTime>(times.begin(), times.end() - 1);
-		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
-		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
-		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
-	}
-
+	getFormattedData(times, instrumentRelativeAzimuthAngles, instrumentRelativeElevationAngles, instrumentRelativeDopplerVelocities,
+		attitudeCorrectedAzimuthAngles, attitudeCorrectedElevationAngles, motionCorrectedDopplerVelocities, backscatters,
+		snrPlusOne, dopplerVelocityFlags, backscatterFlags, ranges, dataInfo.averagingPeriod, dataInfo.samplingInterval);
 
 	std::vector<sci::NcDimension*> nonTimeDimensions;
-	sci::NcDimension rangeIndexDimension(sU("index_of_range"), maxNGates);
+	sci::NcDimension rangeIndexDimension(sU("index_of_range"), ranges.size()>0 ? ranges[0].size() : 0);
 	nonTimeDimensions.push_back(&rangeIndexDimension);
 
 
@@ -168,4 +125,80 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	file.write(snrPlusOneVariable);
 	file.write(dopplerFlagVariable, dopplerVelocityFlags);
 	file.write(backscatterFlagVariable, backscatterFlags);
+}
+
+void LidarStareProcessor::getFormattedData(std::vector<sci::UtcTime> &times,
+	std::vector<degree> &instrumentRelativeAzimuthAngles,
+	std::vector<degree> &instrumentRelativeElevationAngles,
+	std::vector<std::vector<metrePerSecond>> &instrumentRelativeDopplerVelocities,
+	std::vector<degree> &attitudeCorrectedAzimuthAngles,
+	std::vector<degree> &attitudeCorrectedElevationAngles,
+	std::vector<std::vector<metrePerSecond>> &motionCorrectedDopplerVelocities,
+	std::vector<std::vector<perSteradianPerMetre>> &backscatters,
+	std::vector<std::vector<unitless>> &snrPlusOne,
+	std::vector<std::vector<uint8_t>> &dopplerVelocityFlags,
+	std::vector<std::vector<uint8_t>> &backscatterFlags,
+	std::vector<std::vector<metre>> &ranges,
+	second &averagingPeriod,
+	second &samplingInterval)
+{
+	//build up our data arrays.
+	times = getTimesUtcTime();
+	instrumentRelativeAzimuthAngles = getInstrumentRelativeAzimuths();
+	instrumentRelativeElevationAngles = getInstrumentRelativeElevations();
+	instrumentRelativeDopplerVelocities = getInstrumentRelativeDopplerVelocities();
+	attitudeCorrectedAzimuthAngles = getAttitudeCorrectedAzimuths();
+	attitudeCorrectedElevationAngles = getAttitudeCorrectedElevations();
+	motionCorrectedDopplerVelocities = getMotionCorrectedDopplerVelocities();
+	backscatters = getBetas();
+	snrPlusOne = getSignalToNoiseRatiosPlusOne();
+	dopplerVelocityFlags = getDopplerFlags();
+	backscatterFlags = getBetaFlags();
+	ranges.resize(backscatters.size());
+	for (size_t i = 0; i < ranges.size(); ++i)
+	{
+		ranges[i] = getGateCentres(i);
+	}
+
+	//If the user changed the number of range gates during the day we need to expand the data arrays
+	//padding with fill value
+	size_t maxNGates = 0;
+	for (size_t i = 0; i < times.size(); ++i)
+	{
+		maxNGates = std::max(maxNGates, ranges[i].size());
+	}
+	for (size_t i = 0; i < times.size(); ++i)
+	{
+		instrumentRelativeDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
+		motionCorrectedDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
+		backscatters[i].resize(maxNGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
+		snrPlusOne[i].resize(maxNGates, std::numeric_limits<unitless>::quiet_NaN());
+		ranges[i].resize(maxNGates, std::numeric_limits<metre>::quiet_NaN());
+		dopplerVelocityFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
+		backscatterFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
+	}
+
+	//work out the averaging time - this is the difference between the scan start and end times.
+	//use the median as the value for the file
+	if (times.size() > 0)
+	{
+		std::vector <size_t> pulsesPerPoint(times.size());
+		for (size_t i = 0; i < times.size(); ++i)
+			pulsesPerPoint[i] = getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays;
+		std::vector <size_t> sortedPulsesPerRay = pulsesPerPoint;
+		std::sort(sortedPulsesPerRay.begin(), sortedPulsesPerRay.end());
+		averagingPeriod = unitless(sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0);
+	}
+
+	//work out the sampling interval.
+	//use the median as the value for the file
+	if (times.size() > 1)
+	{
+		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(times.begin() + 1, times.end()) - std::vector<sci::UtcTime>(times.begin(), times.end() - 1);
+		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
+		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
+		samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
+	}
+
+
 }
