@@ -93,6 +93,15 @@ void readHeaderVariable(std::istream &stream, sci::UtcTime &variable)
 	//this changes the locale to a custom one where colon is a delimiter
 	stringStream.imbue(std::locale(stringStream.getloc(), new ColonIsSpace));
 	stringStream >> date >> hour >> minute >> second;
+	if (stringStream.fail())
+	{
+		//this is probably due to an old style file, where the date is not provided. Set date to 1 Jan 1970
+		//and shuffle the read variables along
+		second = minute;
+		minute = hour;
+		hour = date;
+		date = 19700101;
+	}
 	year = date / 10000;
 	month = (date % 10000) / 100;
 	dayOfMonth = date % 100;
@@ -202,6 +211,17 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 		readHeaderLine(stream, hplHeader.scanType, "Scan type");
 		readHeaderLine(stream, hplHeader.focusRange, "Focus range");
 		readHeaderLine(stream, hplHeader.startTime, "Start time");
+		//In the old style files we don't have the date stored in the start time. Parse it from the file name instead
+		sci::string dateString = hplHeader.filename;
+		dateString = dateString.substr(0, dateString.find_last_of(sU("\\/")));
+		dateString = dateString.substr(dateString.find_last_of(sU("\\/"))+1);
+		sci::stringstream dateStream(dateString);
+		size_t dateNumber;
+		dateStream >> dateNumber;
+		size_t year = dateNumber / 10000;
+		size_t month = (dateNumber % 10000) / 100;
+		size_t day = dateNumber % 100;
+		hplHeader.startTime.setDate(year, month, day);
 		readHeaderLine(stream, hplHeader.dopplerResolution, "Resolution (m/s)");
 
 		std::getline(stream, tempString);

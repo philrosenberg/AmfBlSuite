@@ -6,11 +6,11 @@
 
 bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 {
-	double decimalHour;
-	double azimuthDeg;
-	double elevationDeg;
-	double pitchDeg = std::numeric_limits<double>::quiet_NaN();
-	double rollDeg = std::numeric_limits<double>::quiet_NaN();
+	float decimalHour;
+	float azimuthDeg;
+	float elevationDeg;
+	float pitchDeg = std::numeric_limits<float>::quiet_NaN();
+	float rollDeg = std::numeric_limits<float>::quiet_NaN();
 	if (!header.oldType)
 		stream >> decimalHour >> azimuthDeg >> elevationDeg >> pitchDeg >> rollDeg;
 	else

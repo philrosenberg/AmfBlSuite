@@ -181,11 +181,11 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 	for (size_t i = 0; i < rangesCo.size(); ++i)
 	{
 		bool goodProfile = true;
-		goodProfile = goodProfile && sci::abs(instrumentRelativeAzimuthAnglesCo[i] - instrumentRelativeAzimuthAnglesCross[i]) < degree(0.01);
-		goodProfile = goodProfile && sci::abs(instrumentRelativeElevationAnglesCo[i] - instrumentRelativeElevationAnglesCross[i]) < degree(0.01);
+		goodProfile = goodProfile && sci::abs(instrumentRelativeAzimuthAnglesCo[i] - instrumentRelativeAzimuthAnglesCross[i]) < degree(0.01f);
+		goodProfile = goodProfile && sci::abs(instrumentRelativeElevationAnglesCo[i] - instrumentRelativeElevationAnglesCross[i]) < degree(0.01f);
 		for (size_t j = 0; j < rangesCo[i].size(); ++j)
 		{
-			goodProfile = goodProfile && sci::abs(rangesCo[i][j] - rangesCross[i][j]) < metre(0.001);
+			goodProfile = goodProfile && sci::abs(rangesCo[i][j] - rangesCross[i][j]) < metre(0.001f);
 		}
 		if (!goodProfile)
 		{

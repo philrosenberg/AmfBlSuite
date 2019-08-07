@@ -500,7 +500,8 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 
 void mainFrame::OnAbout(wxCommandEvent& event)
 {
-	wxMessageBox(wxT("Lidar Quicklook Plotter Version 1.00.0"), wxT("About Lidar Quicklook Plotter..."));
+	
+	wxMessageBox(sci::nativeUnicode(sU("Lidar Quicklook Plotter Version ") + m_processingSoftwareInfo.version + sU("\nAvailable from ") + m_processingSoftwareInfo.url), "About Lidar Quicklook Plotter...");
 }
 
 mainFrame::~mainFrame()

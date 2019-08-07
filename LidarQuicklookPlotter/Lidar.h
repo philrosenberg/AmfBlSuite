@@ -40,12 +40,16 @@ public:
 	HplFileLidar(const sci::string &filePrefix, bool inCrossFolder, bool twoDigitTime)
 		//constructing the regex is a bit complicated we need to specify either the cross or not cross directory and
 		//2 or 6 digit time for stare/non-stare
-		:PlotableLidar(sci::string(sU("Proc[/\\\\]")) +
+		//:PlotableLidar(sci::string(sU("Proc[/\\\\]")) +
+		//(inCrossFolder ? sU("cross[/\\\\]") : sU("")) +
+		//	sU("....[/\\\\]......[/\\\\]........[/\\\\]") +
+		//	filePrefix + sU("_.{0,4}.{6,8}_") +
+		//	(twoDigitTime ? sU("..") : sU("......")) +
+		//	sU("\\.hpl$")),
+		: PlotableLidar(sci::string(sU("Proc[/\\\\]")) +
 		(inCrossFolder ? sU("cross[/\\\\]") : sU("")) +
 			sU("....[/\\\\]......[/\\\\]........[/\\\\]") +
-			filePrefix + sU("_.{0,4}.{6,8}_") +
-			(twoDigitTime ? sU("..") : sU("......")) +
-			sU("\\.hpl$")),
+			filePrefix + sU("_.*\\.hpl$")),
 		m_filePrefix(filePrefix)
 	{}
 	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override

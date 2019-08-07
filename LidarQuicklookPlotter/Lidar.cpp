@@ -72,7 +72,11 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 		++nRead;
 		if (readingOkay)
 		{
-
+			//check the time is ascending, we can sometimes cross into the next day, in which case the time recorded for the profile
+			//resets to close to 0. Increment the time by a day as needed;
+			if (m_profiles.size() > 1)
+				while (m_profiles[m_profiles.size() - 1].getTime<sci::UtcTime>() < m_profiles[m_profiles.size() - 2].getTime<sci::UtcTime>())
+					m_profiles[m_profiles.size() - 1].setTime(m_profiles[m_profiles.size() - 1].getTime<sci::UtcTime>() + second(24.0*60.0*60.0));
 			//correct azimuths and elevations for platform orientation
 			m_correctedAzimuths.resize(m_profiles.size(), degree(0.0));
 			m_correctedElevations.resize(m_profiles.size(), degree(0.0));
@@ -630,12 +634,24 @@ sci::UtcTime HplFileLidar::extractDateFromLidarFilename(const sci::string &filen
 	//check we have one or two underscores in the filename
 	sci::stringstream messageStream;
 	messageStream << sU("The file ") << filename << sU(" has been identified as a lidar file, but the file name format does not match the expected pattern.");
-	sci::assertThrow(nUnderscores == 1 || nUnderscores == 2, sci::err(sci::SERR_USER, 0, messageStream.str()));
+	sci::assertThrow(nUnderscores == 0 || nUnderscores == 1 || nUnderscores == 2, sci::err(sci::SERR_USER, 0, messageStream.str()));
 
 	//extract the date and time characters from the filename and put them in a string with spaces between
 	//in the format YYYY MM DD hh mm ss
 	sci::stringstream dateStream;
-	if (nUnderscores == 1)
+	if (nUnderscores == 0)
+	{
+		//some old style filenames seem to be just Stare_ddmmyy.hpl, this should be one of them
+		//this is an old style filename
+		sci::assertThrow(croppedFilename.length() == 10, sci::err(sci::SERR_USER, 0, messageStream.str()));
+		sci::assertThrow(croppedFilename.substr(6) == sU(".hpl"), sci::err(sci::SERR_USER, 0, messageStream.str()));
+
+		dateStream << sU("20") << croppedFilename.substr(4, 2);
+		dateStream << sU(" ") << croppedFilename.substr(2, 2);
+		dateStream << sU(" ") << croppedFilename.substr(0, 2);
+		dateStream << sU(" 00 00 00");
+	}
+	else if (nUnderscores == 1)
 	{
 		//this is an old style filename
 		sci::assertThrow(firstUnderscorePosition == 6, sci::err(sci::SERR_USER, 0, messageStream.str()));

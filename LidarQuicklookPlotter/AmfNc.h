@@ -1023,7 +1023,7 @@ private:
 template<class T>
 const sci::Physical<T, double> OutputAmfNcFile::Fill<sci::Physical<T, double>>::value = sci::Physical<T, double>(-1e20);
 template<class T>
-const sci::Physical<T, float> OutputAmfNcFile::Fill<sci::Physical<T, float>>::value = sci::Physical<T, float>(-1e20);
+const sci::Physical<T, float> OutputAmfNcFile::Fill<sci::Physical<T, float>>::value = sci::Physical<T, float>(-1e20f);
 template<class T>
 const sci::string OutputAmfNcFile::TypeName<sci::Physical<T, double>>::name = sU("float64");
 template<class T>

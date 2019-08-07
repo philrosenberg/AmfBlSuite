@@ -69,8 +69,8 @@ void ConicalScanningProcessor::plotData(const sci::string &outputFilename, const
 	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{
 		plotDataPlan(outputFilename + sU("_plan"), maxRanges[i], progressReporter, parent);
-		plotDataPlan(outputFilename + sU("_cone"), maxRanges[i], progressReporter, parent);
-		plotDataPlan(outputFilename + sU("_unwrapped"), maxRanges[i], progressReporter, parent);
+		plotDataCone(outputFilename + sU("_cone"), maxRanges[i], progressReporter, parent);
+		plotDataUnwrapped(outputFilename + sU("_unwrapped"), maxRanges[i], progressReporter, parent);
 	}
 }
 
@@ -241,15 +241,42 @@ void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilena
 
 	std::vector<metre> ranges = getGateBoundariesForPlotting(0);
 
-	std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>(azimuths, ranges, sortedBetas, g_lidarColourscale, true, true));
+	bool allSameElevation = true;
+	for (size_t i = 1; i < sortedElevations.size(); ++i)
+		allSameElevation &= (sortedElevations[0] == sortedElevations[i]);
 
-	plot->addData(gridData);
+	if (allSameElevation)
+	{
+		std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>(azimuths, ranges, sortedBetas, g_lidarColourscale, true, true));
 
-	plot->getxaxis()->settitle(sU("Azimuth ") + gridData->getXAxisUnits());
-	plot->getyaxis()->settitle(sU("Range ") + gridData->getYAxisUnits());
-	if (ranges.back() > maxRange)
-		plot->setmaxy(maxRange.value<decltype(gridData)::element_type::yUnitType>());
-	plot->setxlimits(0, M_PI*2.0);
+		plot->addData(gridData);
+
+		plot->getxaxis()->settitle(sU("Azimuth ") + gridData->getXAxisUnits());
+		plot->getyaxis()->settitle(sU("Range ") + gridData->getYAxisUnits());
+		if (ranges.back() > maxRange)
+			plot->setmaxy(maxRange.value<decltype(gridData)::element_type::yUnitType>());
+	}
+	else
+	{
+		degree angleRange =std::min(degree(30), degree(degree(360) / unitless(sortedElevations.size())));
+		for (size_t i = 0; i < sortedBetas.size(); ++i)
+		{
+			std::vector<degree> thisAzimuths(2);
+			thisAzimuths[0] = sortedMidAzimuths[i] - angleRange / unitless(2);
+			thisAzimuths[1] = sortedMidAzimuths[i] + angleRange / unitless(2);
+			std::vector<std::vector<perSteradianPerMetre>> thisBetas(1, sortedBetas[i]);
+			std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>(thisAzimuths, ranges, thisBetas, g_lidarColourscale, true, true));
+			plot->addData(gridData);
+
+
+			plot->getxaxis()->settitle(sU("Azimuth ") + gridData->getXAxisUnits());
+			plot->getyaxis()->settitle(sU("Range ") + gridData->getYAxisUnits());
+			if (ranges.back() > maxRange)
+				plot->setmaxy(maxRange.value<decltype(gridData)::element_type::yUnitType>());
+		}
+	}
+
+	plot->setxlimits(0, 360.0);
 
 	createDirectoryAndWritePlot(window, outputFilename, 1000, 1000, progressReporter);
 }

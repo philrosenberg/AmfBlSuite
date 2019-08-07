@@ -16,6 +16,7 @@ public:
 	sci::UtcTime getTime<sci::UtcTime>() const { return m_time; }
 	template<>
 	second getTime<second>() const { return second(m_time.getUnixTime()); }
+	void setTime(const sci::UtcTime &time) { m_time = time; }
 	degree getAzimuth() const { return m_azimuth; }
 	degree getElevation() const { return m_elevation; }
 	std::vector<size_t> getGates() const { return m_gates; }

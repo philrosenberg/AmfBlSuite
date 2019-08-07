@@ -24,7 +24,7 @@ std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 	//Also data below 1e-7 sr m-1 is probably noise too so flag it
 
 	std::vector<uint8_t> result(getBetas().size(), 1);
-	sci::assign(result, getBetas() < steradianPerMetre(1e-7), uint8_t(2));
+	sci::assign(result, getBetas() < steradianPerMetre(1e-7f), uint8_t(2));
 	return result;
 }
 
