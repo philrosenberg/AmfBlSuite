@@ -259,13 +259,13 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 						|| sci::abs(rangesCross[i][0]-rangesCross[i-count][0]) > metre(0.1) //check for change in range resolution
 						|| sci::abs(instrumentRelativeAzimuthAnglesCo[i]-startInstrumentRelativeAzimuthAngles) > degree(0.01f) //check for change in azimuth
 						|| sci::abs(instrumentRelativeElevationAnglesCo[i] - startInstrumentRelativeElevationAngles) > degree(0.01f) //check for change in elevation
-						|| (count >0 && timesCo[i+1]-startTime > dataInfo.samplingInterval*unitless(2))) //check for large gaps
+						|| (count >0 && timesCo[i+1]- timesCo[i] > dataInfo.samplingInterval*unitless(3))) //check for large gaps
 					{
 						goodAverage = false;
 						break;
 					}
 				}
-				integrationTime += (timesCo[i] -timesCross[i]) * unitless(2.0); //calculate the integration time this way because we know co and cross match, but there could be a gap co to co
+				integrationTime += (timesCross[i] -timesCo[i]) * unitless(2.0); //calculate the integration time this way because we know co and cross match, but there could be a gap co to co
 				crossSum += backscattersCross[i];
 				coSum += backscattersCross[i];
 				for (size_t j = 0; j < worstFlagCo.size(); ++j)
@@ -288,7 +288,7 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 				averagedBackscatterCross.push_back(std::vector<perSteradianPerMetre>(crossSum.size()));
 				for (size_t j = 0; j < crossSum.size(); ++j)
 				{
-					depolarisation.back()[j]=crossSum[j] / coSum[j];
+					depolarisation.back()[j]=crossSum[j] / (crossSum[j] + coSum[j]);
 					averagedBackscatterCo.back()[j] = coSum[j] / unitless(count);
 					averagedBackscatterCross.back()[j] = crossSum[j] / unitless(count);
 				}
@@ -339,7 +339,7 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 	//AmfNcVariable<unitless, decltype(snrPlusOneCo)> snrPlusOneCoVariable(sU("signal_to_noise_ratio_plus_1_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Planar Polarised)"), sU(""), snrPlusOneCo, true, coordinatesData, cellMethodsData);
 	AmfNcVariable<perSteradianPerMetre, decltype(backscattersCross)> backscatterCrossVariable(sU("attenuated_aerosol_backscatter_coefficient_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Cross Polarised)"), sU(""), averagedBackscatterCross, true, coordinatesData, cellMethodsData);
 	//AmfNcVariable<unitless, decltype(snrPlusOneCross)> snrPlusOneCrossVariable(sU("signal_to_noise_ratio_plus_1_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Cross Polarised)"), sU(""), snrPlusOneCross, true, coordinatesData, cellMethodsData);
-	AmfNcVariable<unitless, decltype(depolarisation)> depolarisationVariable(sU("depolarisation_ratio"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Depolarisation Ratio"), sU(""), depolarisation, true, coordinatesData, cellMethodsData);
+	AmfNcVariable<unitless, decltype(depolarisation)> depolarisationVariable(sU("depolarisation_ratio"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Depolarisation Ratio"), sU(""), depolarisation, true, coordinatesData, cellMethodsData,sU("attenuated_aerosol_backscatter_coefficient_cr / ( attenuated_aerosol_backscatter_coefficient_cr + attenuated_aerosol_backscatter_coefficient_co)"));
 	AmfNcFlagVariable backscatterFlagCoVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient_co"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable backscatterFlagCrossVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient_cr"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable depolarisationFlagVariable(sU("qc_flag_depolarisation_ratio"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});

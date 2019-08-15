@@ -7,6 +7,7 @@
 #include<svector/Units.h>
 #include"Units.h"
 #include<svector/svector.h>
+#include<locale>
 
 struct HplHeader;
 class HplProfile;
@@ -1256,6 +1257,15 @@ public:
 		{
 			flagValues[i] = flagDefinitions[i].first;
 			flagDescriptions[i] = flagDefinitions[i].second;
+			//Swap spaces for hyphens and make lower case
+			std::locale locale;
+			for (size_t j = 0; j < flagDescriptions[i].length(); ++j)
+			{
+				if (flagDescriptions[i][j] == sU(' '))
+					flagDescriptions[i][j] = sU('_');
+				else
+					flagDescriptions[i][j] = std::tolower(flagDescriptions[i][j], locale);
+			}
 		}
 		addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag")), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues), ncFile);
