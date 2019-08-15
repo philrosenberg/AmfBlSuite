@@ -577,7 +577,7 @@ std::vector<std::vector<sci::string>> HplFileLidar::groupFilesPerDayForReprocess
 	size_t secondUnderscorePosition = 0;
 	for (size_t i = m_filePrefix.length()+1; i < croppedFilename.length(); ++i)
 	{
-		if (croppedFilename[i] = sU('_'))
+		if (croppedFilename[i] == sU('_'))
 		{
 			++nUnderscores;
 			if (nUnderscores == 1)
