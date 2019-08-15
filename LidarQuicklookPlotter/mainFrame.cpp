@@ -57,7 +57,7 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &sett
 	setSetupFile(sci::fromWxString(settingsFile));
 
 	m_processingSoftwareInfo.url = sU("https://github.com/philrosenberg/AmfBlSuite.git");
-	m_processingSoftwareInfo.version = sU("1.1.0");
+	m_processingSoftwareInfo.version = sU("1.1.1");
 
 	wxMenuBar* mbar = new wxMenuBar();
 	wxMenu* fileMenu = new wxMenu(wxT(""));
