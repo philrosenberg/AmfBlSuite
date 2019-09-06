@@ -109,7 +109,7 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 			//this is a really slow way to insert data if there are many missing points,
 			//but actually I can't think of any case where we would end up with missing
 			//the copolarised data, unless we totally messed up the files
-			timesCo.insert(timesCross.begin() + i, timesCross[i]);
+			timesCo.insert(timesCo.begin() + i, timesCross[i]);
 			instrumentRelativeAzimuthAnglesCo.insert(instrumentRelativeAzimuthAnglesCo.begin() + i, instrumentRelativeAzimuthAnglesCross[i]);
 			instrumentRelativeElevationAnglesCo.insert(instrumentRelativeElevationAnglesCo.begin() + i, instrumentRelativeElevationAnglesCross[i]);
 			attitudeCorrectedAzimuthAnglesCo.insert(attitudeCorrectedAzimuthAnglesCo.begin() + i, attitudeCorrectedAzimuthAnglesCross[i]);
@@ -120,7 +120,7 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 			rangesCo.insert(rangesCo.begin() + i, rangesCross[i]);
 		}
 		
-		if (i<timesCo.size()-1)
+		if (i<timesCo.size())
 		{
 			//This code checks for missing cross data and if it finds any
 			//then it inserts padding data. Note that here we check for multiple
