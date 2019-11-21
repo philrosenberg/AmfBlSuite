@@ -9,6 +9,21 @@
 #include"Plotting.h"
 #include"Lidar.h"
 
+const uint8_t ceilometerUnusedFlag = 0;
+const uint8_t ceilometerGoodFlag = 1;
+const uint8_t ceilometerFilteredNoiseFlag = 2;
+const uint8_t ceilometerLowSignalFlag = 3;
+const uint8_t ceilometerPaddingFlag = 4;
+
+const std::vector<std::pair<uint8_t, sci::string>> ceilometerFlags
+{
+{ ceilometerUnusedFlag, sU("not_used") },
+{ceilometerGoodFlag, sU("good_data")},
+{ceilometerFilteredNoiseFlag, sU("Data filtered by instrument as below noise level") },
+{ceilometerLowSignalFlag, sU("Data is below the level that it would be filtered by the instrument if filtering was on") },
+{ceilometerPaddingFlag, sU("Data is padded because the number of gates changed during this file") }
+};
+
 class CampbellCeilometerProfile
 {
 public:
@@ -66,7 +81,7 @@ class CeilometerProcessor : public PlotableLidar
 {
 public:
 	CeilometerProcessor::CeilometerProcessor()
-		:PlotableLidar(sU("[/\\\\]_ceilometer\\.csv$")), m_hasData(false)
+		:PlotableLidar(sU("[/\\\\]........_ceilometer\\.csv$")), m_hasData(false)
 	{}
 	static void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
 		sci::string directory, const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo,
