@@ -1,4 +1,5 @@
 #define _USE_MATH_DEFINES //This ensures we get values for math constants when we include cmath
+#define NOMINMAX
 #include"Campbell.h"
 #include<stdint.h>
 #include<vector>
@@ -294,29 +295,29 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	height3[5] = '\0';
 	height4[5] = '\0';
 	transmission[3] = '\0';
-	m_height1 = metre(std::numeric_limits<double>::quiet_NaN());
-	m_height2 = metre(std::numeric_limits<double>::quiet_NaN());
-	m_height3 = metre(std::numeric_limits<double>::quiet_NaN());
-	m_height4 = metre(std::numeric_limits<double>::quiet_NaN());
-	m_visibility = metre(std::numeric_limits<double>::quiet_NaN());
+	m_height1 = std::numeric_limits<metre>::quiet_NaN();
+	m_height2 = std::numeric_limits<metre>::quiet_NaN();
+	m_height3 = std::numeric_limits<metre>::quiet_NaN();
+	m_height4 = std::numeric_limits<metre>::quiet_NaN();
+	m_visibility = std::numeric_limits<metre>::quiet_NaN();
 	m_highestSignal = std::numeric_limits<double>::quiet_NaN();
 
 	if (messageStatus == '5')
 	{
-		m_visibility = metre(std::atof(height1));
+		m_visibility = metre((metre::valueType)std::atof(height1));
 		m_highestSignal = std::atof(height2);
 	}
 	else if (messageStatus < '5')
 	{
-		m_height1 = metre(std::atof(height1));
+		m_height1 = metre((metre::valueType)std::atof(height1));
 		if (messageStatus > '1')
-			m_height2 = metre(std::atof(height2));
+			m_height2 = metre((metre::valueType)std::atof(height2));
 		if (messageStatus > '2')
-			m_height3 = metre(std::atof(height3));
+			m_height3 = metre((metre::valueType)std::atof(height3));
 		if (messageStatus > '3')
-			m_height4 = metre(std::atof(height4));
+			m_height4 = metre((metre::valueType)std::atof(height4));
 	}
-	m_windowTransmission = percent(std::atof(transmission));
+	m_windowTransmission = percent((percent::valueType)std::atof(transmission));
 	m_alarmStatus = parseAlarmStatus(alarmStatus);
 	m_messageStatus = parseMessageStatus(messageStatus);
 
@@ -361,14 +362,17 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	sum[3] = '\0';
 	bufferStream.read(crlf, 2);
 
-	m_scale = percent(std::atof(scale));
-	m_resolution = metre(std::atof(res));
-	m_laserPulseEnergy = percent(std::atof(energy));
-	m_laserTemperature = kelvin(std::atof(laserTemperature) + 273.15);
-	m_tiltAngle = degree(std::atof(tiltAngle));
-	m_background = millivolt(std::atof(background));
-	m_pulseQuantity = std::atoi(pulseQuantity) * 1000;
-	m_sampleRate = megahertz(std::atof(sampleRate));
+	m_scale = percent((percent::valueType)std::atof(scale));
+	m_resolution = metre((metre::valueType)std::atof(res));
+	m_laserPulseEnergy = percent((percent::valueType)std::atof(energy));
+	m_laserTemperature = kelvin((kelvin::valueType)std::atof(laserTemperature) + (kelvin::valueType)273.15);
+	m_tiltAngle = degree((degree::valueType)std::atof(tiltAngle));
+	m_background = millivolt((millivolt::valueType)std::atof(background));
+	int intPulseQuantity = std::atoi(pulseQuantity);
+	sci::assertThrow(intPulseQuantity >= 0, sci::err(sci::SERR_USER, 0, "Found a negative pulse quantity while reading a Campbell file"));
+	sci::assertThrow(intPulseQuantity <= std::numeric_limits<size_t>::max()/1000, sci::err(sci::SERR_USER, 0, "Found a negative pulse quantity while reading a Campbell file"));
+	m_pulseQuantity = size_t(intPulseQuantity) * 1000;
+	m_sampleRate = megahertz((megahertz::valueType)std::atof(sampleRate));
 	m_sum = std::atof(sum);
 
 
@@ -386,7 +390,7 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	char* currentPoint = &data[0];
 	for (size_t i = 0; i < m_data.size(); ++i)
 	{
-		m_data[i] = steradianPerKilometre(hexTextToNumber(currentPoint))*m_scale / unitless(100000.0);
+		m_data[i] = steradianPerKilometre((steradianPerKilometre::valueType)hexTextToNumber(currentPoint))*m_scale / unitless((unitless::valueType)100000.0);
 		currentPoint += 5;
 	}
 
