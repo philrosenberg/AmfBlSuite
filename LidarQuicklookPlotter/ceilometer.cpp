@@ -3,6 +3,7 @@
 #include"ProgressReporter.h"
 #include<svector/splot.h>
 #include"Plotting.h"
+#include<svector/svector.h>
 
 
 uint8_t CampbellCeilometerProfile::getProfileFlag() const
@@ -23,8 +24,9 @@ std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 	//that it believes is below the signal to noise threshold with 0.
 	//Also data below 1e-7 sr m-1 is probably noise too so flag it
 
-	std::vector<uint8_t> result(getBetas().size(), 1);
-	sci::assign(result, getBetas() < steradianPerMetre(1e-7f), uint8_t(2));
+	std::vector<uint8_t> result(getBetas().size(), ceilometerGoodFlag);
+	sci::assign(result, getBetas() < steradianPerMetre(1e-12f), ceilometerFilteredNoiseFlag);
+	sci::assign(result, getBetas() < steradianPerMetre(1e-7f), ceilometerLowSignalFlag);
 	return result;
 }
 
@@ -43,10 +45,10 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	const Platform &platform, const ProcessingOptions &processingOptions)
 {
 	InstrumentInfo ceilometerInfo;
-	ceilometerInfo.name = sU("ncas-ceilometer-3");
+	ceilometerInfo.name = sU("ncas-ceilometer-1");
 	ceilometerInfo.manufacturer = sU("Campbell");
 	ceilometerInfo.model = sU("CS135");
-	ceilometerInfo.description = sU("");
+	ceilometerInfo.description = sU("NCAS Lidar Ceilometer unit 1");
 	ceilometerInfo.operatingSoftware = sU("");
 	ceilometerInfo.operatingSoftwareVersion = sU("");
 	ceilometerInfo.serial = sU("");
@@ -54,6 +56,16 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	CalibrationInfo ceilometerCalibrationInfo;
 
 	DataInfo dataInfo;
+	dataInfo.continuous = true;
+	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.startTime = profiles.size() > 0 ? profiles[0].getTime() : sci::UtcTime();
+	dataInfo.endTime = profiles.size() > 0 ? profiles.back().getTime() : sci::UtcTime();
+	dataInfo.featureType = ft_timeSeriesProfile;
+	dataInfo.processingLevel = 1;
+	dataInfo.options = { sU("standard") };
+	dataInfo.productName = sU(""); //we are producing two product - detail them below
+	dataInfo.processingOptions = processingOptions;
 
 	//------create the data arrays-----
 
@@ -61,13 +73,12 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	std::vector<sci::UtcTime> times(profiles.size());
 	//backscatter vs time and height
 	std::vector<std::vector<steradianPerKilometre>> backscatter(profiles.size());
+	std::vector<std::vector<unitless>> backscatterRangeSquaredCorrected(profiles.size());
 	//cloud bases
 	std::vector<metre> cloudBase1(profiles.size());
 	std::vector<metre> cloudBase2(profiles.size());
 	std::vector<metre> cloudBase3(profiles.size());
 	std::vector<metre> cloudBase4(profiles.size());
-	//the gates - just an index from 0 to n_gates-1
-	std::vector<int32_t> gates;
 	//flags - one flag for each profile and one flage for each
 	//each gate in each profile
 	std::vector<uint8_t> profileFlag(profiles.size());
@@ -83,6 +94,8 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	std::vector<kelvin> laserTemperatures(profiles.size());
 	std::vector<degree> tiltAngles(profiles.size());
 	std::vector<millivolt> backgrounds(profiles.size());
+	std::vector<std::vector<metre>> altitudes(profiles.size());
+	std::vector<std::vector<metre>> ranges(profiles.size());
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{
 		times[i] = profiles[i].getTime();
@@ -91,21 +104,6 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 		cloudBase2[i] = profiles[i].getCloudBase2();
 		cloudBase3[i] = profiles[i].getCloudBase3();
 		cloudBase4[i] = profiles[i].getCloudBase4();
-
-		//assign gates for the first profile then check it is identical for the remaining profiles
-		if (i == 0)
-		{
-			for (size_t j = 0; j < profiles[i].getGates().size(); ++j)
-				gates[j] = (int32_t)profiles[i].getGates()[j];
-			resolution = profiles[i].getResolution();
-		}
-		else
-		{
-			sci::assertThrow(resolution == profiles[i].getResolution(), sci::err(sci::SERR_USER, 0, sU("Found a change in the resolution during a day. Cannot process this day.")));
-
-			for (size_t j = 0; j < gates.size(); ++i)
-				sci::assertThrow(gates[j] == profiles[i].getGates()[j], sci::err(sci::SERR_USER, 0, sU("Found a change in the gates during a day. Cannot process this day.")));
-		}
 
 		//assign the flags
 		profileFlag[i] = profiles[i].getProfileFlag();
@@ -119,26 +117,97 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 		laserTemperatures[i] = profiles[i].getLaserTemperature();
 		tiltAngles[i] = profiles[i].getTiltAngle();
 		backgrounds[i] = profiles[i].getBackground();
+
+		//determine the altitudes/ranges
+		auto gates = profiles[i].getGates();
+		ranges[i].resize(gates.size());
+		altitudes[i].resize(gates.size());
+		unitless cosTilt = sci::cos(tiltAngles[i]);
+		for (size_t j = 0; j < ranges[i].size(); ++j)
+		{
+			ranges[i][j] = unitless(float(gates[j]) + 0.5f) * profiles[i].getResolution();
+			altitudes[i][j] = ranges[i][j] * cosTilt;
+		}
+
+		//do the range squares correction
+		backscatterRangeSquaredCorrected[i].resize(backscatter[i].size());
+		for (size_t j = 0; j < backscatter[i].size(); ++j)
+			backscatterRangeSquaredCorrected[i][j] = sci::ln(backscatter[i][j] * ranges[i][j] * ranges[i][j] / steradianPerKilometre(1) / metre(1) / metre(1));
 	}
+
+	//work out time intervals
+	if (times.size() > 1)
+	{
+		auto intervals = sci::subvector(times, 1, times.size() - 1) - sci::subvector(times, 0, times.size() - 1);
+		std::sort(intervals.begin(), intervals.end());
+		if (intervals.size() % 2 == 1)
+			dataInfo.samplingInterval = intervals[intervals.size() / 2];
+		else
+			dataInfo.samplingInterval = (intervals[intervals.size() / 2 - 1] + intervals[intervals.size() / 2]) / unitless(2.0);
+	}
+
+	if (times.size() > 0)
+	{
+		std::vector<decltype(dataInfo.averagingPeriod)> averagePeriods(sampleRates.size());
+		for (size_t i = 0; i < averagePeriods.size(); ++i)
+			averagePeriods[i] = unitless(pulseQuantities[i]) / sampleRates[i];
+		std::sort(averagePeriods.begin(), averagePeriods.end());
+		if (averagePeriods.size() % 2 == 1)
+			dataInfo.averagingPeriod = averagePeriods[averagePeriods.size() / 2];
+		else
+			dataInfo.averagingPeriod = (averagePeriods[averagePeriods.size() / 2 - 1] + averagePeriods[averagePeriods.size() / 2]) / unitless(2.0);
+	}
+
+	//pad the 2d data with NaNs if the number of gates has changed, and flag as needed
+	size_t maxGates = 0;
+	for (size_t i = 0; i < profiles.size(); ++i)
+		maxGates = std::max(maxGates, altitudes.size());
+
+	for (size_t i = 0; i < profiles.size(); ++i)
+	{
+		backscatter[i].resize(maxGates, std::numeric_limits<steradianPerKilometre>::quiet_NaN());
+		altitudes[i].resize(maxGates, std::numeric_limits<metre>::quiet_NaN());
+		gateFlags[i].resize(maxGates, ceilometerPaddingFlag);
+	}
+
 
 
 	//according to the data procucts spreadsheet the instrument needs
 	//to produce aerosol-backscatter and cloud-base products
 
+
+
+	//////////////////////////////////////////////////////////
+	//Backscatter file first
+	//////////////////////////////////////////////////////////
+
 	//The time dimension will be created automatically when we create our
 	//output file, but we must specify that we need a height dimension too
-	sci::NcDimension gateDimension(sU("gate"), gates.size());
+	sci::NcDimension altitudeDimension(sU("altitude"), altitudes.size());
 	std::vector<sci::NcDimension*> nonTimeDimensions;
-	nonTimeDimensions.push_back(&gateDimension);
+	nonTimeDimensions.push_back(&altitudeDimension);
 	//create the file and dimensions. The time variable is added automatically
-	OutputAmfNcFile ceilometerFile(directory, ceilometerInfo, author, processingSoftwareInfo, ceilometerCalibrationInfo, dataInfo,
+	OutputAmfNcFile ceilometerBackscatterFile(directory, ceilometerInfo, author, processingSoftwareInfo, ceilometerCalibrationInfo, dataInfo,
 		projectInfo, platform, sU("ceilometer profile"), times, nonTimeDimensions);
 
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
+	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude"), sU("altitude") };
+	std::vector<sci::string> coordinatesRange{ sU("latitude"), sU("longitude") };
+
 	//add the data variables
+	AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), & altitudeDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinatesRange, cellMethodsRange, sU("Centre of range gate"));
+	AmfNcVariable<steradianPerKilometre, decltype(backscatter)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), & altitudeDimension }, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatter, true, coordinatesData, cellMethodsData, sU(""));
+	AmfNcVariable<unitless, decltype(backscatterRangeSquaredCorrected)> backscatterRangeSquaredCorrectedVariable(sU("range_squared_corrected_backscatter_power"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), & altitudeDimension }, sU("Range Squared Corrected Backscatter Power (ln(arbitrary raw data unit))"), sU(""), backscatterRangeSquaredCorrected, true, coordinatesData, cellMethodsData, sU(""));
+
+	ceilometerBackscatterFile.writeTimeAndLocationData(platform);
+
+	ceilometerBackscatterFile.write(altitudeVariable);
+	ceilometerBackscatterFile.write(backscatterVariable);
+	ceilometerBackscatterFile.write(backscatterRangeSquaredCorrectedVariable);
+
 
 	//gates/heights
-	std::vector<unitless> gatesPhysical;
-	sci::convert(gatesPhysical, gates);
 	/*ceilometerFile.write(AmfNcVariable<int32_t>(sU("gate-number"), ceilometerFile, gateDimension, sU(""), sU("1")), gates);
 	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-lower-height"), ceilometerFile, gateDimension, sU("")), gatesPhysical*resolution);
 	ceilometerFile.write(AmfNcVariable<metre>(sU("gate-upper-height"), ceilometerFile, gateDimension, sU("")), (gatesPhysical + unitless(1))*resolution);
@@ -266,7 +335,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 				}
 				CampbellHeader header;
 				header.readHeader(fin);
-				if (m_allData.size() == 0)
+				if (m_allData.size() == 1)
 				{
 					m_firstHeaderCampbell = header;
 					m_firstHeaderHpl = createCeilometerHeader(inputFilename, header, m_allData[0]);
