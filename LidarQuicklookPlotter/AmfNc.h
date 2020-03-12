@@ -4,10 +4,10 @@
 #include<svector/sreadwrite.h>
 #include<string>
 #include<svector/sstring.h>
-#include<svector/Units.h>
 #include"Units.h"
 #include<svector/svector.h>
 #include<locale>
+#include<map>
 
 struct HplHeader;
 class HplProfile;
@@ -64,13 +64,13 @@ struct CalibrationInfo
 	sci::string certificateUrl; //link to a cal certificate or cal file
 };
 
-enum FeatureType
+enum class FeatureType
 {
-	ft_timeSeriesPoint,
-	ft_trajectory,
-	ft_timeSeriesProfile
+	timeSeriesPoint,
+	trajectory,
+	timeSeriesProfile
 };
-const std::vector<sci::string> g_featureTypeStrings{ sU("timeSeriesPoint"), sU("trajectory"), sU("timeSeriesProfile") };
+const std::map<FeatureType, sci::string> g_featureTypeStrings{ {FeatureType::timeSeriesPoint, sU("timeSeriesPoint")}, {FeatureType::trajectory, sU("trajectory")}, {FeatureType::timeSeriesProfile, sU("timeSeriesProfile"}) };
 
 struct DataInfo
 {
@@ -97,21 +97,23 @@ struct ProjectInfo
 	PersonInfo principalInvestigatorInfo;
 };
 
-enum PlatformType
+enum class PlatformType
 {
-	pt_stationary,
-	pt_moving
+	stationary,
+	moving
 };
-const std::vector<sci::string> g_platformTypeStrings{ sU("stationary_platform"), sU("moving_platform") };
+const std::map<PlatformType, sci::string> g_platformTypeStrings{ {PlatformType::stationary, sU("stationary_platform")}, {PlatformType::moving, sU("moving_platform")} };
 
-enum DeploymentMode
+enum class DeploymentMode
 {
-	dm_air,
-	dm_land,
-	dm_sea
+	air,
+	land,
+	sea
 };
-const std::vector<sci::string> g_deploymentModeStrings{ sU("air"), sU("land"), sU("sea") };
+const std::map<DeploymentMode, sci::string> g_deploymentModeStrings{ {DeploymentMode::air, sU("air")}, {DeploymentMode::land, sU("land")}, {DeploymentMode::sea, sU("sea")} };
 
+#pragma warning(push)
+#pragma warning(disable : 26495)
 struct PlatformInfo
 {
 	sci::string name;
@@ -119,6 +121,7 @@ struct PlatformInfo
 	DeploymentMode deploymentMode;
 	std::vector<sci::string> locationKeywords;
 };
+#pragma warning(pop)
 
 template< class T >
 void correctDirection(T measuredX, T measuredY, T measuredZ, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, T &correctedX, T &correctedY, T &correctedZ)
@@ -223,7 +226,7 @@ class StationaryPlatform : public Platform
 {
 public:
 	StationaryPlatform(sci::string name, metre altitude, degree latitude, degree longitude, std::vector<sci::string> locationKeywords, degree instrumentElevation, degree instrumentAzimuth, degree instrumentRoll)
-		:Platform(name, pt_stationary, dm_land, locationKeywords)
+		:Platform(name, PlatformType::stationary, DeploymentMode::land, locationKeywords)
 	{
 		m_latitude = latitude;
 		m_longitude = longitude;
@@ -355,7 +358,7 @@ class ShipPlatform : public Platform
 {
 public:
 	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, const std::vector<degree> &instrumentElevationsShipRelative, const std::vector<degree> &instrumentAzimuthsShipRelative, const std::vector<degree> &instrumentRollsShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
-		:Platform(name, pt_moving, dm_sea, locationKeywords)
+		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords)
 	{
 		m_previousLowerIndexEndTime = 0;
 		m_previousLowerIndexStartTime = 0;
@@ -458,7 +461,7 @@ public:
 		makeContinuous(m_instrumentAzimuthsAbsoluteNoJumps);
 	}
 	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationShipRelative, degree instrumentAzimuthShipRelative, degree instrumentRollShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
-		:Platform(name, pt_moving, dm_sea, locationKeywords)
+		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords)
 	{
 		m_previousLowerIndexEndTime = 0;
 		m_previousLowerIndexStartTime = 0;
@@ -672,19 +675,19 @@ private:
 		if (startTime == endTime)
 		{
 			size_t lowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
-			return sci::linearinterpolate(startTime, m_times[lowerIndex], m_times[lowerIndex + 1], property[lowerIndex], property[lowerIndex + 1]);
+			return T(sci::linearinterpolate(startTime, m_times[lowerIndex], m_times[lowerIndex + 1], property[lowerIndex], property[lowerIndex + 1]));
 		}
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
 		size_t endUpperIndex = std::min(endLowerIndex + 1, m_times.size() - 1);
 		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex + 1);
 		std::vector<T> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex + 1);
-		return sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
+		return T(sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime));
 	}
 	template<class T>
 	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property, T &mean, T &stdev, T &min, T &max, decltype(T(1) / sci::Physical<sci::Second<>, T::valueType>(1)) &rate) const
 	{
-
+		typedef std::remove_reference<decltype(rate)>::type rateType;
 		if (startTime < m_times[0] || endTime > m_times.back())
 		{
 			mean = std::numeric_limits<T>::quiet_NaN();
@@ -696,27 +699,28 @@ private:
 		if (startTime == endTime)
 		{
 			size_t lowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
-			mean = sci::linearinterpolate(startTime, m_times[lowerIndex], m_times[lowerIndex + 1], property[lowerIndex], property[lowerIndex + 1]);
+			mean = T(sci::linearinterpolate(startTime, m_times[lowerIndex], m_times[lowerIndex + 1], property[lowerIndex], property[lowerIndex + 1]));
 			min = mean;
 			max = mean;
 			stdev = T(0);
-			rate = std::numeric_limits<decltype(T(0) / second(0))>::quiet_NaN();
+			rate = std::numeric_limits<std::remove_reference<decltype(rate)>::type>::quiet_NaN();
 		}
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
 		size_t endUpperIndex = std::min(endLowerIndex + 1, m_times.size() - 1);
 		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex + 1);
 		std::vector<degree> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex + 1);
-		mean = sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime);
+		mean = T(sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime));
 		min = sci::min<T>(subProperty);
 		max = sci::max<T>(subProperty);
 		size_t lowerIndexStart = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t lowerIndexEnd = std::min(findLowerIndex(endTime, false), m_times.size() - 1);
-		rate = (sci::linearinterpolate(endTime, m_times[lowerIndexEnd], m_times[lowerIndexEnd + 1], property[lowerIndexEnd], property[lowerIndexEnd + 1]) - sci::linearinterpolate(startTime, m_times[lowerIndexStart], m_times[lowerIndexStart + 1], property[lowerIndexStart], property[lowerIndexStart + 1])) / (endTime - startTime);
+		rate = rateType((sci::linearinterpolate(endTime, m_times[lowerIndexEnd], m_times[lowerIndexEnd + 1], property[lowerIndexEnd], property[lowerIndexEnd + 1]) - sci::linearinterpolate(startTime, m_times[lowerIndexStart], m_times[lowerIndexStart + 1], property[lowerIndexStart], property[lowerIndexStart + 1])) / (endTime - startTime));
 		std::vector<decltype(subProperty[0] * subProperty[0])>subPropertySquared(subProperty.size());
 		for (size_t i = 0; i < subProperty.size(); ++i)
 			subPropertySquared[i] = sci::pow<2>(subProperty[i] - mean);
-		stdev = sci::TypeTraits<decltype(subProperty[0] * subProperty[0])>::sqrt(sci::integrate(subTimes, subPropertySquared, startTime, endTime) / (endTime - startTime));
+		auto variance = sci::integrate(subTimes, subPropertySquared, startTime, endTime) / (endTime - startTime);
+		stdev = T(sci::TypeTraits<decltype(variance)>::sqrt(variance));
 	}
 	size_t findLowerIndex(sci::UtcTime time, bool startTime) const
 	{
@@ -1118,44 +1122,44 @@ void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
 	}
 }
 
-enum CellMethod
+enum class CellMethod
 {
-	cm_none,
-	cm_point,
-	cm_sum,
-	cm_mean,
-	cm_max,
-	cm_min,
-	cm_midRange,
-	cm_standardDeviation,
-	cm_variance,
-	cm_mode,
-	cm_median
+	none,
+	point,
+	sum,
+	mean,
+	max,
+	min,
+	midRange,
+	standardDeviation,
+	variance,
+	mode,
+	median
 };
 
 inline sci::string getCellMethodString(CellMethod cellMethod)
 {
-	if (cellMethod == cm_none)
+	if (cellMethod == CellMethod::none)
 		return sU("");
-	if (cellMethod == cm_point)
+	if (cellMethod == CellMethod::point)
 		return sU("point");
-	if (cellMethod == cm_sum)
+	if (cellMethod == CellMethod::sum)
 		return sU("sum");
-	if (cellMethod == cm_mean)
+	if (cellMethod == CellMethod::mean)
 		return sU("mean");
-	if (cellMethod == cm_max)
+	if (cellMethod == CellMethod::max)
 		return sU("maximum");
-	if (cellMethod == cm_min)
+	if (cellMethod == CellMethod::min)
 		return sU("minimum");
-	if (cellMethod == cm_midRange)
+	if (cellMethod == CellMethod::midRange)
 		return sU("mid_range");
-	if (cellMethod == cm_standardDeviation)
+	if (cellMethod == CellMethod::standardDeviation)
 		return sU("standard_deviation");
-	if (cellMethod == cm_variance)
+	if (cellMethod == CellMethod::variance)
 		return sU("variance");
-	if (cellMethod == cm_mode)
+	if (cellMethod == CellMethod::mode)
 		return sU("mode");
-	if (cellMethod == cm_median)
+	if (cellMethod == CellMethod::median)
 		return sU("median");
 
 	return sU("unknown");
@@ -1491,7 +1495,7 @@ public:
 			sci::physicalsToValues<degree>(longitudes),
 			true,
 			std::vector<sci::string>(0),
-			featureType == ft_trajectory ? std::vector<std::pair<sci::string, CellMethod>>{{sU("time"), cm_point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
+			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{{sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
@@ -1510,7 +1514,7 @@ public:
 			sci::physicalsToValues<degree>(latitudes),
 			true,
 			std::vector<sci::string>(0),
-			featureType == ft_trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), cm_point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
+			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
@@ -1530,7 +1534,7 @@ public:
 			sci::physicalsToValues<metre>(altitudes),
 			true,
 			std::vector<sci::string>(0),
-			featureType == ft_trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), cm_point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
+			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ncFile);
 	}

@@ -16,7 +16,7 @@ void LidarUserProcessor::plotData(const sci::string &outputFilename, const std::
 	{
 		sci::ostringstream rangeLimitedfilename;
 		rangeLimitedfilename << outputFilename;
-		if (maxRanges[i] != metre(std::numeric_limits<double>::max()))
+		if (maxRanges[i] != std::numeric_limits<metre>::max())
 			rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
 
 		splotframe *window;

@@ -67,7 +67,7 @@ inline HplHeader createCeilometerHeader(const sci::string &filename, const Campb
 	result.pointsPerGate = 1;
 	result.pulsesPerRay = firstProfile.getPulseQuantity();
 	result.rangeGateLength = firstProfile.getResolution();
-	result.scanType = st_stare;
+	result.scanType = ScanType::stare;
 	result.startTime = firstProfile.getTime();
 	result.systemId = firstHeader.getId();
 

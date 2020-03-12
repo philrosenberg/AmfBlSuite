@@ -104,7 +104,7 @@ std::vector<unsigned char>readBits(const std::vector<unsigned char> &buffer, siz
 
 size_t bytesToValue(const std::vector<unsigned char> &bytes)
 {
-	size_t result = 0.0;
+	size_t result = 0;
 	for (size_t i = 0; i < bytes.size(); ++i)
 	{
 		result *= 256;
@@ -341,7 +341,8 @@ void Bufr::expandDescriptorList(std::list<Bufr::Descriptor> &list)
 			for (auto replicatorIter = previousReplicator; replicatorIter != iter; ++replicatorIter)
 				if (!isDelayedDescriptorRepetitionFactor(*replicatorIter))
 					++newCounts;
-			previousReplicator->X = newCounts-1;//the -1 is because we counted the replicator itself
+			sci::assertThrow(newCounts < std::numeric_limits<int>::max(), sci::err(sci::SERR_USER, 0, sU("Too many replicators in the sonde data file to store in an int")));
+			previousReplicator->X = (int)(newCounts-1);//the -1 is because we counted the replicator itself
 			needToCheckReplicator = false; //mark replicator as satisfied
 		}
 
@@ -525,7 +526,7 @@ void Bufr::read(std::ifstream &fin)
 				m_data.push_back(Bufr::ExtractedData{ *iter, std::vector<double>(0), std::vector<std::vector<unsigned char>>(0), prefixDataMeaning, std::vector<std::vector<unsigned char>>(0) });
 				extractData(m_data.back(), binaryData, bufferByte, bufferBit, extraBits, extraScale, alternateReferenceStack,
 					referenceMap, prefixBits, alternateNumberOfBits, useAlternateNumberOfBits);
-				nRepeats = m_data.back().numericData[0];
+				nRepeats = (size_t)m_data.back().numericData[0];
 			}
 			//move on to the first variable descriptor
 			++iter;
@@ -617,7 +618,7 @@ void Bufr::read(std::ifstream &fin)
 				else
 				{
 					bool negative = readBits(binaryData, bufferByte, bufferBit, 1)[0] == 1;
-					alternateReferenceStack.push_back(bytesToValue(readBits(binaryData, bufferByte, bufferBit, iter->Y-1)));
+					alternateReferenceStack.push_back((double)bytesToValue(readBits(binaryData, bufferByte, bufferBit, iter->Y-1)));
 				}
 			}
 			else if (iter->X == 4)
@@ -771,10 +772,10 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 			sci::convert(m_latitude, iter->numericData);
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 6, 1 })
-			startingLongitude = degree(iter->numericData[0]);
+			startingLongitude = degree((degree::valueType)iter->numericData[0]);
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 5, 1 })
-			startingLatitude = degree(iter->numericData[0]);
+			startingLatitude = degree((degree::valueType)iter->numericData[0]);
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 12, 101 } && iter->numericData.size() > m_temperature.size())
 			sci::convert(m_temperature, iter->numericData);
@@ -798,19 +799,19 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 			softwareVersion = iter->nonNumericData[0];
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 4, 1 })
-			year = iter->numericData[0];
+			year = (int)iter->numericData[0];
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 4, 2 })
-			month = iter->numericData[0];
+			month = (int)iter->numericData[0];
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 4, 3 })
-			day = iter->numericData[0];
+			day = (int)iter->numericData[0];
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 4, 4 })
-			hour = iter->numericData[0];
+			hour = (int)iter->numericData[0];
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 4, 5 })
-			minute = iter->numericData[0];
+			minute = (int)iter->numericData[0];
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 4, 6 })
 			second = iter->numericData[0];
@@ -943,7 +944,7 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	dataInfo.continuous = false;
 	dataInfo.startTime = m_time[0];;
 	dataInfo.endTime = m_time.back();
-	dataInfo.featureType = ft_trajectory;
+	dataInfo.featureType = FeatureType::trajectory;
 	dataInfo.options = std::vector<sci::string>(0);
 	dataInfo.processingLevel = 2;
 	dataInfo.productName = sU("sonde");
@@ -971,7 +972,7 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	OutputAmfNcFile file(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
 		projectInfo, platform, sU("radio sonde trajectory"), m_time, m_latitude, m_longitude);
 
-	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_point} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::point} };
 	std::vector<sci::string> coordinates{ sU("longitude"), sU("latitude"), sU("altitude") };
 
 	AmfNcAltitudeVariable altitudesVariable(file, file.getTimeDimension(), m_altitude, dataInfo.featureType);
@@ -982,7 +983,7 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> windSpeedVariable(sU("wind_speed"), file, file.getTimeDimension(), sU("Wind Speed"), sU("wind_speed"), m_windSpeed, true, coordinates, cellMethods);
 	AmfNcVariable<degree, std::vector<degree>> windDirectionVariable(sU("wind_from_direction"), file, file.getTimeDimension(), sU("Wind From Direction"), sU("wind_from_direction"), m_windFromDirection, true, coordinates, cellMethods);
 	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> upwardBalloonVelocityVariable(sU("upward_balloon_velocity"), file, file.getTimeDimension(), sU("Balloon Ascent Rate"), sU(""), m_balloonUpwardVelocity, true, coordinates, cellMethods);
-	AmfNcVariable<secondf, std::vector<secondf>> elapsedTimeVariable(sU("elapsed_time"), file, file.getTimeDimension(), sU("Elapsed Time"), sU(""), m_elapsedTime, true, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), cm_point}});
+	AmfNcVariable<secondf, std::vector<secondf>> elapsedTimeVariable(sU("elapsed_time"), file, file.getTimeDimension(), sU("Elapsed Time"), sU(""), m_elapsedTime, true, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}});
 	AmfNcFlagVariable motionFlagVariable(sU("qc_flag_motion"), sondeMotionFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
 	AmfNcFlagVariable temperatureFlagVariable(sU("qc_flag_temperature"), sondeTemperatureFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
 	AmfNcFlagVariable humidityFlagVariable(sU("qc_flag_humidity"), sondeHumidityFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });

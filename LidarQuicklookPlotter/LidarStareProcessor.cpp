@@ -15,7 +15,7 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 	{
 		sci::ostringstream rangeLimitedfilename;
 		rangeLimitedfilename << outputFilename;
-		if (maxRanges[i] != metre(std::numeric_limits<double>::max()))
+		if (maxRanges[i] != std::numeric_limits<metre>::max())
 			rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
 
 		splotframe *window;
@@ -55,7 +55,7 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
-	dataInfo.featureType = ft_timeSeriesProfile;
+	dataInfo.featureType = FeatureType::timeSeriesProfile;
 	dataInfo.processingLevel = 1;
 	dataInfo.options = getProcessingOptions();
 	dataInfo.productName = sU("aerosol backscatter radial winds");
@@ -88,9 +88,9 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
 	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean } };
 	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ {sU("time"), cm_point} };
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), CellMethod::mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ };
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), CellMethod::mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
 	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude"), sU("range") };
 	std::vector<sci::string> coordinatesAngles{ sU("latitude"), sU("longitude") };
@@ -187,7 +187,7 @@ void LidarStareProcessor::getFormattedData(std::vector<sci::UtcTime> &times,
 			pulsesPerPoint[i] = getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays;
 		std::vector <size_t> sortedPulsesPerRay = pulsesPerPoint;
 		std::sort(sortedPulsesPerRay.begin(), sortedPulsesPerRay.end());
-		averagingPeriod = unitless(sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0);
+		averagingPeriod = unitless((unitless::valueType)sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0);
 	}
 
 	//work out the sampling interval.

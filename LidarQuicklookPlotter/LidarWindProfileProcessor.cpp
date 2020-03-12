@@ -257,7 +257,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		dataInfo.startTime = m_profiles[0].m_VadProcessor.getTimesUtcTime()[0];
 		dataInfo.endTime = m_profiles.back().m_VadProcessor.getTimesUtcTime()[0];
 	}
-	dataInfo.featureType = ft_timeSeriesProfile;
+	dataInfo.featureType = FeatureType::timeSeriesProfile;
 	dataInfo.options = std::vector<sci::string>(0);
 	dataInfo.processingLevel = 2;
 	dataInfo.productName = sU("mean winds profile");
@@ -269,7 +269,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		scanStartTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
-		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back() + (unitless(m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0));//the second bit of this adds the duration of each ray
+		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back() + (unitless((unitless::valueType)m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * (unitless::valueType)m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0));//the second bit of this adds the duration of each ray
 	}
 
 	//work out the averaging time - this is the difference between the scan start and end times.
@@ -335,7 +335,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 
 		//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
 		//std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_mean}, { sU("altitude"), cm_mean } };
-		std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_mean} };
+		std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
 		std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
 		AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0));
 		AmfNcVariable<metrePerSecond, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));

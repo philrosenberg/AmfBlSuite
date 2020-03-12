@@ -4,18 +4,20 @@
 #include <svector\time.h>
 #include "Units.h"
 
-enum ScanType
+enum class ScanType
 {
-	st_stare,
-	st_rhi,
-	st_vad,
-	st_wind,
-	st_user1,
-	st_user2,
-	st_user3,
-	st_user4
+	stare,
+	rhi,
+	vad,
+	wind,
+	user1,
+	user2,
+	user3,
+	user4
 };
 
+#pragma warning(push)
+#pragma warning(disable : 26495)
 struct HplHeader
 {
 	sci::string filename;
@@ -31,5 +33,6 @@ struct HplHeader
 	double dopplerResolution;
 	bool oldType;
 };
+#pragma warning(pop)
 
 std::istream & operator>> (std::istream & stream, HplHeader &);

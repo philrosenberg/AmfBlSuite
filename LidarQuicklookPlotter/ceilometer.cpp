@@ -8,13 +8,13 @@
 
 uint8_t CampbellCeilometerProfile::getProfileFlag() const
 {
-	if (m_profile.getMessageStatus() == cms_rawDataMissingOrSuspect)
+	if (m_profile.getMessageStatus() == ceilometerMessageStatus::rawDataMissingOrSuspect)
 		return 5;
-	if (m_profile.getMessageStatus() == cms_someObscurationTransparent)
+	if (m_profile.getMessageStatus() == ceilometerMessageStatus::someObscurationTransparent)
 		return 4;
-	if (m_profile.getMessageStatus() == cms_fullObscurationNoCloudBase)
+	if (m_profile.getMessageStatus() == ceilometerMessageStatus::fullObscurationNoCloudBase)
 		return 3;
-	if (m_profile.getMessageStatus() == cms_noSignificantBackscatter)
+	if (m_profile.getMessageStatus() == ceilometerMessageStatus::noSignificantBackscatter)
 		return 2;
 	return 1;
 }
@@ -61,7 +61,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = profiles.size() > 0 ? profiles[0].getTime() : sci::UtcTime();
 	dataInfo.endTime = profiles.size() > 0 ? profiles.back().getTime() : sci::UtcTime();
-	dataInfo.featureType = ft_timeSeriesProfile;
+	dataInfo.featureType = FeatureType::timeSeriesProfile;
 	dataInfo.processingLevel = 1;
 	dataInfo.options = { sU("standard") };
 	dataInfo.productName = sU(""); //we are producing two product - detail them below
@@ -150,7 +150,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	{
 		std::vector<decltype(dataInfo.averagingPeriod)> averagePeriods(sampleRates.size());
 		for (size_t i = 0; i < averagePeriods.size(); ++i)
-			averagePeriods[i] = unitless(pulseQuantities[i]) / sampleRates[i];
+			averagePeriods[i] = unitless(unitless::valueType(pulseQuantities[i])) / sampleRates[i];
 		std::sort(averagePeriods.begin(), averagePeriods.end());
 		if (averagePeriods.size() % 2 == 1)
 			dataInfo.averagingPeriod = averagePeriods[averagePeriods.size() / 2];
@@ -190,7 +190,7 @@ void CeilometerProcessor::writeToNc(const HplHeader &header, const std::vector<C
 	OutputAmfNcFile ceilometerBackscatterFile(directory, ceilometerInfo, author, processingSoftwareInfo, ceilometerCalibrationInfo, dataInfo,
 		projectInfo, platform, sU("ceilometer profile"), times, nonTimeDimensions);
 
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), CellMethod::mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
 	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude"), sU("altitude") };
 	std::vector<sci::string> coordinatesRange{ sU("latitude"), sU("longitude") };
@@ -340,7 +340,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 					m_firstHeaderCampbell = header;
 					m_firstHeaderHpl = createCeilometerHeader(inputFilename, header, m_allData[0]);
 				}
-				if (header.getMessageType() == cmt_cs && header.getMessageNumber() == 2)
+				if (header.getMessageType() == campbellMessageType::cs && header.getMessageNumber() == 2)
 				{
 					if (m_allData.size() == 0)
 						progressReporter << sU("Found CS 002 messages: ");
@@ -418,9 +418,9 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 		for (size_t j = 1; j < timeAveragePeriod; ++j)
 			data[i] += profiles[i*timeAveragePeriod + j].getBetas();
 	}
-	data /= unitless((double)timeAveragePeriod);
+	data /= unitless((unitless::valueType)timeAveragePeriod);
 
-	if (profiles[0].getResolution()*unitless(data[0].size() - 1) > maxRange)
+	if (profiles[0].getResolution()*unitless(unitless::valueType(data[0].size() - 1)) > maxRange)
 	{
 		size_t pointsNeeded = std::min((size_t)std::ceil((maxRange / profiles[0].getResolution()).value<unitless>()), data[0].size());
 		for (size_t i = 0; i < data.size(); ++i)
@@ -454,7 +454,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	xs.back() = second(profiles.back().getTime().getUnixTime());
 
 	for (size_t i = 0; i < ys.size(); ++i)
-		ys[i] = unitless(i * heightAveragePeriod)*header.rangeGateLength;
+		ys[i] = unitless(unitless::valueType(i * heightAveragePeriod)) * header.rangeGateLength;
 
 	std::vector<double> xsTemp;
 	std::vector<double> ysTemp;

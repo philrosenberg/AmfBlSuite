@@ -23,21 +23,21 @@ std::istream & operator>> (std::istream & stream, ScanType &scanType)
 	std::string tempString;
 	std::getline(stream, tempString);
 	if (tempString == "Stare")
-		scanType = st_stare;
+		scanType = ScanType::stare;
 	else if (tempString == "RHI")
-		scanType = st_rhi;
+		scanType = ScanType::rhi;
 	else if (tempString == "VAD")
-		scanType = st_vad;
+		scanType = ScanType::vad;
 	else if (tempString == "Wind profile")
-		scanType = st_wind;
+		scanType = ScanType::wind;
 	else if (tempString == "User file 1")
-		scanType = st_user1;
+		scanType = ScanType::user1;
 	else if (tempString == "User file 2")
-		scanType = st_user2;
+		scanType = ScanType::user2;
 	else if (tempString == "User file 3")
-		scanType = st_user3;
+		scanType = ScanType::user3;
 	else if (tempString == "User file 4")
-		scanType = st_user4;
+		scanType = ScanType::user4;
 
 	return stream;
 }
@@ -216,11 +216,11 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 		dateString = dateString.substr(0, dateString.find_last_of(sU("\\/")));
 		dateString = dateString.substr(dateString.find_last_of(sU("\\/"))+1);
 		sci::stringstream dateStream(dateString);
-		size_t dateNumber;
+		int dateNumber;
 		dateStream >> dateNumber;
-		size_t year = dateNumber / 10000;
-		size_t month = (dateNumber % 10000) / 100;
-		size_t day = dateNumber % 100;
+		int year = dateNumber / 10000;
+		unsigned int month = std::abs(dateNumber % 10000) / 100;
+		unsigned int day = std::abs(dateNumber) % 100;
 		hplHeader.startTime.setDate(year, month, day);
 		readHeaderLine(stream, hplHeader.dopplerResolution, "Resolution (m/s)");
 

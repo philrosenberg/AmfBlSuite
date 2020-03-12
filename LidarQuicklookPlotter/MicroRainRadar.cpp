@@ -62,14 +62,14 @@ bool MicroRainRadarProfile::readProfile(std::istream &stream)
 		std::atoi(headerChunks[1].substr(8, 2).c_str()),
 		std::atoi(headerChunks[1].substr(10, 2).c_str()));
 	m_averagingTime = second(std::atof(headerChunks[4].c_str()));
-	m_heightResolution = metre(std::atof(headerChunks[6].c_str()));
-	m_instrumentHeight = metre(std::atof(headerChunks[8].c_str()));
-	m_samplingRate = hertz(std::atof(headerChunks[10].c_str()));
+	m_heightResolution = metre((metre::valueType)std::atof(headerChunks[6].c_str()));
+	m_instrumentHeight = metre((metre::valueType)std::atof(headerChunks[8].c_str()));
+	m_samplingRate = hertz((hertz::valueType)std::atof(headerChunks[10].c_str()));
 	m_serviceVersionNumber = sci::fromCodepage(headerChunks[12]);
 	m_firmwareVersionNumber = sci::fromCodepage(headerChunks[14]);
 	m_serialNumber = sci::fromCodepage(headerChunks[16]);
-	m_calibrationConstant = unitless(std::atof(headerChunks[18].c_str()));
-	m_validFraction = percent(std::atof(headerChunks[20].c_str()));
+	m_calibrationConstant = unitless((unitless::valueType)std::atof(headerChunks[18].c_str()));
+	m_validFraction = percent((percent::valueType)std::atof(headerChunks[20].c_str()));
 	if (headerChunks[22] == "AVE")
 		m_profileType = MRRPT_averaged;
 	else if (headerChunks[22] == "PRO")
@@ -208,7 +208,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		dataInfo1d.startTime = m_profiles[0].getTime();
 		dataInfo1d.endTime = m_profiles.back().getTime();
 	}
-	dataInfo1d.featureType = ft_timeSeriesPoint;
+	dataInfo1d.featureType = FeatureType::timeSeriesPoint;
 	dataInfo1d.options = std::vector<sci::string>(0);
 	dataInfo1d.processingLevel = 2;
 	dataInfo1d.productName = sU("rain lwc velocity reflectivity");
@@ -317,7 +317,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	OutputAmfNcFile file1d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo1d,
 		projectInfo, platform, sU("micro rain radar size integrated profile"), times, nonTimeDimensions1D);
 
-	std::vector<std::pair<sci::string, CellMethod>>cellMethods1d{ {sU("time"), cm_point}, { sU("altitude"), cm_mean } };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethods1d{ {sU("time"), CellMethod::point}, { sU("altitude"), CellMethod::mean } };
 	std::vector<sci::string> coordinates1d;
 
 	AmfNcVariable<metre, std::vector<std::vector<metre>>> altitudesVariable(sU("altitude"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates1d, std::vector<std::pair<sci::string, CellMethod>>(0));
@@ -414,7 +414,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	OutputAmfNcFile file2d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo2d,
 		projectInfo, platform, sU("micro rain radar size dependent profile"), times, nonTimeDimensions2d);
 
-	std::vector<std::pair<sci::string, CellMethod>>cellMethods2d{ {sU("time"), cm_point}, { sU("altitude"), cm_mean }, {sU("rain_drop_diameter"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethods2d{ {sU("time"), CellMethod::point}, { sU("altitude"), CellMethod::mean }, {sU("rain_drop_diameter"), CellMethod::mean} };
 	std::vector<sci::string> coordinates2d;
 
 	AmfNcVariable<metre, std::vector<std::vector<metre>>> altitudesVariable2d(sU("altitude"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes,true, coordinates2d, std::vector<std::pair<sci::string, CellMethod>>(0));

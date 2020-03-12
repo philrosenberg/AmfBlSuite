@@ -58,11 +58,11 @@ void CampbellHeader::readHeader(std::istream &stream)
 
 	//check what type of message we have
 	if (commonHeader[1] == 'C' && commonHeader[2] == 'S')
-		m_messageType = cmt_cs;
+		m_messageType = campbellMessageType::cs;
 	else if (commonHeader[1] == 'C' && commonHeader[2] == 'L')
-		m_messageType = cmt_cl;
+		m_messageType = campbellMessageType::cl;
 	else if (commonHeader[1] == 'C' && commonHeader[2] == 'T')
-		m_messageType = cmt_ct;
+		m_messageType = campbellMessageType::ct;
 	else
 	{
 		std::ostringstream message;
@@ -75,7 +75,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	m_os = std::string(&commonHeader[4], &commonHeader[7]);
 
 	//if this is a CS message then get the message number
-	if (m_messageType == cmt_cs)
+	if (m_messageType == campbellMessageType::cs)
 	{
 		char messageNumberText[4];
 		stream.read(messageNumberText, 3);
@@ -94,7 +94,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	}
 
 	//if this is a CL message then get the Samples number, which defines the message number
-	else if (m_messageType == cmt_cl)
+	else if (m_messageType == campbellMessageType::cl)
 	{
 
 		char messageNumberText[3];
@@ -154,7 +154,7 @@ void CampbellHeader::readHeader(std::istream &stream)
 	//for ct type we don't have the message number in the header
 	//the OS was only 2 characters, not 3 as in the other types
 	//and should be followed by "10"
-	else if (m_messageType == cmt_ct)
+	else if (m_messageType == campbellMessageType::ct)
 	{
 		char shouldBeZero;
 		stream.read(&shouldBeZero, 1);
@@ -224,11 +224,11 @@ CampbellMessage2::CampbellMessage2(char endOfTextCharacter)
 campbellAlarmStatus parseAlarmStatus(char text)
 {
 	if (text == '0')
-		return cas_ok;
+		return campbellAlarmStatus::ok;
 	if (text == 'W')
-		return cas_warning;
+		return campbellAlarmStatus::warning;
 	if (text == 'A')
-		return cas_alarm;
+		return campbellAlarmStatus::alarm;
 
 	//If we haven't returned by this point we have an invalid character
 	sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Received an invalid character when determining the ceilometer alarm status.")));
@@ -236,13 +236,22 @@ campbellAlarmStatus parseAlarmStatus(char text)
 
 ceilometerMessageStatus parseMessageStatus(char text)
 {
-	//because the status character uses consecutive characters for the
-	//first 7 messages and because we use the same order in the enumeration
-	//we can use this shortcut to avoid loads of if statements
-	if (text >= '0' && text <= '6')
-		return (ceilometerMessageStatus)(cms_noSignificantBackscatter + (text - '0'));
+	if (text == '0')
+		return ceilometerMessageStatus::noSignificantBackscatter;
+	if (text == '1')
+		return ceilometerMessageStatus::oneCloudBase;
+	if (text == '2')
+		return ceilometerMessageStatus::twoCloudBases;
+	if (text == '3')
+		return ceilometerMessageStatus::threeCloudBases;
+	if (text == '4')
+		return ceilometerMessageStatus::fourCloudBases;
+	if (text == '5')
+		return ceilometerMessageStatus::fullObscurationNoCloudBase;
+	if (text == '6')
+		return ceilometerMessageStatus::someObscurationTransparent;
 	if (text == '/')
-		return cms_rawDataMissingOrSuspect;
+		return ceilometerMessageStatus::rawDataMissingOrSuspect;
 
 	//If we haven't returned by this point we have an invalid character
 	sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Received an invalid character when determining the ceilometer message status.")));

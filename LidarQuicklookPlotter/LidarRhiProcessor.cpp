@@ -14,8 +14,8 @@ class RhiTransformer : public splotTransformer
 public:
 	virtual void transform(double oldx, double oldy, double& newx, double& newy)const override
 	{
-		degree elevation(oldx);
-		metre range(oldy);
+		degree elevation((degree::valueType)oldx);
+		metre range((metre::valueType)oldy);
 		newx = (range * sci::cos(elevation)).value<metre>();
 		newy = (range * sci::sin(elevation)).value<metre>();
 	}
@@ -28,7 +28,7 @@ void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::v
 	{
 		sci::ostringstream rangeLimitedfilename;
 		rangeLimitedfilename << outputFilename;
-		if (maxRanges[i] != metre(std::numeric_limits<double>::max()))
+		if (maxRanges[i] != std::numeric_limits<metre>::max())
 			rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
 
 		splotframe *window;
@@ -40,9 +40,9 @@ void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::v
 		std::vector<degree> angles(betas.size() + 1);
 		std::vector<metre> ranges = getGateBoundariesForPlotting(0);
 
-		degree angleIntervalDeg = degree(360.0) / unitless(betas.size() - 1);
+		degree angleIntervalDeg = degree(360.0f) / unitless((unitless::valueType)(betas.size() - 1));
 		for (size_t i = 0; i < angles.size(); ++i)
-			angles[i] = unitless(i - 0.5)*angleIntervalDeg;
+			angles[i] = unitless((unitless::valueType)(i - 0.5))*angleIntervalDeg;
 
 		std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>> gridData(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>(angles, ranges, betas, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new RhiTransformer)));
 		plot->addData(gridData);

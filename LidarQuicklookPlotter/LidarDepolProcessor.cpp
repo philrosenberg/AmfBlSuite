@@ -48,7 +48,7 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = m_copolarisedProcessor.getTimesUtcTime()[0];
 	dataInfo.endTime = m_copolarisedProcessor.getTimesUtcTime().back();
-	dataInfo.featureType = ft_timeSeriesProfile;
+	dataInfo.featureType = FeatureType::timeSeriesProfile;
 	dataInfo.processingLevel = 1;
 	dataInfo.options = {};
 	dataInfo.productName = sU("depolarisation ratio");
@@ -255,11 +255,11 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 				if (count > 0)
 				{
 					if (backscattersCross[i].size() != backscattersCross[i - count].size() //check for a change in number of range gates
-						|| sci::abs(rangesCo[i][0] - rangesCo[i - count][0]) > metre(0.1) //check for change in range resolution
-						|| sci::abs(rangesCross[i][0]-rangesCross[i-count][0]) > metre(0.1) //check for change in range resolution
+						|| sci::abs(rangesCo[i][0] - rangesCo[i - count][0]) > metre(0.1f) //check for change in range resolution
+						|| sci::abs(rangesCross[i][0]-rangesCross[i-count][0]) > metre(0.1f) //check for change in range resolution
 						|| sci::abs(instrumentRelativeAzimuthAnglesCo[i]-startInstrumentRelativeAzimuthAngles) > degree(0.01f) //check for change in azimuth
 						|| sci::abs(instrumentRelativeElevationAnglesCo[i] - startInstrumentRelativeElevationAngles) > degree(0.01f) //check for change in elevation
-						|| (count >0 && timesCo[i+1]- timesCo[i] > dataInfo.samplingInterval*unitless(3))) //check for large gaps
+						|| (count >0 && timesCo[i+1]- timesCo[i] > dataInfo.samplingInterval*unitless(3.0f))) //check for large gaps
 					{
 						goodAverage = false;
 						break;
@@ -289,16 +289,16 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 				for (size_t j = 0; j < crossSum.size(); ++j)
 				{
 					depolarisation.back()[j]=crossSum[j] / (crossSum[j] + coSum[j]);
-					averagedBackscatterCo.back()[j] = coSum[j] / unitless(count);
-					averagedBackscatterCross.back()[j] = crossSum[j] / unitless(count);
+					averagedBackscatterCo.back()[j] = coSum[j] / unitless((unitless::valueType)count);
+					averagedBackscatterCross.back()[j] = crossSum[j] / unitless((unitless::valueType)count);
 				}
 				depolarisationFlags.push_back(worstFlagDepol);
 				averagedFlagsCo.push_back(worstFlagCo);
 				averagedFlagsCross.push_back(worstFlagCr);
 				instrumentRelativeAzimuthAngles.push_back(startInstrumentRelativeAzimuthAngles);
 				instrumentRelativeElevationAngles.push_back(startInstrumentRelativeElevationAngles);
-				attitudeCorrectedAzimuthAngles.push_back(attitudeCorrectedAverageAzimuth / unitless(count));
-				attitudeCorrectedElevationAngles.push_back(attitudeCorrectedAverageElevation / unitless(count));
+				attitudeCorrectedAzimuthAngles.push_back(attitudeCorrectedAverageAzimuth / unitless((unitless::valueType)count));
+				attitudeCorrectedElevationAngles.push_back(attitudeCorrectedAverageElevation / unitless((unitless::valueType)count));
 				integrationTimes.push_back(integrationTime);
 			}
 		}
@@ -321,9 +321,9 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
 	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean } };
 	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ {sU("time"), cm_point} };
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), CellMethod::mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ };
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), CellMethod::mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
 	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude") };
 	std::vector<sci::string> coordinatesAngles{ sU("latitude"), sU("longitude") };

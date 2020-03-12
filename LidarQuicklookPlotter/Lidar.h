@@ -192,7 +192,6 @@ public:
 	LidarVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, sU("VAD"), nSegmentsMin) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("ppi") }; }
 private:
-	size_t m_nSegmentsMin;
 };
 
 class LidarWindVadProcessor : public ConicalScanningProcessor
@@ -201,7 +200,6 @@ public:
 	LidarWindVadProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, size_t  nSegmentsMin = 10) : ConicalScanningProcessor(instrumentInfo, calibrationInfo, sU("Wind_Profile"), nSegmentsMin) {}
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("wind ppi") }; }
 private:
-	size_t m_nSegmentsMin;
 };
 
 class LidarUserProcessor : public LidarScanningProcessor

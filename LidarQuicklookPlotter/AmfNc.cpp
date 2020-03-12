@@ -225,7 +225,7 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 	else
 	{
 		//This means we didn't override the platform position
-		if (platform.getPlatformInfo().platformType == pt_stationary)
+		if (platform.getPlatformInfo().platformType == PlatformType::stationary)
 		{
 			degree longitude;
 			degree latitude;
@@ -455,10 +455,10 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 	write(sci::NcAttribute(sU("licence"), sci::string(sU("Data usage licence - UK Government Open Licence agreement: http://www.nationalarchives.gov.uk/doc/open-government-licence"))));
 	write(sci::NcAttribute(sU("acknowledgement"), sci::string(sU("Acknowledgement of NCAS as the data provider is required whenever and wherever these data are used"))));
 	write(sci::NcAttribute(sU("platform"), platform.getPlatformInfo().name));
-	write(sci::NcAttribute(sU("platform_type"), g_platformTypeStrings[platform.getPlatformInfo().platformType]));
-	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings[platform.getPlatformInfo().deploymentMode]));
+	write(sci::NcAttribute(sU("platform_type"), g_platformTypeStrings.find(platform.getPlatformInfo().platformType)->second));
+	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings.find(platform.getPlatformInfo().deploymentMode)->second));
 	write(sci::NcAttribute(sU("title"), title));
-	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings[dataInfo.featureType]));
+	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings.find(dataInfo.featureType)->second));
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(m_latitudes, m_longitudes)));
@@ -510,7 +510,7 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 	//Note for trajectory data we do not include the lat and lon dimensions
 	sci::NcDimension longitudeDimension(sU("longitude"), m_longitudes.size());
 	sci::NcDimension latitudeDimension(sU("latitude"), m_latitudes.size());
-	if (dataInfo.featureType != ft_trajectory)
+	if (dataInfo.featureType != FeatureType::trajectory)
 	{
 		write(longitudeDimension);
 		write(latitudeDimension);
@@ -531,7 +531,7 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 	m_secondVariable.reset(new AmfNcVariable<float, std::vector<float>>(sU("second"), *this, getTimeDimension(), sU("Second"), sU(""), sU("1"), m_seconds, false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0)));
 
 	//for trajectories, the lat/lon depend on the time dimension, not the lat/lon dimensions (which aren't created)
-	if (dataInfo.featureType == ft_trajectory)
+	if (dataInfo.featureType == FeatureType::trajectory)
 	{
 		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, m_timeDimension, m_longitudes, dataInfo.featureType));
 		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, m_timeDimension, m_latitudes, dataInfo.featureType));
@@ -542,12 +542,12 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, m_latitudes, dataInfo.featureType));
 	}
 
-	if (platform.getPlatformInfo().platformType == pt_moving && !overriddenPlatformPosition)
+	if (platform.getPlatformInfo().platformType == PlatformType::moving && !overriddenPlatformPosition)
 	{
-		std::vector<std::pair<sci::string, CellMethod>> motionCellMethods{ {sU("time"), cm_mean} };
-		std::vector<std::pair<sci::string, CellMethod>> motionStdevCellMethods{ {sU("time"), cm_standardDeviation} };
-		std::vector<std::pair<sci::string, CellMethod>> motionMinCellMethods{ {sU("time"), cm_min} };
-		std::vector<std::pair<sci::string, CellMethod>> motionMaxCellMethods{ {sU("time"), cm_max} };
+		std::vector<std::pair<sci::string, CellMethod>> motionCellMethods{ {sU("time"), CellMethod::mean} };
+		std::vector<std::pair<sci::string, CellMethod>> motionStdevCellMethods{ {sU("time"), CellMethod::standardDeviation} };
+		std::vector<std::pair<sci::string, CellMethod>> motionMinCellMethods{ {sU("time"), CellMethod::min} };
+		std::vector<std::pair<sci::string, CellMethod>> motionMaxCellMethods{ {sU("time"), CellMethod::max} };
 		std::vector<sci::string> motionCoordinates{ sU("longitude"), sU("latitude") };
 
 		m_courseVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), m_courses, true, motionCoordinates, motionCellMethods));

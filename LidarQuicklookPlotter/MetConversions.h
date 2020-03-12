@@ -29,26 +29,28 @@
 
 //constants
 
-//g0-g7 constants for the wexler equation
-const double gWexler[] = { -2.9912729e3, -6.0170128e3, 1.887643854e1, -2.8354721e-2,
-						1.7838301e-5, -8.4150417e-10, 4.4412543e-13, 2.858487e0 };
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, sci::Kelvin<-1>>, double> heatCapacity;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<>, sci::Second<-2>>, double> acceleration;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Radian<>, sci::Second<-1>>, double> radianPerSecond;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, double> joulePerKilogram;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Kilogram<>, sci::Metre<-3>>, double> kilogramPerMetreCubed;
-const heatCapacity dryAirGasConstant(287.04); //J kg-1 K-1
-const heatCapacity dryAirCp(1005.7); //J kg-1 K-1
-const unitless dryAirKappa(0.2854); //1-cv/cp or 1-gamma
-const heatCapacity waterSpecificHeat(4190.0); //J kg-1 K-1 for T>=0, i.e. liquid
-const heatCapacity waterVapourGasConstant(461.50); //J kg-1 K-1
-const heatCapacity waterVapourCp(1875); // J kg-1 K-1
-const unitless ratioGasConstants = dryAirGasConstant / waterVapourGasConstant;
-const joulePerKilogram latentHeatVapourisationWater(2501000.0); //J/kg
+typedef unitless::valueType MET_FLT;
 
-const radianPerSecond earthAngularSpeed(7.2921159e-5);
-const metre earthRadius(6371.e3);
-const acceleration earthGravity(9.81); //m/s2
+//g0-g7 constants for the wexler equation
+const MET_FLT gWexler[] = { (MET_FLT)-2.9912729e3, (MET_FLT)-6.0170128e3, (MET_FLT)1.887643854e1, (MET_FLT)-2.8354721e-2,
+						(MET_FLT)1.7838301e-5, (MET_FLT)-8.4150417e-10, (MET_FLT)4.4412543e-13, (MET_FLT)2.858487e0 };
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, sci::Kelvin<-1>>, MET_FLT> heatCapacity;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<>, sci::Second<-2>>, MET_FLT> acceleration;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Radian<>, sci::Second<-1>>, MET_FLT> radianPerSecond;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, MET_FLT> joulePerKilogram;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Kilogram<>, sci::Metre<-3>>, MET_FLT> kilogramPerMetreCubed;
+const heatCapacity dryAirGasConstant(287.04f); //J kg-1 K-1
+const heatCapacity dryAirCp(1005.7f); //J kg-1 K-1
+const unitless dryAirKappa(0.2854f); //1-cv/cp or 1-gamma
+const heatCapacity waterSpecificHeat(4190.0f); //J kg-1 K-1 for T>=0, i.e. liquid
+const heatCapacity waterVapourGasConstant(461.50f); //J kg-1 K-1
+const heatCapacity waterVapourCp(1875.0f); // J kg-1 K-1
+const unitless ratioGasConstants = dryAirGasConstant / waterVapourGasConstant;
+const joulePerKilogram latentHeatVapourisationWater(2501000.0f); //J/kg
+
+const radianPerSecond earthAngularSpeed((MET_FLT)7.2921159e-5);
+const metre earthRadius((MET_FLT)6371.e3);
+const acceleration earthGravity((MET_FLT)9.81); //m/s2
 
 inline joulePerKilogram waterLatentHeatVapourisation(kelvin temperature)
 {
@@ -65,7 +67,7 @@ inline kilogramPerMetreCubed density(kelvin temperature, hectoPascal pressure)
 
 inline unitless massMixingRatio(hectoPascal vapourpressure, hectoPascal pressure)
 {
-	return unitless(0.622)*vapourpressure / (pressure - vapourpressure);
+	return unitless((unitless::valueType)0.622)*vapourpressure / (pressure - vapourpressure);
 }
 	
 inline unitless massMixingRatio(unitless specificHumidity)
@@ -80,7 +82,7 @@ inline unitless specificHumidity(unitless mixingratio)
 
 inline hectoPascal vapourPressureBolton(kelvin dewpoint)
 {
-	return hectoPascal(6.112)*sci::exp(unitless(17.67)*(dewpoint - kelvin(273.15)) / (dewpoint + kelvin(243.5 - 273.15)));
+	return hectoPascal((hectoPascal::valueType)6.112)*sci::exp(unitless((unitless::valueType)17.67)*(dewpoint - kelvin((kelvin::valueType)273.15)) / (dewpoint + kelvin((kelvin::valueType)(243.5 - 273.15))));
 }
 
 inline hectoPascal vapourPressureWexler(kelvin dewpoint)
@@ -93,7 +95,7 @@ inline hectoPascal vapourPressureWexler(kelvin dewpoint)
 		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -3>, double>(-8.4150417e-10) *sci::pow<3>(dewpoint) +
 		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -4>, double>(4.4412543e-13) *sci::pow<4>(dewpoint);
 		
-	return sci::exp(sum + unitless(2.858487) * sci::ln(dewpoint/kelvin(1.0)))*hectoPascal(0.01);
+	return sci::exp(sum + unitless((unitless::valueType)2.858487) * sci::ln(dewpoint/kelvin((kelvin::valueType)1.0)))*hectoPascal((hectoPascal::valueType)0.01);
 }
 
 inline hectoPascal vapourPressureBolton(unitless relativehumidity, kelvin temperature)
@@ -108,7 +110,7 @@ inline hectoPascal vapourPressureWexler(unitless relativehumidity, kelvin temper
 
 inline hectoPascal vapourPressureFromMassMixingRatio(unitless massMixingRatio, hectoPascal pressure)
 {
-	return massMixingRatio * pressure / (unitless(0.622) + massMixingRatio);
+	return massMixingRatio * pressure / (unitless((unitless::valueType)0.622) + massMixingRatio);
 }
 
 inline hectoPascal vapourPressureFromSpecificHumidity(unitless specificHumidity, hectoPascal pressure)
@@ -205,8 +207,8 @@ inline unitless relativeHumidityFromSpecificHumidityWexler(unitless specificHumi
 
 inline kelvin dewpointBolton(hectoPascal vapourpressure)
 {
-	unitless c = sci::ln(vapourpressure / hectoPascal(6.112)) / unitless(17.67);
-	return kelvin(243.5) / (unitless(1.0) / c - unitless(1.0)) + kelvin(273.15);
+	unitless c = sci::ln(vapourpressure / hectoPascal((hectoPascal::valueType)6.112)) / unitless((unitless::valueType)17.67);
+	return kelvin((kelvin::valueType)243.5) / (unitless((unitless::valueType)1.0) / c - unitless((unitless::valueType)1.0)) + kelvin((kelvin::valueType)273.15);
 }
 
 //double wexlerMinimisation(const std::vector<double> &fitparams, const std::vector<double> &fixedparams);
@@ -240,18 +242,18 @@ inline kelvin dewpoint(unitless relativehumidity, kelvin temperature)
 //kappa with T and P
 inline kelvin potentialTemperature(kelvin temperature, hectoPascal pressure)
 {
-	return temperature * sci::pow(hectoPascal(1000.0) / pressure, dryAirKappa);
+	return temperature * sci::pow(hectoPascal((hectoPascal::valueType)1000.0) / pressure, dryAirKappa);
 }
 	
 inline kelvin moistPotentialTemperature(kelvin temperature, hectoPascal pressure, unitless massMixingRatio)
 {
-	return temperature * sci::pow(hectoPascal(1000.0) / pressure, dryAirKappa*(unitless(1.0) - unitless(0.28)*massMixingRatio));
+	return temperature * sci::pow(hectoPascal((hectoPascal::valueType)1000.0) / pressure, dryAirKappa*(unitless((unitless::valueType)1.0) - unitless((unitless::valueType)0.28)*massMixingRatio));
 }
 
 //virtual temperature for no condensed water
 inline kelvin virtualTemperature(kelvin temperature, unitless vapourMassMixingRatio)
 {
-	return temperature * (unitless(1.0) + vapourMassMixingRatio / unitless(0.622)) / (unitless(1.0) + vapourMassMixingRatio);
+	return temperature * (unitless((unitless::valueType)1.0) + vapourMassMixingRatio / unitless((unitless::valueType)0.622)) / (unitless((unitless::valueType)1.0) + vapourMassMixingRatio);
 }
 
 //virtual temperature with condensed water

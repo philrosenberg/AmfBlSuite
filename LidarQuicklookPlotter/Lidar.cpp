@@ -80,7 +80,7 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 			//correct azimuths and elevations for platform orientation
 			m_correctedAzimuths.resize(m_profiles.size(), degree(0.0));
 			m_correctedElevations.resize(m_profiles.size(), degree(0.0));
-			second profileDuration = (unitless(m_hplHeaders.back().pulsesPerRay) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0));
+			second profileDuration = (unitless((unitless::valueType)m_hplHeaders.back().pulsesPerRay) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0));
 			platform.correctDirection(m_profiles.back().getTime<sci::UtcTime>(), m_profiles.back().getTime<sci::UtcTime>() + profileDuration, m_profiles.back().getAzimuth(), m_profiles.back().getElevation(), m_correctedAzimuths.back(), m_correctedElevations.back());
 			metrePerSecond u;
 			metrePerSecond v;
@@ -229,7 +229,7 @@ std::vector<metre> LidarBackscatterDopplerProcessor::getGateBoundariesForPlottin
 	metre interval = m_hplHeaders[profileIndex].rangeGateLength;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
 	if (m_profiles[profileIndex].nGates() > 533)
-		interval /= unitless(m_hplHeaders[m_headerIndex[profileIndex]].pointsPerGate);
+		interval /= unitless((unitless::valueType)m_hplHeaders[m_headerIndex[profileIndex]].pointsPerGate);
 
 	std::vector<metre> result = getGateCentres(profileIndex) - unitless(0.5)*interval;
 	result.push_back(result.back() + interval);
@@ -244,10 +244,10 @@ std::vector<metre> LidarBackscatterDopplerProcessor::getGateLowerBoundaries(size
 
 	std::vector<metre> result(m_profiles[profileIndex].nGates());
 	for (size_t i = 0; i < result.size(); ++i)
-		result[i] = unitless(i) * m_hplHeaders[m_headerIndex[profileIndex]].rangeGateLength;
+		result[i] = unitless((unitless::valueType)i) * m_hplHeaders[m_headerIndex[profileIndex]].rangeGateLength;
 	//if we have more than 533 gates then we must be using gate overlapping - annoyingly this isn't recorded in the header
 	if (m_profiles[profileIndex].nGates() > 533)
-		result /= unitless(m_hplHeaders[m_headerIndex[profileIndex]].pointsPerGate);
+		result /= unitless((unitless::valueType)m_hplHeaders[m_headerIndex[profileIndex]].pointsPerGate);
 	return result;
 }
 
@@ -275,7 +275,7 @@ void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::
 	(*plot)->getxaxis()->setlabelsize(15);
 	(*plot)->getyaxis()->setlabelsize(15);
 
-	splotlegend *legend = (*window)->addlegend(0.86, 0.25, 0.13, 0.65, wxColour(0, 0, 0), 0.0);
+	splotlegend *legend = (*window)->addlegend(0.86, 0.25, 0.13, 0.65, wxColour(0, 0, 0), 0);
 	legend->addentry(sU(""), g_lidarColourscale, false, false, 0.05, 0.3, 15, sU(""), 0, 0.05, wxColour(0, 0, 0), 128, false, 150, false);
 }
 
@@ -289,7 +289,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
-	dataInfo.featureType = ft_timeSeriesProfile;
+	dataInfo.featureType = FeatureType::timeSeriesProfile;
 	dataInfo.options = getProcessingOptions();
 	dataInfo.processingLevel = 1;
 	dataInfo.productName = sU("aerosol backscatter radial winds");
@@ -418,7 +418,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 				maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
 				thisProfilesPerScan = 1;
 				scanStartTimes.push_back(allTimes[i]);
-				scanEndTimes.push_back(allTimes[i - 1] + (unitless(getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile
+				scanEndTimes.push_back(allTimes[i - 1] + (unitless((unitless::valueType)(getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays)) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile
 				maxNGatesThisScan = getNGates(i);
 				ranges.push_back(getGateCentres(i));
 				instrumentRelativeAzimuthAngles.resize(instrumentRelativeAzimuthAngles.size() + 1);
@@ -454,7 +454,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 			backscatterFlags.back().push_back(allBackscatterFlags[i]);
 		}
 		//Some final items that need doing regaring the last scan/profile.
-		scanEndTimes.push_back(allTimes.back() + (unitless(getHeaderForProfile(allTimes.size() - 1).pulsesPerRay * getHeaderForProfile(allTimes.size() - 1).nRays) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile);
+		scanEndTimes.push_back(allTimes.back() + (unitless((unitless::valueType)(getHeaderForProfile(allTimes.size() - 1).pulsesPerRay * getHeaderForProfile(allTimes.size() - 1).nRays)) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile);
 		maxProfilesPerScan = std::max(maxProfilesPerScan, thisProfilesPerScan);
 	}
 
@@ -526,9 +526,9 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
 	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean }, {sU("sensor_azimuth_angle"), cm_point}, {sU("sensor_view_angle"), cm_point} };
 	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ {sU("time"), cm_point} };
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), CellMethod::mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAngles{ };
-	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), cm_mean} };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethodsAnglesEarthFrame{ {sU("time"), CellMethod::mean} };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
 	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude"), sU("range"), sU("sensor_azimuth_angle"), sU("sensor_view_angle") };
 	std::vector<sci::string> coordinatesAngles{ sU("latitude"), sU("longitude") };

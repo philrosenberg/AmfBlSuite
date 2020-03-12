@@ -6,30 +6,30 @@
 #include"Units.h"
 #include<svector/serr.h>
 
-enum campbellMessageType
+enum class campbellMessageType
 {
-	cmt_cs,
-	cmt_cl,
-	cmt_ct
+	cs,
+	cl,
+	ct
 };
 
-enum campbellAlarmStatus
+enum class campbellAlarmStatus
 {
-	cas_ok,
-	cas_warning,
-	cas_alarm
+	ok,
+	warning,
+	alarm
 };
 
-enum ceilometerMessageStatus
+enum class ceilometerMessageStatus
 {
-	cms_noSignificantBackscatter,
-	cms_oneCloudBase,
-	cms_twoCloudBases,
-	cms_threeCloudBases,
-	cms_fourCloudBases,
-	cms_fullObscurationNoCloudBase,
-	cms_someObscurationTransparent,
-	cms_rawDataMissingOrSuspect
+	noSignificantBackscatter,
+	oneCloudBase,
+	twoCloudBases,
+	threeCloudBases,
+	fourCloudBases,
+	fullObscurationNoCloudBase,
+	someObscurationTransparent,
+	rawDataMissingOrSuspect
 };
 
 class CampbellHeader

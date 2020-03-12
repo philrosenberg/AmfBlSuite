@@ -20,9 +20,9 @@ public:
 	}
 	virtual void transform(double oldx, double oldy, double& newx, double& newy)const override
 	{
-		degree azimuth(oldx);
+		degree azimuth((degree::valueType)oldx);
 
-		metre range(oldy);
+		metre range((metre::valueType)oldy);
 		metre horizDistance = range * m_cosElevationRad;
 
 		newx = (horizDistance * sci::sin(azimuth)).value<metre>();
@@ -45,11 +45,11 @@ public:
 	//note that the input azimuths for dx, should be centred on the viewing direction 
 	virtual void transform(double oldx, double oldy, double& newx, double& newy)const override
 	{
-		degree enteredAzimuth = degree(oldx);
+		degree enteredAzimuth = degree((degree::valueType)oldx);
 		//clip the azimuth to the view azimuth +/-90.
 		degree clippedAzimuth = std::max(std::min(enteredAzimuth, degree(90.0)), degree(-90.0));
 
-		metre range = metre(oldy);
+		metre range = metre((metre::valueType)oldy);
 		metre horizDistance = range * m_cosElevationRad;
 		metre verticalDistance = range * m_sinElevationRad;
 
@@ -78,7 +78,7 @@ void ConicalScanningProcessor::plotDataPlan(const sci::string &outputFilename, m
 {
 	sci::ostringstream rangeLimitedfilename;
 	rangeLimitedfilename << outputFilename;
-	if (maxRange != metre(std::numeric_limits<double>::max()))
+	if (maxRange != std::numeric_limits<metre>::max())
 		rangeLimitedfilename << sU("_maxRange_") << maxRange;
 
 	splotframe *window;
@@ -106,7 +106,7 @@ void ConicalScanningProcessor::plotDataPlan(const sci::string &outputFilename, m
 		std::vector<std::vector<perSteradianPerMetre>> segmentBetas(duplicationFactor);
 		for (size_t j = 0; j < duplicationFactor; ++j)
 		{
-			segmentAzimuths[j] = azimuths[i] + (azimuths[i + 1] - azimuths[i]) / (unitless)(duplicationFactor*(double)j);
+			segmentAzimuths[j] = azimuths[i] + (azimuths[i + 1] - azimuths[i]) / (unitless)((unitless::valueType)duplicationFactor*(unitless::valueType)j);
 			segmentBetas[j] = sortedBetas[i];
 		}
 		segmentAzimuths.back() = azimuths[i + 1];
@@ -258,7 +258,7 @@ void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilena
 	}
 	else
 	{
-		degree angleRange =std::min(degree(30), degree(degree(360) / unitless(sortedElevations.size())));
+		degree angleRange =std::min(degree(30), degree(degree(360) / unitless((unitless::valueType)sortedElevations.size())));
 		for (size_t i = 0; i < sortedBetas.size(); ++i)
 		{
 			std::vector<degree> thisAzimuths(2);

@@ -23,21 +23,21 @@ WindowCleaner::~WindowCleaner()
 
 sci::string getScanTypeString(const HplHeader &header)
 {
-	if (header.scanType == st_stare)
+	if (header.scanType == ScanType::stare)
 		return sU("Stare");
-	if (header.scanType == st_rhi)
+	if (header.scanType == ScanType::rhi)
 		return sU("RHI");
-	if (header.scanType == st_vad)
+	if (header.scanType == ScanType::vad)
 		return sU("VAD");
-	if (header.scanType == st_wind)
+	if (header.scanType == ScanType::wind)
 		return sU("Wind Profile");
-	if (header.scanType == st_user1)
+	if (header.scanType == ScanType::user1)
 		return sU("User Scan 1");
-	if (header.scanType == st_user2)
+	if (header.scanType == ScanType::user2)
 		return sU("User Scan 2");
-	if (header.scanType == st_user3)
+	if (header.scanType == ScanType::user3)
 		return sU("User Scan 3");
-	if (header.scanType == st_user4)
+	if (header.scanType == ScanType::user4)
 		return sU("User Scan 4");
 
 	return sU("Unknown Scan Type");
@@ -71,7 +71,7 @@ void createDirectoryAndWritePlot(splotframe *plotCanvas, sci::string filename, s
 	{
 		return;
 	}
-	if (!plotCanvas->writetofile(filename, width, height, 1.0))
+	if (!plotCanvas->writetofile(filename, (int)width, (int)height, 1.0))
 	{
 		sci::ostringstream message;
 		message << sU("The output file ") << filename << sU(" could not be created.");
