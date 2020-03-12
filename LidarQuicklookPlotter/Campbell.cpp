@@ -201,8 +201,8 @@ int hexCharToNumber(char hexChar)
 		return int(hexChar) - int(48);
 	else if (hexChar > char(96) && hexChar < char(103))
 		return int(hexChar) - int(87);
-	else
-		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Recieved a non hex number to parse.")));
+	
+	throw(sci::err(sci::SERR_USER, 0, sU("Recieved a non hex number to parse.")));
 }
 
 int hexTextToNumber(char* textHex)
@@ -231,7 +231,7 @@ campbellAlarmStatus parseAlarmStatus(char text)
 		return campbellAlarmStatus::alarm;
 
 	//If we haven't returned by this point we have an invalid character
-	sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Received an invalid character when determining the ceilometer alarm status.")));
+	throw(sci::err(sci::SERR_USER, 0, sU("Received an invalid character when determining the ceilometer alarm status.")));
 }
 
 ceilometerMessageStatus parseMessageStatus(char text)
@@ -254,7 +254,7 @@ ceilometerMessageStatus parseMessageStatus(char text)
 		return ceilometerMessageStatus::rawDataMissingOrSuspect;
 
 	//If we haven't returned by this point we have an invalid character
-	sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Received an invalid character when determining the ceilometer message status.")));
+	throw(sci::err(sci::SERR_USER, 0, sU("Received an invalid character when determining the ceilometer message status.")));
 }
 
 void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)

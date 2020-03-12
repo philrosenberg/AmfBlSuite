@@ -626,7 +626,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 	}
 	
 	//if we get to here then we found an unrecognised platform type
-	sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Found an unrecognised platform type. Accepted values are moving, stationary (case sensitive).")));
+	throw(sci::err(sci::SERR_USER, 0, sU("Found an unrecognised platform type. Accepted values are moving, stationary (case sensitive).")));
 
 }
 
