@@ -34,27 +34,27 @@ typedef unitless::valueType MET_FLT;
 //g0-g7 constants for the wexler equation
 const MET_FLT gWexler[] = { (MET_FLT)-2.9912729e3, (MET_FLT)-6.0170128e3, (MET_FLT)1.887643854e1, (MET_FLT)-2.8354721e-2,
 						(MET_FLT)1.7838301e-5, (MET_FLT)-8.4150417e-10, (MET_FLT)4.4412543e-13, (MET_FLT)2.858487e0 };
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, sci::Kelvin<-1>>, MET_FLT> heatCapacity;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<>, sci::Second<-2>>, MET_FLT> acceleration;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, sci::Kelvin<-1>>, MET_FLT> joulePerKilogramPerKelvin;
+typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<>, sci::Second<-2>>, MET_FLT> metrePerSecondSquared;
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Radian<>, sci::Second<-1>>, MET_FLT> radianPerSecond;
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, MET_FLT> joulePerKilogram;
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Kilogram<>, sci::Metre<-3>>, MET_FLT> kilogramPerMetreCubed;
-const heatCapacity dryAirGasConstant(287.04f); //J kg-1 K-1
-const heatCapacity dryAirCp(1005.7f); //J kg-1 K-1
+const joulePerKilogramPerKelvin dryAirGasConstant(287.04f); //J kg-1 K-1
+const joulePerKilogramPerKelvin dryAirCp(1005.7f); //J kg-1 K-1
 const unitless dryAirKappa(0.2854f); //1-cv/cp or 1-gamma
-const heatCapacity waterSpecificHeat(4190.0f); //J kg-1 K-1 for T>=0, i.e. liquid
-const heatCapacity waterVapourGasConstant(461.50f); //J kg-1 K-1
-const heatCapacity waterVapourCp(1875.0f); // J kg-1 K-1
+const joulePerKilogramPerKelvin waterSpecificHeat(4190.0f); //J kg-1 K-1 for T>=0, i.e. liquid
+const joulePerKilogramPerKelvin waterVapourGasConstant(461.50f); //J kg-1 K-1
+const joulePerKilogramPerKelvin waterVapourCp(1875.0f); // J kg-1 K-1
 const unitless ratioGasConstants = dryAirGasConstant / waterVapourGasConstant;
 const joulePerKilogram latentHeatVapourisationWater(2501000.0f); //J/kg
 
 const radianPerSecond earthAngularSpeed((MET_FLT)7.2921159e-5);
 const metre earthRadius((MET_FLT)6371.e3);
-const acceleration earthGravity((MET_FLT)9.81); //m/s2
+const metrePerSecondSquared earthGravity((MET_FLT)9.81); //m/s2
 
 inline joulePerKilogram waterLatentHeatVapourisation(kelvin temperature)
 {
-	return joulePerKilogram(2.501e6) - heatCapacity(0.00237e6)*temperature;
+	return joulePerKilogram(2.501e6) - joulePerKilogramPerKelvin(0.00237e6)*temperature;
 }
 
 inline kilogramPerMetreCubed density(kelvin temperature, hectoPascal pressure)
