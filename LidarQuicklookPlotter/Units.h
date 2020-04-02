@@ -16,6 +16,7 @@ typedef sci::Physical<sci::Volt<1, -3>, float> millivolt;
 typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<>, sci::Metre<>>, float> steradianPerMetre;
 typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<>, sci::Metre<1, 3>>, float> steradianPerKilometre;
 typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Steradian<-1>, sci::Metre<-1>>, float> perSteradianPerMetre;
+typedef sci::Physical<sci::Steradian<-1>, float> perSteradian;
 typedef sci::Physical<sci::DividedEncodedUnit<sci::Metre<>, sci::Second<>>, float> metrePerSecond;
 typedef sci::Physical<sci::DividedEncodedUnit<sci::Degree<>, sci::Second<>>, float> degreePerSecond;
 typedef sci::Physical<sci::Metre<1, -3>, float> millimetre;

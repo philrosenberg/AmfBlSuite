@@ -80,6 +80,7 @@ public:
 	metre getVisibility() const { return m_visibility; }
 	double getHighestSignal() const { return m_highestSignal; }
 	percent getWindowTransmission() const { return m_windowTransmission; }
+	percent getScale() const { return m_scale; }
 	metre getResolution() const { return m_resolution; }
 	percent getLaserPulseEnergy() const { return m_laserPulseEnergy; }
 	kelvin getLaserTemperature() const { return m_laserTemperature; }
@@ -87,6 +88,7 @@ public:
 	millivolt getBackground() const { return m_background; }
 	size_t getPulseQuantity() const { return m_pulseQuantity; }
 	hertz getSampleRate() const { return m_sampleRate; }
+	perSteradian getSum() const { return m_sum; }
 	const bool getPassedChecksum() const { return m_passedChecksum; }
 	campbellAlarmStatus getAlarmStatus() const { return m_alarmStatus; }
 	ceilometerMessageStatus getMessageStatus() const { return m_messageStatus; }
@@ -108,7 +110,7 @@ private:
 	millivolt m_background;
 	size_t m_pulseQuantity;
 	megahertz m_sampleRate;
-	double m_sum;
+	perSteradian m_sum;
 	bool m_passedChecksum;
 	campbellAlarmStatus m_alarmStatus;
 	ceilometerMessageStatus m_messageStatus;

@@ -36,11 +36,14 @@ uint16_t generateChecksum(char *buffer, size_t length)
 	return checksum;
 }
 
+#pragma warning(push)
+#pragma warning (disable : 26495)
 CampbellHeader::CampbellHeader(char startOfHeaderCharacter, char startOfTextCharacter)
 	:m_startOfHeaderCharacter(startOfHeaderCharacter), m_startOfTextCharacter(startOfTextCharacter)
 {
 	m_initialised = false;
 }
+#pragma warning(pop)
 
 void CampbellHeader::readHeader(std::istream &stream)
 {
@@ -216,10 +219,13 @@ int hexTextToNumber(char* textHex)
 	return result;
 }
 
+#pragma warning(push)
+#pragma warning (disable : 26495)
 CampbellMessage2::CampbellMessage2(char endOfTextCharacter)
 	:m_endOfTextCharacter(endOfTextCharacter)
 {
 }
+#pragma warning(pop)
 
 campbellAlarmStatus parseAlarmStatus(char text)
 {
@@ -382,7 +388,7 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	sci::assertThrow(intPulseQuantity <= std::numeric_limits<size_t>::max()/1000, sci::err(sci::SERR_USER, 0, "Found a negative pulse quantity while reading a Campbell file"));
 	m_pulseQuantity = size_t(intPulseQuantity) * 1000;
 	m_sampleRate = megahertz((megahertz::valueType)std::atof(sampleRate));
-	m_sum = std::atof(sum);
+	m_sum = perSteradian((perSteradian::valueType)std::atof(sum));
 
 
 

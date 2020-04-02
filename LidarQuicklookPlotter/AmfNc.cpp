@@ -149,12 +149,13 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const sci::string &title,
 	const std::vector<sci::UtcTime> &times,
 	const std::vector<sci::NcDimension *> &nonTimeDimensions,
+	const std::vector< sci::NcAttribute*>& globalAttributes,
 	bool incrementMajorVersion)
 	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 {
 	initialise(directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
 		projectInfo, platform, title, times, std::vector<degree>(0), std::vector<degree>(0), nonTimeDimensions,
-		incrementMajorVersion);
+		globalAttributes, incrementMajorVersion);
 }
 
 OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
@@ -170,11 +171,13 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	const std::vector<degree> &latitudes,
 	const std::vector<degree> &longitudes,
 	const std::vector<sci::NcDimension *> &nonTimeDimensions,
+	const std::vector< sci::NcAttribute*>& globalAttributes,
 	bool incrementMajorVersion)
 	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 {
 	initialise(directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
-		projectInfo, platform, title, times, latitudes, longitudes, nonTimeDimensions, incrementMajorVersion);
+		projectInfo, platform, title, times, latitudes, longitudes, nonTimeDimensions, globalAttributes,
+		incrementMajorVersion);
 }
 
 void OutputAmfNcFile::initialise(const sci::string &directory,
@@ -190,6 +193,7 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 	const std::vector<degree> &latitudes,
 	const std::vector<degree> &longitudes,
 	const std::vector<sci::NcDimension *> &nonTimeDimensions,
+	const std::vector< sci::NcAttribute*>& globalAttributes,
 	bool incrementMajorVersion)
 {
 	sci::assertThrow(latitudes.size() == longitudes.size(), sci::err(sci::SERR_USER, 0, sU("Cannot create a netcdf file with latitude data a different length to longitude data.")));
@@ -484,7 +488,9 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 	write(sci::NcAttribute(sU("location_keywords"), locationKeywords.str()));
 	write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/tree/v0.2.3"))));
 	write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science.") : sU(""))));
-
+	
+	for (size_t i = 0; i < globalAttributes.size(); ++i)
+		write(*globalAttributes[i]);
 
 	sci::string processingReason = dataInfo.reasonForProcessing;
 	if (processingReason.length() == 0)

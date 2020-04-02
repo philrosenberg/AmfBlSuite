@@ -802,6 +802,7 @@ public:
 		const sci::string &title,
 		const std::vector<sci::UtcTime> &times,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
+		const std::vector< sci::NcAttribute *> &globalAttributes = std::vector< sci::NcAttribute*>(0),
 		bool incrementMajorVersion = false);
 	//use this constructor to provide instrument derived lats and lons, e.g. for sondes
 	OutputAmfNcFile(const sci::string &directory,
@@ -817,6 +818,7 @@ public:
 		const std::vector<degree> &latitudes,
 		const std::vector<degree> &longitudes,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
+		const std::vector< sci::NcAttribute*>& globalAttributes = std::vector< sci::NcAttribute*>(0),
 		bool incrementMajorVersion = false);
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
 	void writeTimeAndLocationData(const Platform &platform);
@@ -867,6 +869,7 @@ private:
 		const std::vector<degree> &latitudes,
 		const std::vector<degree> &longitudes,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions,
+		const std::vector< sci::NcAttribute*>& globalAttributes,
 		bool incrementMajorVersion);
 	template<class T>
 	struct Fill

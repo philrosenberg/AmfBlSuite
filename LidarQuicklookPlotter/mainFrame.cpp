@@ -286,32 +286,32 @@ void mainFrame::process()
 
 void mainFrame::process(InstrumentProcessor &processor)
 {
-	(*m_progressReporter) << sU("Beginning processing with the next processor.\n\n");
-	//Check that the input/output diectories are actually there
-	checkDirectoryStructue();
-
-	//These list changes that have occured since the last time its method
-	//updateSnapshotFile() was called. 
-	std::unique_ptr<FolderChangesLister> plotChangesLister;
-	std::unique_ptr<FolderChangesLister> ncChangesLister;
-
-	if (m_processingOptions.onlyProcessNewFiles)
-	{
-		//This class in particular assumes that when
-		//it performs a search of previously existing files, the last one alphabetically
-		//will have changed, but the rest will not.
-		plotChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFiles.txt")));
-		ncChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFiles.txt")));
-	}
-	else
-	{
-		//This class just assumes all files have changed so we process all files even if they existed previously and are unmodified
-		plotChangesLister.reset(new AssumeAllChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFiles.txt")));
-		ncChangesLister.reset(new AssumeAllChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFiles.txt")));
-	}
-
 	try
 	{
+		(*m_progressReporter) << sU("Beginning processing with the next processor.\n\n");
+		//Check that the input/output diectories are actually there
+		checkDirectoryStructue();
+
+		//These list changes that have occured since the last time its method
+		//updateSnapshotFile() was called. 
+		std::unique_ptr<FolderChangesLister> plotChangesLister;
+		std::unique_ptr<FolderChangesLister> ncChangesLister;
+
+		if (m_processingOptions.onlyProcessNewFiles)
+		{
+			//This class in particular assumes that when
+			//it performs a search of previously existing files, the last one alphabetically
+			//will have changed, but the rest will not.
+			plotChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFiles.txt")));
+			ncChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFiles.txt")));
+		}
+		else
+		{
+			//This class just assumes all files have changed so we process all files even if they existed previously and are unmodified
+			plotChangesLister.reset(new AssumeAllChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFiles.txt")));
+			ncChangesLister.reset(new AssumeAllChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFiles.txt")));
+		}
+
 		if (!m_progressReporter->shouldStop())
 		{
 			readDataThenPlotThenNc(*(plotChangesLister.get()), *(ncChangesLister.get()), m_author, m_processingSoftwareInfo, m_projectInfo, *m_platform, m_processingOptions, processor);

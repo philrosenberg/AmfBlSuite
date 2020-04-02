@@ -113,6 +113,8 @@ size_t bytesToValue(const std::vector<unsigned char> &bytes)
 	return result;
 }
 
+#pragma warning(push)
+#pragma warning (disable : 26495)
 class Bufr
 {
 public:
@@ -172,6 +174,7 @@ private:
 	std::list<Bufr::Descriptor> m_descriptors;
 	std::list<ExtractedData> m_data;
 };
+#pragma warning(pop)
 
 //replaces a single descriptor in a list with its expanded version.
 //returns an iterator to the first item added
@@ -388,7 +391,7 @@ void Bufr::readHeader(std::ifstream &fin)
 	std::vector<unsigned char> identificationSection(22);
 	fin.read((char*)&identificationSection[0], 22);
 	sci::assertThrow(!fin.fail(), sci::err(sci::SERR_USER, 0, sU("Read fail when reading bufr file identification section.")));
-	size_t expectedLengthIndentificationSection = identificationSection[0] * 256 * 256 + identificationSection[1] * 256 + identificationSection[2];
+	size_t expectedLengthIndentificationSection = (size_t)identificationSection[0] * 256 * 256 + (size_t)identificationSection[1] * 256 + (size_t)identificationSection[2];
 	m_bufrMasterTable = identificationSection[3];
 	m_centre[0] = identificationSection[4];
 	m_centre[1] = identificationSection[5];
@@ -420,7 +423,7 @@ void Bufr::readHeader(std::ifstream &fin)
 		unsigned char optionalSectionHeader[4];
 		fin.read((char*)optionalSectionHeader, 4);
 		sci::assertThrow(!fin.fail(), sci::err(sci::SERR_USER, 0, sU("Read fail when reading bufr file optional section.")));
-		size_t optionalSectionLength = optionalSectionHeader[0] * 256 * 256 + optionalSectionHeader[1] * 256 + optionalSectionHeader[2];
+		size_t optionalSectionLength = (size_t)optionalSectionHeader[0] * 256 * 256 + (size_t)optionalSectionHeader[1] * 256 + (size_t)optionalSectionHeader[2];
 		//note optionalSectionHeader[3] is set to zero always.
 		if (optionalSectionLength > 4)
 		{
@@ -434,9 +437,9 @@ void Bufr::readHeader(std::ifstream &fin)
 	unsigned char dataDescriptionHeader[7];
 	fin.read((char*)dataDescriptionHeader, 7);
 	sci::assertThrow(!fin.fail(), sci::err(sci::SERR_USER, 0, sU("Read fail when reading bufr file data description section - header bytes.")));
-	size_t dataDescriptionLength = dataDescriptionHeader[0] * 256 * 256 + dataDescriptionHeader[1] * 256 + dataDescriptionHeader[2];
+	size_t dataDescriptionLength = (size_t)dataDescriptionHeader[0] * 256 * 256 + (size_t)dataDescriptionHeader[1] * 256 + (size_t)dataDescriptionHeader[2];
 	//dataDescriptionHeader[3] is not used and should be zero
-	m_numberOfDataSubsets = dataDescriptionHeader[4] * 256 + dataDescriptionHeader[5];
+	m_numberOfDataSubsets = (size_t)dataDescriptionHeader[4] * 256 + (size_t)dataDescriptionHeader[5];
 	m_observationalData = (dataDescriptionHeader[6] & 0x80) != 0;
 	m_compressed = (dataDescriptionHeader[6] & 0x40) != 0;
 	if (dataDescriptionLength > 7)
@@ -465,7 +468,7 @@ void Bufr::read(std::ifstream &fin)
 	std::vector<unsigned char> binaryData;
 	unsigned char dataHeader[4];
 	fin.read((char*)dataHeader, 4);
-	size_t dataLength = dataHeader[0] * 256 * 256 + dataHeader[1] * 256 + dataHeader[2];
+	size_t dataLength = (size_t)dataHeader[0] * 256 * 256 + (size_t)dataHeader[1] * 256 + (size_t)dataHeader[2];
 	sci::assertThrow(!fin.fail(), sci::err(sci::SERR_USER, 0, sU("Read fail when reading bufr file data section - header.")));
 	//dataheader[3] is not used and should be zero
 	if (dataLength > 4)

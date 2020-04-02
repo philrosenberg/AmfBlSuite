@@ -43,11 +43,13 @@ public:
 	percent getWindowTransmission() const { return m_profile.getWindowTransmission(); }
 	metre getResolution() const { return m_profile.getResolution(); }
 	percent getLaserPulseEnergy() const { return m_profile.getLaserPulseEnergy(); }
+	percent getScale() const { return m_profile.getScale(); }
 	kelvin getLaserTemperature() const { return m_profile.getLaserTemperature(); }
 	degree getTiltAngle() const { return m_profile.getTiltAngle(); }
 	millivolt getBackground() const { return m_profile.getBackground(); }
 	size_t getPulseQuantity() const { return m_profile.getPulseQuantity(); }
 	hertz getSampleRate() const { return m_profile.getSampleRate(); }
+	perSteradian getSum() const { return m_profile.getSum(); }
 	uint8_t getProfileFlag() const;
 	std::vector<uint8_t> getGateFlags() const;
 private:
@@ -108,4 +110,14 @@ private:
 	HplHeader m_firstHeaderHpl;
 	bool m_hasData;
 	std::vector<sci::string> m_inputFilenames;
+	static void formatDataForOutput(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
+		InstrumentInfo& ceilometerInfo, CalibrationInfo& ceilometerCalibrationInfo,
+		DataInfo& dataInfo, std::vector<sci::UtcTime>& times, std::vector<std::vector<metre>>& altitudes,
+		std::vector<std::vector<steradianPerKilometre>> &backscatter,
+		std::vector<std::vector<unitless>> &backscatterRangeSquaredCorrected,
+		std::vector<metre> &cloudBase1, std::vector<metre> &cloudBase2, std::vector<metre> &cloudBase3,
+		std::vector<metre> &cloudBase4, std::vector<percent> &laserEnergies, std::vector<kelvin> &laserTemperatures,
+		std::vector<unitless> &pulseQuantities, std::vector<degree> &tiltAngles, std::vector<percent> &scales,
+		std::vector<percent> &windowTransmissions, std::vector<millivolt> &backgrounds, std::vector<perSteradian> &sums,
+		std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags);
 };
