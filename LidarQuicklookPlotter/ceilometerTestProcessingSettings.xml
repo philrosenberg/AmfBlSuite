@@ -79,8 +79,8 @@
   <comment>This is a test file</comment>
  <!-- <inputDirectory>Y:\MOCCHA\raw\</inputDirectory>-->
   <!--<inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTest</inputDirectory>-->
-  <inputDirectory>C:\Users\earpros\Documents\data\ncas-ceil-1\</inputDirectory>
-  <outputDirectory>C:\Users\earpros\Documents\test\</outputDirectory>
+  <inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\ncas-ceil-1\</inputDirectory>
+  <outputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTestOutput\</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>
   <!--<startTime>
@@ -110,7 +110,7 @@
   <endTime>
     <year>2018</year>
     <month>8</month>
-    <day>3</day>
+    <day>5</day>
     <hour>23</hour>
     <minute>59</minute>
     <second>59.99</second>

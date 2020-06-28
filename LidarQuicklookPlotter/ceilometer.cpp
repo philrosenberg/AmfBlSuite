@@ -172,7 +172,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	//pad the 2d data with NaNs if the number of gates has changed, and flag as needed
 	size_t maxGates = 0;
 	for (size_t i = 0; i < profiles.size(); ++i)
-		maxGates = std::max(maxGates, altitudes.size());
+		maxGates = std::max(maxGates, altitudes[i].size());
 
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{
@@ -256,7 +256,7 @@ void CeilometerProcessor::writeToNc(const HplHeader & header, const std::vector<
 
 		DataInfo backscatterDataInfo = dataInfo;
 		backscatterDataInfo.productName = sU("aerosol-backscatter");
-		sci::NcDimension altitudeDimension(sU("altitude"), altitudes.size());
+		sci::NcDimension altitudeDimension(sU("altitude"), altitudes[0].size());
 		std::vector<sci::NcDimension*> nonTimeDimensions;
 		nonTimeDimensions.push_back(&altitudeDimension);
 
@@ -268,6 +268,7 @@ void CeilometerProcessor::writeToNc(const HplHeader & header, const std::vector<
 
 		//add the data variables
 		AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, backscatterDimensions, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinatesRange, cellMethodsNone, sU("Centre of range gate"));
+		altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ceilometerBackscatterFile);
 		AmfNcVariable<steradianPerKilometre, decltype(backscatter)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), & altitudeDimension }, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatter, true, coordinatesData, cellMethodsTimeMean, sU(""));
 		AmfNcVariable<unitless, decltype(backscatterRangeSquaredCorrected)> backscatterRangeSquaredCorrectedVariable(sU("range_squared_corrected_backscatter_power"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), & altitudeDimension }, sU("Range Squared Corrected Backscatter Power (ln(arbitrary raw data unit))"), sU(""), backscatterRangeSquaredCorrected, true, coordinatesData, cellMethodsTimeMean, sU(""));
 		AmfNcVariable<percent, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinatesData, cellMethodsTimeMean);
