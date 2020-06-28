@@ -54,7 +54,7 @@ void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime>
 
 	progressReporter << sU("Reading platform altitude data.\n");
 	std::vector<double> altitudesUnitless;
-	if (sci::anyTrue(names == sci::string(sU("altitude"))))
+	if (sci::anyTrue(sci::isEq(names, sci::string(sU("altitude")))))
 		altitudesUnitless = file.getVariable<double>(sU("altitude"));
 	else
 		altitudesUnitless = std::vector<double>{ file.getGlobalAttribute<double>(sU("altitude")) };

@@ -95,14 +95,14 @@ void LidarBackscatterDopplerProcessor::readData(const sci::string &inputFilename
 			std::vector<uint8_t> dopplerVelocityFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
 			std::vector<uint8_t> betaFlags(m_profiles.back().nGates(), lidarGoodDataFlag);
 			//flag for out of range doppler
-			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && (m_profiles.back().getDopplerVelocities() > metrePerSecond(19.0) || m_profiles.back().getDopplerVelocities() < metrePerSecond(-19.0)), lidarDopplerOutOfRangeFlag);
+			sci::assign(dopplerVelocityFlags, sci::isEq(dopplerVelocityFlags,lidarGoodDataFlag) && (m_profiles.back().getDopplerVelocities() > metrePerSecond(19.0) || m_profiles.back().getDopplerVelocities() < metrePerSecond(-19.0)), lidarDopplerOutOfRangeFlag);
 			//flag for bad snr - not intensity reported by instrument is snr+1
-			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
-			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
-			sci::assign(dopplerVelocityFlags, dopplerVelocityFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
-			sci::assign(betaFlags, betaFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
-			sci::assign(betaFlags, betaFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
-			sci::assign(betaFlags, betaFlags == lidarGoodDataFlag && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
+			sci::assign(dopplerVelocityFlags, sci::isEq(dopplerVelocityFlags, lidarGoodDataFlag) && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
+			sci::assign(dopplerVelocityFlags, sci::isEq(dopplerVelocityFlags, lidarGoodDataFlag) && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
+			sci::assign(dopplerVelocityFlags, sci::isEq(dopplerVelocityFlags, lidarGoodDataFlag) && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
+			sci::assign(betaFlags, sci::isEq(betaFlags, lidarGoodDataFlag) && m_profiles.back().getIntensities() < unitless(2.0), lidarSnrBelow1Flag);
+			sci::assign(betaFlags, sci::isEq(betaFlags, lidarGoodDataFlag) && m_profiles.back().getIntensities() < unitless(3.0), lidarSnrBelow2Flag);
+			sci::assign(betaFlags, sci::isEq(betaFlags, lidarGoodDataFlag) && m_profiles.back().getIntensities() < unitless(4.0), lidarSnrBelow3Flag);
 			m_betaFlags.push_back(betaFlags);
 			m_dopplerFlags.push_back(dopplerVelocityFlags);
 

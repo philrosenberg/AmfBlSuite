@@ -857,8 +857,8 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	m_temperatureFlags.assign(m_time.size(), sondeTemperatureGoodDataFlag);
 	m_humidityFlags.assign(m_time.size(), sondeHumidityGoodDataFlag);
 	m_pressureFlags.assign(m_time.size(), sondePressureGoodDataFlag);
-	sci::assign(m_motionFlags, m_windSpeed == metrePerSecond(0), sondeMotionZeroWindSpeedFlag);
-	sci::assign(m_motionFlags, m_balloonUpwardVelocity == metrePerSecond(0), sondeMotionZeroAscentRateFlag);
+	sci::assign(m_motionFlags, sci::isEq(m_windSpeed, metrePerSecond(0)), sondeMotionZeroWindSpeedFlag);
+	sci::assign(m_motionFlags, sci::isEq(m_balloonUpwardVelocity, metrePerSecond(0)), sondeMotionZeroAscentRateFlag);
 	if (m_motionFlags.size() > 0)
 		m_motionFlags[0] = sondeMotionFirstPointNoAscentRateFlag;
 

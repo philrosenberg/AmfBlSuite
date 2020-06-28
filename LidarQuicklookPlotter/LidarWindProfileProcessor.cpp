@@ -324,8 +324,8 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		{
 			//We may have some missing data recorded as zeros instead of fill value as some data is set to
 			//zero in the data file. Change it to fill value
-			sci::assign(windSpeeds[i], windFlags[i] == lidarClippedWindProfileFlag, std::numeric_limits<metrePerSecond>::quiet_NaN());
-			sci::assign(windDirections[i], windFlags[i] == lidarClippedWindProfileFlag, std::numeric_limits<degree>::quiet_NaN());
+			sci::assign(windSpeeds[i], sci::isEq(windFlags[i], lidarClippedWindProfileFlag), std::numeric_limits<metrePerSecond>::quiet_NaN());
+			sci::assign(windDirections[i], sci::isEq(windFlags[i], lidarClippedWindProfileFlag), std::numeric_limits<degree>::quiet_NaN());
 
 			altitudes[i].resize(maxLevels, std::numeric_limits<metre>::quiet_NaN());
 			windSpeeds[i].resize(maxLevels, std::numeric_limits<metrePerSecond>::quiet_NaN());
