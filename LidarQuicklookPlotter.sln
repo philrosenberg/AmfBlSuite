@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29509.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LidarQuicklookPlotter", "LidarQuicklookPlotter\LidarQuicklookPlotter.vcxproj", "{8B096D72-3996-4AD0-8CFF-B9016033B0A2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetCdfBrowser", "NetCdfBrowser\NetCdfBrowser.vcxproj", "{A7A18AFF-307C-4A67-92C1-4F7189052AD2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,8 +23,19 @@ Global
 		{8B096D72-3996-4AD0-8CFF-B9016033B0A2}.Release|x64.Build.0 = Release|x64
 		{8B096D72-3996-4AD0-8CFF-B9016033B0A2}.Release|x86.ActiveCfg = Release|Win32
 		{8B096D72-3996-4AD0-8CFF-B9016033B0A2}.Release|x86.Build.0 = Release|Win32
+		{A7A18AFF-307C-4A67-92C1-4F7189052AD2}.Debug|x64.ActiveCfg = Debug|x64
+		{A7A18AFF-307C-4A67-92C1-4F7189052AD2}.Debug|x64.Build.0 = Debug|x64
+		{A7A18AFF-307C-4A67-92C1-4F7189052AD2}.Debug|x86.ActiveCfg = Debug|Win32
+		{A7A18AFF-307C-4A67-92C1-4F7189052AD2}.Debug|x86.Build.0 = Debug|Win32
+		{A7A18AFF-307C-4A67-92C1-4F7189052AD2}.Release|x64.ActiveCfg = Release|x64
+		{A7A18AFF-307C-4A67-92C1-4F7189052AD2}.Release|x64.Build.0 = Release|x64
+		{A7A18AFF-307C-4A67-92C1-4F7189052AD2}.Release|x86.ActiveCfg = Release|Win32
+		{A7A18AFF-307C-4A67-92C1-4F7189052AD2}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {876DA44B-27BE-4054-8BF1-91E64887E6D1}
 	EndGlobalSection
 EndGlobal
