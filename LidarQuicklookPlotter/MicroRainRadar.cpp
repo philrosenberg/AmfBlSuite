@@ -176,13 +176,14 @@ void MicroRainRadarProcessor::readData(const sci::string &inputFilename, const P
 			}
 			else if (m_profiles.size() % interval == 0)
 			{
-				progressReporter << m_profiles.size() - interval + 1 << sU("-") << m_profiles.size();
+				progressReporter << sU(", ") << m_profiles.size() - interval + 1 << sU("-") << m_profiles.size();
 				if (progressReporter.shouldStop())
 					return;
 			}
 			m_hasData = true;
 			sci::assertThrow(fin.good(), sci::err(sci::SERR_USER, 0, sU("Read of file failed - it may be locked or inaccessible.")));
 		}
+		progressReporter << sU("\n\n");
 	}
 	catch (...)
 	{
