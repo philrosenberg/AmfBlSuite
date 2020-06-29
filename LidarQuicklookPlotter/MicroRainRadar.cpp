@@ -321,6 +321,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	std::vector<sci::string> coordinates1d;
 
 	AmfNcVariable<metre, std::vector<std::vector<metre>>> altitudesVariable(sU("altitude"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates1d, std::vector<std::pair<sci::string, CellMethod>>(0));
+	altitudesVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), file1d);
 	AmfNcVariable<millimetrePerHour, std::vector<std::vector<millimetrePerHour>>> rainfallRatesVariable(sU("rainfall_rate"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Rainfall Rate"), sU(""), rainfallRates, true, coordinates1d, cellMethods1d);
 	AmfNcVariable<gramPerMetreCubed, std::vector<std::vector<gramPerMetreCubed>>> rainLiquidWaterContentVariable(sU("rain_liquid_water_content"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Rain Liquid Water Content"), sU(""), rainLiquidWaterContent, true, coordinates1d, cellMethods1d);
 	AmfNcVariable<metrePerSecond, std::vector<std::vector<metrePerSecond>>> rainfallVelocityVariable(sU("rainfall_velocity"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), &indexDimension1d }, sU("Rainfall Velocity"), sU(""), rainfallVelocity, true, coordinates1d, cellMethods1d);
@@ -418,6 +419,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	std::vector<sci::string> coordinates2d;
 
 	AmfNcVariable<metre, std::vector<std::vector<metre>>> altitudesVariable2d(sU("altitude"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes,true, coordinates2d, std::vector<std::pair<sci::string, CellMethod>>(0));
+	altitudesVariable2d.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), file2d);
 	AmfNcVariable<Decibel<perMetre>, std::vector<std::vector<std::vector<perMetre>>>> spectralReflectivityVariable(sU("spectral_reflectivity"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension }, sU("Spectral Reflectivity"), sU(""), spectralReflectivity, true, coordinates2d, cellMethods2d, false);
 	AmfNcVariable<millimetre, std::vector<std::vector<std::vector<millimetre>>>> dropDiameterVariable(sU("rain_drop_diameter"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension }, sU("Rain Drop Diameter"), sU(""), dropDiameters, true, coordinates2d, std::vector<std::pair<sci::string, CellMethod>>(0));
 	AmfNcVariable<perMetreCubedPerMillimetre, std::vector<std::vector<std::vector<perMetreCubedPerMillimetre>>>> numberDistributionVariable(sU("drop_size_distribution"), file2d, std::vector<sci::NcDimension*>{ &file2d.getTimeDimension(), &indexRangeDimension, &indexBinDimension }, sU("Rain Size Distribution"), sU(""), sizeDistributions, true, coordinates2d, cellMethods2d, sU("In case of low signal to noise ratio negative values can occur. Although they have no physical meaning they are retained in order to avoid statistical biases."));
@@ -453,6 +455,6 @@ bool MicroRainRadarProcessor::fileCoversTimePeriod(sci::string fileName, sci::Ut
 		std::atoi(sci::nativeCodepage(fileName.substr(fileName.length() - 11, 2)).c_str()),
 		std::atoi(sci::nativeCodepage(fileName.substr(fileName.length() - 6, 2)).c_str()),
 		0, 0, 0.0);
-	sci::UtcTime fileEnd = fileStart + second(60 * 60 * 24 - 0.0000001);
-	return (fileStart<endTime && fileEnd > endTime);
+	sci::UtcTime fileEnd = fileStart + second(60.0 * 60.0 * 24.0 - 0.0000001);
+	return (fileStart<endTime && fileEnd > startTime);
 }

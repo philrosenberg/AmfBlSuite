@@ -41,7 +41,7 @@ private:
 		{
 			bool empty = true;
 			for (size_t j = 0; j < 7; ++j)
-				empty = empty && line[3 + i + j] == ' ';
+				empty = empty && line[3 + i * 7 + j] == ' ';
 			if (empty)
 				result[i] = std::numeric_limits<T>::quiet_NaN();
 			else
@@ -62,7 +62,7 @@ private:
 		{
 			bool empty = true;
 			for (size_t j = 0; j < 7; ++j)
-				empty = empty && line[3 + i + j] == ' ';
+				empty = empty && line[3 + i * 7 + j] == ' ';
 			if (empty)
 				result[i] = std::numeric_limits<T>::quiet_NaN();
 			else
