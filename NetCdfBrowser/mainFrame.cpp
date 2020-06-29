@@ -289,15 +289,20 @@ void Series1d::refreshData(splotwindow* window, splot2d* plot, const DataSource*
 				}
 
 
-				
-				double thisXMin = x1dEdges.size() > 0 ? sci::min<double>(x1dEdges) : sci::min<double>(xEdges);
-				double thisXMax = x1dEdges.size() > 0 ? sci::max<double>(x1dEdges) : sci::max<double>(xEdges);
-				double thisYMin = y1dEdges.size() > 0 ? sci::min<double>(y1dEdges) : sci::min<double>(yEdges);
-				double thisYMax = y1dEdges.size() > 0 ? sci::max<double>(y1dEdges) : sci::max<double>(yEdges);
-				xMin = thisXMin < xMin ? thisXMin : xMin;
-				xMax = thisXMax > xMax ? thisXMax : xMax;
-				yMin = thisYMin < yMin ? thisYMin : yMin;
-				yMax = thisYMax > yMax ? thisYMax : yMax;
+				if (m_parent->getParameters().xAuto)
+				{
+					double thisXMin = x1dEdges.size() > 0 ? sci::min<double>(x1dEdges) : sci::min<double>(xEdges);
+					double thisXMax = x1dEdges.size() > 0 ? sci::max<double>(x1dEdges) : sci::max<double>(xEdges);
+					xMin = thisXMin < xMin ? thisXMin : xMin;
+					xMax = thisXMax > xMax ? thisXMax : xMax;
+				}
+				if (m_parent->getParameters().yAuto)
+				{
+					double thisYMin = y1dEdges.size() > 0 ? sci::min<double>(y1dEdges) : sci::min<double>(yEdges);
+					double thisYMax = y1dEdges.size() > 0 ? sci::max<double>(y1dEdges) : sci::max<double>(yEdges);
+					yMin = thisYMin < yMin ? thisYMin : yMin;
+					yMax = thisYMax > yMax ? thisYMax : yMax;
+				}
 				double xRange = xMax - xMin;
 				double yRange = yMax - yMin;
 				xResolution = xRange / plotXPixels;
@@ -337,10 +342,10 @@ void Series1d::refreshData(splotwindow* window, splot2d* plot, const DataSource*
 				if (x1dEdges.size() > 0 && y1dEdges.size() > 0)
 				{
 					//we managed to make the data rectilinear after all
-					if (m_parent->getParameters().xAuto)
+					/*if (m_parent->getParameters().xAuto)
 						xRange = sci::max<double>(xEdges) - sci::min<double>(xEdges);
 					if (m_parent->getParameters().yAuto)
-						yRange = sci::max<double>(yEdges) - sci::min<double>(yEdges);
+						yRange = sci::max<double>(yEdges) - sci::min<double>(yEdges);*/
 
 					std::vector<double> xEdgesResampled;
 					std::vector<size_t> xEdgesNMerged;
@@ -351,7 +356,7 @@ void Series1d::refreshData(splotwindow* window, splot2d* plot, const DataSource*
 					std::vector<std::vector<double>> zResampled = mergeZ(z, xEdgesNMerged, yEdgesNMerged);
 					m_seriesData.reset(new GridData(xEdgesResampled, yEdgesResampled, zResampled, CubehelixColourscale(parameters.colourscaleMin, parameters.colourscaleMax, 101, 1000, 540.0, 1.0, 0.0, 1.0, 1.0, false, false), true, true));
 				}
-				if (y1dEdges.size() > 0)
+				else if (y1dEdges.size() > 0)
 				{
 					std::vector<std::vector<double>> yEdgesResampled;
 					std::vector<std::vector<double>> xEdgesResampled;

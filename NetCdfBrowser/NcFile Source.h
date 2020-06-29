@@ -37,7 +37,7 @@ public:
 			size_t nDimensions = iter->getNumberNonUnityDimesions();
 			if (nonZeroDimensions == 0)
 				nonZeroDimensions = nDimensions;
-			else if (nDimensions != nonZeroDimensions)
+			else if (nDimensions != 0 && nDimensions != nonZeroDimensions)
 				return false;
 		}
 		return true;
