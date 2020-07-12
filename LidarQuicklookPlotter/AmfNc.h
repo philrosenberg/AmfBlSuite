@@ -1228,7 +1228,7 @@ private:
 		sci::NcAttribute unitsAttribute(sU("units"), units);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax);
-		sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<T>());
+		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<T>());
 		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_data)>::baseType>());
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
 		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
@@ -1237,7 +1237,7 @@ private:
 		addAttribute(unitsAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
-		addAttribute(typeAttribute, ncFile);
+		//addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
@@ -1277,7 +1277,7 @@ public:
 		addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag")), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptions, sci::string(sU("\n"))), ncFile);
-		addAttribute(sci::NcAttribute(sU("type"), OutputAmfNcFile::getTypeName<uint8_t>()), ncFile);
+		//addAttribute(sci::NcAttribute(sU("type"), OutputAmfNcFile::getTypeName<uint8_t>()), ncFile);
 		addAttribute(sci::NcAttribute(sU("unit"), sU("1")), ncFile);
 	}
 };
@@ -1324,7 +1324,7 @@ private:
 			unitsAttribute = sci::NcAttribute(sU("units"), sci::Physical<T, VALUE_TYPE>::getShortUnitString());
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>());
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<T>());
-		sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<sci::Physical<T,VALUE_TYPE>>());
+		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<sci::Physical<T,VALUE_TYPE>>());
 		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_data)>::baseType>());
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
 		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
@@ -1333,7 +1333,7 @@ private:
 		addAttribute(unitsAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
-		addAttribute(typeAttribute, ncFile);
+		//addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
@@ -1438,7 +1438,7 @@ private:
 		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referencePhysical::getShortUnitString());
 		sci::NcAttribute validMinAttribute(sU("valid_min"), Decibel<REFERENCE_UNIT>::linearToDecibel(validMinLinear));
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), Decibel<REFERENCE_UNIT>::linearToDecibel(validMaxLinear));
-		sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<Decibel<REFERENCE_UNIT>::valueType>());
+		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<Decibel<REFERENCE_UNIT>::valueType>());
 		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<U>::baseType>());
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
 		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
@@ -1448,7 +1448,7 @@ private:
 		addAttribute(referenceUnitAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
-		addAttribute(typeAttribute, ncFile);
+		//addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
 			addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
