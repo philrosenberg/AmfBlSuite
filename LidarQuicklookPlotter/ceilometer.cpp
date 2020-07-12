@@ -45,7 +45,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	InstrumentInfo& ceilometerInfo,
 	CalibrationInfo& ceilometerCalibrationInfo,
 	DataInfo& dataInfo, std::vector<sci::UtcTime>& times,
-	std::vector<std::vector<metre>>& altitudes,
+	std::vector<std::vector<metre>>& altitudesAboveInstrument,
 	std::vector<std::vector<steradianPerKilometre>>& backscatter,
 	std::vector<std::vector<unitless>>& backscatterRangeSquaredCorrected,
 	std::vector<metre>& cloudBase1, std::vector<metre>& cloudBase2, std::vector<metre>& cloudBase3,
@@ -78,7 +78,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	//time array, holds time/date
 	times.resize(profiles.size());
 	//altitudes of each gate
-	altitudes.resize(profiles.size());
+	altitudesAboveInstrument.resize(profiles.size());
 	//backscatter vs time and height
 	backscatter.resize(profiles.size());
 	backscatterRangeSquaredCorrected.resize(profiles.size());
@@ -132,12 +132,12 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 		//determine the altitudes/ranges
 		auto gates = profiles[i].getGates();
 		ranges[i].resize(gates.size());
-		altitudes[i].resize(gates.size());
+		altitudesAboveInstrument[i].resize(gates.size());
 		unitless cosTilt = sci::cos(tiltAngles[i]);
 		for (size_t j = 0; j < ranges[i].size(); ++j)
 		{
 			ranges[i][j] = unitless(float(gates[j]) + 0.5f) * profiles[i].getResolution();
-			altitudes[i][j] = ranges[i][j] * cosTilt;
+			altitudesAboveInstrument[i][j] = ranges[i][j] * cosTilt;
 		}
 
 		//do the range squares correction
@@ -156,7 +156,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	{
 		std::vector<decltype(dataInfo.averagingPeriod)> averagePeriods(sampleRates.size());
 		for (size_t i = 0; i < averagePeriods.size(); ++i)
-			averagePeriods[i] = pulseQuantities[i] / sampleRates[i];
+			averagePeriods[i] = pulseQuantities[i] / hertz(10000.0);
 		std::sort(averagePeriods.begin(), averagePeriods.end());
 		if (averagePeriods.size() % 2 == 1)
 			dataInfo.averagingPeriod = averagePeriods[averagePeriods.size() / 2];
@@ -167,12 +167,12 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	//pad the 2d data with NaNs if the number of gates has changed, and flag as needed
 	size_t maxGates = 0;
 	for (size_t i = 0; i < profiles.size(); ++i)
-		maxGates = std::max(maxGates, altitudes[i].size());
+		maxGates = std::max(maxGates, altitudesAboveInstrument[i].size());
 
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{
 		backscatter[i].resize(maxGates, std::numeric_limits<steradianPerKilometre>::quiet_NaN());
-		altitudes[i].resize(maxGates, std::numeric_limits<metre>::quiet_NaN());
+		altitudesAboveInstrument[i].resize(maxGates, std::numeric_limits<metre>::quiet_NaN());
 		gateFlags[i].resize(maxGates, ceilometerPaddingFlag);
 	}
 }
@@ -240,6 +240,34 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		cloudBases[i][1] = cloudBase2[i];
 		cloudBases[i][2] = cloudBase3[i];
 		cloudBases[i][3] = cloudBase4[i];
+	}
+	if (platform.getFixedAltitude())
+	{
+		if (times.size() > 0)
+		{
+			degree longitude;
+			degree latitude;
+			metre altitude;
+
+			platform.getLocation(times[0], times[0] - dataInfo.averagingPeriod, latitude, longitude, altitude);
+
+			altitudes += altitude;
+			cloudBases += altitude;
+		}
+	}
+	else
+	{
+		for (size_t i = 0; i < altitudes.size(); ++i)
+		{
+			degree longitude;
+			degree latitude;
+			metre altitude;
+
+			platform.getLocation(times[i], times[i] - dataInfo.averagingPeriod, latitude, longitude, altitude);
+
+			altitudes[i] += altitude;
+			cloudBases[i] += altitude;
+		}
 	}
 
 	//The time dimension will be created automatically when we create our

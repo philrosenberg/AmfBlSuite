@@ -118,7 +118,7 @@ private:
 	std::vector<sci::string> m_inputFilenames;
 	static void formatDataForOutput(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
 		InstrumentInfo& ceilometerInfo, CalibrationInfo& ceilometerCalibrationInfo,
-		DataInfo& dataInfo, std::vector<sci::UtcTime>& times, std::vector<std::vector<metre>>& altitudes,
+		DataInfo& dataInfo, std::vector<sci::UtcTime>& times, std::vector<std::vector<metre>>& altitudesAboveInstrument,
 		std::vector<std::vector<steradianPerKilometre>> &backscatter,
 		std::vector<std::vector<unitless>> &backscatterRangeSquaredCorrected,
 		std::vector<metre> &cloudBase1, std::vector<metre> &cloudBase2, std::vector<metre> &cloudBase3,
