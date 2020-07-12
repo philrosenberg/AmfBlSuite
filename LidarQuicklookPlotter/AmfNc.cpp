@@ -138,7 +138,8 @@ void makeContinuous(std::vector<degree> &angles)
 		*iter += jumpAmount;
 	}
 }
-OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
+OutputAmfNcFile::OutputAmfNcFile(AmfVersion amfVersion,
+	const sci::string &directory,
 	const InstrumentInfo &instrumentInfo,
 	const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingsoftwareInfo,
@@ -153,12 +154,13 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	bool incrementMajorVersion)
 	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 {
-	initialise(directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
+	initialise(amfVersion, directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
 		projectInfo, platform, title, times, std::vector<degree>(0), std::vector<degree>(0), nonTimeDimensions,
 		globalAttributes, incrementMajorVersion);
 }
 
-OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
+OutputAmfNcFile::OutputAmfNcFile(AmfVersion amfVersion,
+	const sci::string &directory,
 	const InstrumentInfo &instrumentInfo,
 	const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingsoftwareInfo,
@@ -175,12 +177,13 @@ OutputAmfNcFile::OutputAmfNcFile(const sci::string &directory,
 	bool incrementMajorVersion)
 	:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 {
-	initialise(directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
+	initialise(amfVersion, directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
 		projectInfo, platform, title, times, latitudes, longitudes, nonTimeDimensions, globalAttributes,
 		incrementMajorVersion);
 }
 
-void OutputAmfNcFile::initialise(const sci::string &directory,
+void OutputAmfNcFile::initialise(AmfVersion amfVersion,
+	const sci::string &directory,
 	const InstrumentInfo &instrumentInfo,
 	const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingsoftwareInfo,
@@ -425,8 +428,15 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 
 	//create the new file
 	openWritable(filename, '_');
+	sci::string amfVersionString;
+	if (amfVersion == AmfVersion::v1_1_0)
+		amfVersionString = sU("1.1.0");
+	else if (amfVersion == AmfVersion::v2_0_0)
+		amfVersionString = sU("2.0.0");
+	else
+		throw(sci::err(sci::SERR_USER, 0, sU("Attempting to write a netcdf file with an unknown standard version.")));
 
-	write(sci::NcAttribute(sU("Conventions"), sci::string(sU("CF-1.6, NCAS-AMF-0.2.3"))));
+	write(sci::NcAttribute(sU("Conventions"), sci::string(sU("CF-1.6, NCAS-AMF-")) + amfVersionString));
 	write(sci::NcAttribute(sU("source"), instrumentInfo.description));
 	write(sci::NcAttribute(sU("instrument_manufacturer"), instrumentInfo.manufacturer));
 	write(sci::NcAttribute(sU("instrument_model"), instrumentInfo.model));
@@ -486,7 +496,7 @@ void OutputAmfNcFile::initialise(const sci::string &directory,
 	for (size_t i = 1; i < platform.getPlatformInfo().locationKeywords.size(); ++i)
 		locationKeywords << ", " << platform.getPlatformInfo().locationKeywords[i];
 	write(sci::NcAttribute(sU("location_keywords"), locationKeywords.str()));
-	write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/tree/v0.2.3"))));
+	write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/releases/tag/v"))+ amfVersionString));
 	write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science.") : sU(""))));
 	
 	for (size_t i = 0; i < globalAttributes.size(); ++i)

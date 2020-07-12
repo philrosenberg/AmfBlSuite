@@ -2,7 +2,7 @@
   <!--This file contains the settings for a run of the processing software-->
   <author type ="amfEntity/person" id="1"></author>
   <project type="amfEntity/project" id="1"></project>
-  <platform type="amfEntity/platform" id="3"></platform>
+  <platform type="amfEntity/platform" id="1"></platform>
   <!--
   <processor>
     <name>SondeProcessor</name>

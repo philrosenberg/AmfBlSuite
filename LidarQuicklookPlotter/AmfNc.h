@@ -785,13 +785,19 @@ class AmfNcLongitudeVariable;
 template<class T, class U>
 class AmfNcVariable;
 
+enum class AmfVersion
+{
+	v1_1_0,
+	v2_0_0
+};
 
 class OutputAmfNcFile : public sci::OutputNcFile
 {
 	//friend class AmfNcVariable;
 public:
 	//use this constructor to get the position info from the platform
-	OutputAmfNcFile(const sci::string &directory,
+	OutputAmfNcFile(AmfVersion amfVersion,
+		const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
 		const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingsoftwareInfo,
@@ -805,7 +811,8 @@ public:
 		const std::vector< sci::NcAttribute *> &globalAttributes = std::vector< sci::NcAttribute*>(0),
 		bool incrementMajorVersion = false);
 	//use this constructor to provide instrument derived lats and lons, e.g. for sondes
-	OutputAmfNcFile(const sci::string &directory,
+	OutputAmfNcFile(AmfVersion amfVersion,
+		const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
 		const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingsoftwareInfo,
@@ -856,7 +863,8 @@ public:
 		return TypeName<T>::name;
 	}
 private:
-	void initialise(const sci::string &directory,
+	void initialise(AmfVersion amfVersion,
+		const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
 		const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingsoftwareInfo,

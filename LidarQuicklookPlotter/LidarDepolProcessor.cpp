@@ -315,7 +315,7 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 	sci::stringstream comment;
 	comment << sU("Doppler lidar depolorisation profiles, averaged for at least ") << dataInfo.averagingPeriod << sU(" if the ray time is shorter than this.");
 
-	OutputAmfNcFile file(directory, m_copolarisedProcessor.getInstrumentInfo(), author, processingSoftwareInfo, m_copolarisedProcessor.getCalibrationInfo(), dataInfo,
+	OutputAmfNcFile file(AmfVersion::v1_1_0, directory, m_copolarisedProcessor.getInstrumentInfo(), author, processingSoftwareInfo, m_copolarisedProcessor.getCalibrationInfo(), dataInfo,
 		projectInfo, platform, comment.str(), averagedTime, nonTimeDimensions);
 
 	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind

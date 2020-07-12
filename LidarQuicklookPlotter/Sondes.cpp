@@ -972,7 +972,7 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 
 	//Output the parameters
 
-	OutputAmfNcFile file(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
+	OutputAmfNcFile file(AmfVersion::v1_1_0, directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
 		projectInfo, platform, sU("radio sonde trajectory"), m_time, m_latitude, m_longitude);
 
 	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::point} };

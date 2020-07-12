@@ -520,7 +520,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 
 
 
-	OutputAmfNcFile file(directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
+	OutputAmfNcFile file(AmfVersion::v1_1_0, directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
 		projectInfo, platform, sU("doppler lidar scan"), scanStartTimes, nonTimeDimensions);
 
 	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind

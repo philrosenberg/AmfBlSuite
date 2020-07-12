@@ -98,9 +98,15 @@ public:
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
 	virtual void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, bool clearPrevious);
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
-		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
+	virtual void writeToNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter) override;
+	static void writeToNc_1_1_0(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
+		sci::string directory, const PersonInfo& author, const ProcessingSoftwareInfo& processingSoftwareInfo,
+		const ProjectInfo& projectInfo, const Platform& platform, const ProcessingOptions& processingOptions);
+	static void writeToNc_2_0_0(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
+		sci::string directory, const PersonInfo& author, const ProcessingSoftwareInfo& processingSoftwareInfo,
+		const ProjectInfo& projectInfo, const Platform& platform, const ProcessingOptions& processingOptions);
 	virtual bool hasData() const override { return m_hasData; }
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;

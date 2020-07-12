@@ -315,7 +315,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	sci::NcDimension indexDimension1d(sU("index"), altitudes[0].size());
 	nonTimeDimensions1D.push_back(&indexDimension1d);
 
-	OutputAmfNcFile file1d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo1d,
+	OutputAmfNcFile file1d(AmfVersion::v1_1_0, directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo1d,
 		projectInfo, platform, sU("micro rain radar size integrated profile"), times, nonTimeDimensions1D);
 
 	std::vector<std::pair<sci::string, CellMethod>>cellMethods1d{ {sU("time"), CellMethod::point}, { sU("altitude"), CellMethod::mean } };
@@ -413,7 +413,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	nonTimeDimensions2d.push_back(&indexRangeDimension);
 	nonTimeDimensions2d.push_back(&indexBinDimension);
 
-	OutputAmfNcFile file2d(directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo2d,
+	OutputAmfNcFile file2d(AmfVersion::v1_1_0, directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo2d,
 		projectInfo, platform, sU("micro rain radar size dependent profile"), times, nonTimeDimensions2d);
 
 	std::vector<std::pair<sci::string, CellMethod>>cellMethods2d{ {sU("time"), CellMethod::point}, { sU("altitude"), CellMethod::mean }, {sU("rain_drop_diameter"), CellMethod::mean} };
