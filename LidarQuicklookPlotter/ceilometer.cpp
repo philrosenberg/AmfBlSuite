@@ -9,14 +9,14 @@
 uint8_t CampbellCeilometerProfile::getProfileFlag() const
 {
 	if (m_profile.getMessageStatus() == ceilometerMessageStatus::rawDataMissingOrSuspect)
-		return 5;
+		return ceilometerRawDataMissingOrSuspectFlag;
 	if (m_profile.getMessageStatus() == ceilometerMessageStatus::someObscurationTransparent)
-		return 4;
+		return ceilometerSomeObscurationTransparentFlag;
 	if (m_profile.getMessageStatus() == ceilometerMessageStatus::fullObscurationNoCloudBase)
-		return 3;
+		return ceilometerFullObscurationNoCloudBaseFlag;
 	if (m_profile.getMessageStatus() == ceilometerMessageStatus::noSignificantBackscatter)
-		return 2;
-	return 1;
+		return ceilometerNoSignificantBackscatterFlag;
+	return ceilometerGoodFlag;
 }
 std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 {
@@ -52,7 +52,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	std::vector<metre>& cloudBase4, std::vector<percent> &laserEnergies, std::vector<kelvin> &laserTemperatures,
 	std::vector<unitless>& pulseQuantities, std::vector<degree>& tiltAngles, std::vector<percent>& scales,
 	std::vector<percent>& windowTransmissions, std::vector<millivolt>& backgrounds, std::vector<perSteradian>& sums,
-	std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags)
+	std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags, std::vector<uint8_t>& cloudBaseFlags)
 {
 	
 	ceilometerInfo.name = sU("ncas-ceilometer-1");
@@ -90,6 +90,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	//flags - one flag for each profile and one flage for each
 	//each gate in each profile
 	profileFlags.resize(profiles.size());
+	cloudBaseFlags.resize(profiles.size());
 	gateFlags.resize(profiles.size());
 	//the vertical resolution of the profiles - we check this is the same for each profile
 	metre resolution;
@@ -115,7 +116,11 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 		cloudBase4[i] = profiles[i].getCloudBase4();
 
 		//assign the flags
-		profileFlags[i] = profiles[i].getProfileFlag();
+		cloudBaseFlags[i] = profiles[i].getProfileFlag();
+		if (cloudBaseFlags[i] == ceilometerRawDataMissingOrSuspectFlag)
+			profileFlags[i] = cloudBaseFlags[i];
+		else
+			profileFlags[i] = cloudBaseFlags[i] = ceilometerGoodFlag;
 		gateFlags[i] = profiles[i].getGateFlags();
 
 		//assign the housekeeping data
@@ -223,13 +228,14 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 	std::vector<millivolt> backgrounds;
 	std::vector<perSteradian> sums;
 	std::vector<uint8_t> profileFlags;
+	std::vector<uint8_t> cloudBaseFlags;
 	std::vector<std::vector<uint8_t>> gateFlags;
 	std::vector<std::vector<uint8_t>> cloudCoverage;
 
 	formatDataForOutput(header, profiles, ceilometerInfo, ceilometerCalibrationInfo, dataInfo, times, altitudes,
 		backscatter, backscatterRangeSquaredCorrected, cloudBase1, cloudBase2, cloudBase3, cloudBase4, laserEnergies,
 		laserTemperatures, pulseQuantities, tiltAngles, scales, windowTransmissions, backgrounds, sums, profileFlags,
-		gateFlags);
+		gateFlags, cloudBaseFlags);
 	dataInfo.processingOptions = processingOptions;
 	//build the cloud base data as a 2d vector, time dimension first
 	std::vector<std::vector<metre>> cloudBases(cloudBase1.size());
@@ -336,8 +342,8 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		AmfNcVariable<percent, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<millivolt, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<perSteradian, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean);
-		sci::NcVariable<uint8_t> profileFlagsVariable(sU("profile-flag"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension());
-		sci::NcVariable<uint8_t> gateFlagsVariable(sU("gate-flag"), ceilometerBackscatterFile, backscatterDimensions);
+		AmfNcFlagVariable profileFlagsVariable(sU("qc_flag_profiles"), ceilometerFlags, ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension() );
+		AmfNcFlagVariable gateFlagsVariable(sU("qc_flag_gate"), ceilometerFlags, ceilometerBackscatterFile, backscatterDimensions);
 
 
 
@@ -384,7 +390,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		AmfNcVariable<percent, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<millivolt, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<perSteradian, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean);
-		sci::NcVariable<uint8_t> profileFlagsVariable(sU("profile-flag"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension());
+		AmfNcFlagVariable profileFlagsVariable(sU("qc_flag"), ceilometerFlags, ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension());
 
 		ceilometerCloudBaseFile.writeTimeAndLocationData(platform);
 

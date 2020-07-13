@@ -1263,6 +1263,16 @@ public:
 	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>> &flagDefinitions, const sci::OutputNcFile &ncFile, std::vector<sci::NcDimension *> &dimensions)
 		: sci::NcVariable<uint8_t>(name, ncFile, dimensions)
 	{
+		initialise(flagDefinitions, ncFile);
+	}
+	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile, sci::NcDimension& dimension)
+		: sci::NcVariable<uint8_t>(name, ncFile, dimension)
+	{
+		initialise(flagDefinitions, ncFile);
+	}
+private:
+	void initialise(const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile)
+	{
 		std::vector<uint8_t>  flagValues(flagDefinitions.size());
 		std::vector<sci::string>  flagDescriptions(flagDefinitions.size());
 		for (size_t i = 0; i < flagDefinitions.size(); ++i)

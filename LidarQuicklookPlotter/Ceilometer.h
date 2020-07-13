@@ -14,6 +14,11 @@ const uint8_t ceilometerGoodFlag = 1;
 const uint8_t ceilometerFilteredNoiseFlag = 2;
 const uint8_t ceilometerLowSignalFlag = 3;
 const uint8_t ceilometerPaddingFlag = 4;
+const uint8_t ceilometerRawDataMissingOrSuspectFlag = 5;
+const uint8_t ceilometerSomeObscurationTransparentFlag = 6;
+const uint8_t ceilometerFullObscurationNoCloudBaseFlag = 7;
+const uint8_t ceilometerNoSignificantBackscatterFlag = 8;
+
 
 const std::vector<std::pair<uint8_t, sci::string>> ceilometerFlags
 {
@@ -21,7 +26,11 @@ const std::vector<std::pair<uint8_t, sci::string>> ceilometerFlags
 {ceilometerGoodFlag, sU("good_data")},
 {ceilometerFilteredNoiseFlag, sU("Data filtered by instrument as below noise level") },
 {ceilometerLowSignalFlag, sU("Data is below the level that it would be filtered by the instrument if filtering was on") },
-{ceilometerPaddingFlag, sU("Data is padded because the number of gates changed during this file") }
+{ceilometerPaddingFlag, sU("Data is padded because the number of gates changed during this file") },
+{ceilometerRawDataMissingOrSuspectFlag, sU("Data is missing or suspect")},
+{ceilometerSomeObscurationTransparentFlag, sU("Some obscuration detected but determined to be transparent")},
+{ceilometerFullObscurationNoCloudBaseFlag, sU("Full obscuration determined but no cloud base detected")},
+{ceilometerNoSignificantBackscatterFlag, sU("No significant back-scatter")}
 };
 
 class CampbellCeilometerProfile
@@ -125,5 +134,5 @@ private:
 		std::vector<metre> &cloudBase4, std::vector<percent> &laserEnergies, std::vector<kelvin> &laserTemperatures,
 		std::vector<unitless> &pulseQuantities, std::vector<degree> &tiltAngles, std::vector<percent> &scales,
 		std::vector<percent> &windowTransmissions, std::vector<millivolt> &backgrounds, std::vector<perSteradian> &sums,
-		std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags);
+		std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags, std::vector<uint8_t>& cloudBaseFlags);
 };
