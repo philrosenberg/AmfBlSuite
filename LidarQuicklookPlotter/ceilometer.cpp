@@ -25,8 +25,8 @@ std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 	//Also data below 1e-7 sr m-1 is probably noise too so flag it
 
 	std::vector<uint8_t> result(getBetas().size(), ceilometerGoodFlag);
-	sci::assign(result, getBetas() < steradianPerMetre(1e-12f), ceilometerFilteredNoiseFlag);
-	sci::assign(result, getBetas() < steradianPerMetre(1e-7f), ceilometerLowSignalFlag);
+	sci::assign(result, getBetas() < perSteradianPerMetre(1e-12f), ceilometerFilteredNoiseFlag);
+	sci::assign(result, getBetas() < perSteradianPerMetre(1e-7f), ceilometerLowSignalFlag);
 	return result;
 }
 
@@ -46,8 +46,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	CalibrationInfo& ceilometerCalibrationInfo,
 	DataInfo& dataInfo, std::vector<sci::UtcTime>& times,
 	std::vector<std::vector<metre>>& altitudesAboveInstrument,
-	std::vector<std::vector<steradianPerKilometre>>& backscatter,
-	std::vector<std::vector<unitless>>& backscatterRangeSquaredCorrected,
+	std::vector<std::vector<perSteradianPerMetre>>& backscatter,
 	std::vector<metre>& cloudBase1, std::vector<metre>& cloudBase2, std::vector<metre>& cloudBase3,
 	std::vector<metre>& cloudBase4, std::vector<percent> &laserEnergies, std::vector<kelvin> &laserTemperatures,
 	std::vector<unitless>& pulseQuantities, std::vector<degree>& tiltAngles, std::vector<percent>& scales,
@@ -59,13 +58,13 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	ceilometerInfo.manufacturer = sU("Campbell Scientific");
 	ceilometerInfo.model = sU("CS135");
 	ceilometerInfo.description = sU("NCAS Lidar Ceilometer unit 1");
-	ceilometerInfo.operatingSoftware = sU("not available");
-	ceilometerInfo.operatingSoftwareVersion = sU("not available");
-	ceilometerInfo.serial = sU("not available");
+	ceilometerInfo.operatingSoftware = sU("");
+	ceilometerInfo.operatingSoftwareVersion = sU("");
+	ceilometerInfo.serial = sU("");
 
 	dataInfo.continuous = true;
 	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
-	dataInfo.averagingPeriod = second(10);
+	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later;
 	dataInfo.startTime = profiles.size() > 0 ? profiles[0].getTime() : sci::UtcTime();
 	dataInfo.endTime = profiles.size() > 0 ? profiles.back().getTime() : sci::UtcTime();
 	dataInfo.featureType = FeatureType::timeSeriesProfile;
@@ -81,7 +80,6 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	altitudesAboveInstrument.resize(profiles.size());
 	//backscatter vs time and height
 	backscatter.resize(profiles.size());
-	backscatterRangeSquaredCorrected.resize(profiles.size());
 	//cloud bases
 	cloudBase1.resize(profiles.size());
 	cloudBase2.resize(profiles.size());
@@ -109,7 +107,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{
 		times[i] = profiles[i].getTime();
-		backscatter[i] = profiles[i].getBetas();
+		sci::convert(backscatter[i],profiles[i].getBetas());
 		cloudBase1[i] = profiles[i].getCloudBase1();
 		cloudBase2[i] = profiles[i].getCloudBase2();
 		cloudBase3[i] = profiles[i].getCloudBase3();
@@ -146,9 +144,9 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 		}
 
 		//do the range squares correction
-		backscatterRangeSquaredCorrected[i].resize(backscatter[i].size());
-		for (size_t j = 0; j < backscatter[i].size(); ++j)
-			backscatterRangeSquaredCorrected[i][j] = sci::ln(backscatter[i][j] * ranges[i][j] * ranges[i][j] / steradianPerKilometre(1) / metre(1) / metre(1));
+		//backscatterRangeSquaredCorrected[i].resize(backscatter[i].size());
+		//for (size_t j = 0; j < backscatter[i].size(); ++j)
+		//	backscatterRangeSquaredCorrected[i][j] = sci::ln(backscatter[i][j] * ranges[i][j] * ranges[i][j] / steradianPerKilometre(1) / metre(1) / metre(1));
 	}
 
 	//work out time intervals
@@ -157,17 +155,19 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 		dataInfo.samplingInterval = sci::median( sci::subvector(times, 1, times.size() - 1) - sci::subvector(times, 0, times.size() - 1) );
 	}
 
-	if (times.size() > 0)
-	{
-		std::vector<decltype(dataInfo.averagingPeriod)> averagePeriods(sampleRates.size());
-		for (size_t i = 0; i < averagePeriods.size(); ++i)
-			averagePeriods[i] = pulseQuantities[i] / hertz(10000.0);
-		std::sort(averagePeriods.begin(), averagePeriods.end());
-		if (averagePeriods.size() % 2 == 1)
-			dataInfo.averagingPeriod = averagePeriods[averagePeriods.size() / 2];
-		else
-			dataInfo.averagingPeriod = (averagePeriods[averagePeriods.size() / 2 - 1] + averagePeriods[averagePeriods.size() / 2]) / unitless(2.0);
-	}
+	//if (times.size() > 0)
+	//{
+	//	std::vector<decltype(dataInfo.averagingPeriod)> averagePeriods(sampleRates.size());
+	//	for (size_t i = 0; i < averagePeriods.size(); ++i)
+	//		averagePeriods[i] = pulseQuantities[i] / hertz(10000.0);
+	//	std::sort(averagePeriods.begin(), averagePeriods.end());
+	//	if (averagePeriods.size() % 2 == 1)
+	//		dataInfo.averagingPeriod = averagePeriods[averagePeriods.size() / 2];
+	//	else
+	//		dataInfo.averagingPeriod = (averagePeriods[averagePeriods.size() / 2 - 1] + averagePeriods[averagePeriods.size() / 2]) / unitless(2.0);
+	//}
+	//the above code is apparently incorrect. The averaging period is the output period
+	dataInfo.averagingPeriod = dataInfo.samplingInterval;
 
 	//pad the 2d data with NaNs if the number of gates has changed, and flag as needed
 	size_t maxGates = 0;
@@ -176,7 +176,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{
-		backscatter[i].resize(maxGates, std::numeric_limits<steradianPerKilometre>::quiet_NaN());
+		backscatter[i].resize(maxGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
 		altitudesAboveInstrument[i].resize(maxGates, std::numeric_limits<metre>::quiet_NaN());
 		gateFlags[i].resize(maxGates, ceilometerPaddingFlag);
 	}
@@ -213,8 +213,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 	DataInfo dataInfo;
 	std::vector<sci::UtcTime> times;
 	std::vector<std::vector<metre>> altitudes;
-	std::vector<std::vector<steradianPerKilometre>> backscatter;
-	std::vector<std::vector<unitless>> backscatterRangeSquaredCorrected;
+	std::vector<std::vector<perSteradianPerMetre>> backscatter;
 	std::vector<metre> cloudBase1;
 	std::vector<metre> cloudBase2;
 	std::vector<metre> cloudBase3;
@@ -233,7 +232,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 	std::vector<std::vector<uint8_t>> cloudCoverage;
 
 	formatDataForOutput(header, profiles, ceilometerInfo, ceilometerCalibrationInfo, dataInfo, times, altitudes,
-		backscatter, backscatterRangeSquaredCorrected, cloudBase1, cloudBase2, cloudBase3, cloudBase4, laserEnergies,
+		backscatter, cloudBase1, cloudBase2, cloudBase3, cloudBase4, laserEnergies,
 		laserTemperatures, pulseQuantities, tiltAngles, scales, windowTransmissions, backgrounds, sums, profileFlags,
 		gateFlags, cloudBaseFlags);
 	dataInfo.processingOptions = processingOptions;
@@ -255,7 +254,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 			degree latitude;
 			metre altitude;
 
-			platform.getLocation(times[0], times[0] - dataInfo.averagingPeriod, latitude, longitude, altitude);
+			platform.getLocation(times.front(), times.back(), latitude, longitude, altitude);
 
 			altitudes += altitude;
 			cloudBases += altitude;
@@ -318,22 +317,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 
 		std::vector<sci::NcDimension*> backscatterDimensions{ &ceilometerBackscatterFile.getTimeDimension(), nonTimeDimensions[0] };
 
-		ceilometerBackscatterFile.writeTimeAndLocationData(platform);
-		//add the data variables
-		if (amfVersion == AmfVersion::v1_1_0)
-		{
-			AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, backscatterDimensions, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, cellMethodsNone);
-			altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ceilometerBackscatterFile);
-			ceilometerBackscatterFile.write(altitudeVariable);
-		}
-		else
-		{
-			AmfNcVariable<metre, std::vector<metre>> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, altitudeDimension, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes[0], true, coordinates, cellMethodsNone);
-			altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ceilometerBackscatterFile);
-			ceilometerBackscatterFile.write(altitudeVariable);
-		}
-		AmfNcVariable<steradianPerKilometre, decltype(backscatter)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), & altitudeDimension }, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatter, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<unitless, decltype(backscatterRangeSquaredCorrected)> backscatterRangeSquaredCorrectedVariable(sU("range_squared_corrected_backscatter_power"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), & altitudeDimension }, sU("Range Squared Corrected Backscatter Power (ln(arbitrary raw data unit))"), sU(""), backscatterRangeSquaredCorrected, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<perSteradianPerMetre, decltype(backscatter)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), nonTimeDimensions[0] }, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatter, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<percent, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<kelvin, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<degree, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
@@ -345,10 +329,24 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		AmfNcFlagVariable profileFlagsVariable(sU("qc_flag_profiles"), ceilometerFlags, ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension() );
 		AmfNcFlagVariable gateFlagsVariable(sU("qc_flag_gate"), ceilometerFlags, ceilometerBackscatterFile, backscatterDimensions);
 
+		//add the data variables
+		if (amfVersion == AmfVersion::v1_1_0)
+		{
+			AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, backscatterDimensions, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, cellMethodsNone);
+			altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ceilometerBackscatterFile);
+			ceilometerBackscatterFile.writeTimeAndLocationData(platform);
+			ceilometerBackscatterFile.write(altitudeVariable);
+		}
+		else
+		{
+			AmfNcVariable<metre, std::vector<metre>> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, altitudeDimension, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes[0], true, coordinates, cellMethodsNone);
+			altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ceilometerBackscatterFile);
+			ceilometerBackscatterFile.writeTimeAndLocationData(platform);
+			ceilometerBackscatterFile.write(altitudeVariable);
+		}
 
 
 		ceilometerBackscatterFile.write(backscatterVariable);
-		ceilometerBackscatterFile.write(backscatterRangeSquaredCorrectedVariable);
 		ceilometerBackscatterFile.write(laserEnergiesVariable);
 		ceilometerBackscatterFile.write(laserTemperaturesVariable);
 		ceilometerBackscatterFile.write(tiltAngleVariable);
@@ -662,7 +660,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	while (profiles.size() / timeAveragePeriod > 800)
 		timeAveragePeriod *= 2;
 
-	std::vector<std::vector<steradianPerMetre>> data(profiles.size() / timeAveragePeriod);
+	std::vector<std::vector<perSteradianPerMetre>> data(profiles.size() / timeAveragePeriod);
 	for (size_t i = 0; i < data.size(); ++i)
 	{
 		sci::convert(data[i], profiles[i*timeAveragePeriod].getBetas());
@@ -684,7 +682,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	if (heightAveragePeriod > 1)
 	{
 		for (size_t i = 0; i < data.size(); ++i)
-			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod, sci::PhysicalDivide<steradianPerMetre::unit,steradianPerMetre::valueType>);
+			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod, sci::PhysicalDivide<perSteradianPerMetre::unit,steradianPerMetre::valueType>);
 	}
 
 	std::vector<second> xs(data.size() + 1);
@@ -712,7 +710,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	std::vector<std::vector<double>> zsTemp;
 	sci::convert(xsTemp, sci::physicalsToValues<second>(xs));
 	sci::convert(ysTemp, sci::physicalsToValues<metre>(ys));
-	sci::convert(zsTemp, sci::physicalsToValues<steradianPerMetre>(data));
+	sci::convert(zsTemp, sci::physicalsToValues<perSteradianPerMetre>(data));
 
 	std::shared_ptr<GridData> gridData(new GridData(xsTemp, ysTemp, zsTemp, g_lidarColourscale, true, true));
 

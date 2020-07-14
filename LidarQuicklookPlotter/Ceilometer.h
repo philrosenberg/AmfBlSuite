@@ -39,7 +39,7 @@ public:
 	CampbellCeilometerProfile(const sci::UtcTime &time, const CampbellMessage2 &profile)
 		:m_time(time), m_profile(profile)
 	{}
-	const std::vector<steradianPerKilometre> &getBetas() const { return m_profile.getData(); }
+	const std::vector<perSteradianPerKilometre> &getBetas() const { return m_profile.getData(); }
 	std::vector<size_t> getGates() const { return sci::indexvector<size_t>(m_profile.getData().size()); }
 	void setTime(const sci::UtcTime &time) { m_time = time; }
 	const sci::UtcTime &getTime() const { return m_time; }
@@ -128,8 +128,7 @@ private:
 	static void formatDataForOutput(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
 		InstrumentInfo& ceilometerInfo, CalibrationInfo& ceilometerCalibrationInfo,
 		DataInfo& dataInfo, std::vector<sci::UtcTime>& times, std::vector<std::vector<metre>>& altitudesAboveInstrument,
-		std::vector<std::vector<steradianPerKilometre>> &backscatter,
-		std::vector<std::vector<unitless>> &backscatterRangeSquaredCorrected,
+		std::vector<std::vector<perSteradianPerMetre>> &backscatter,
 		std::vector<metre> &cloudBase1, std::vector<metre> &cloudBase2, std::vector<metre> &cloudBase3,
 		std::vector<metre> &cloudBase4, std::vector<percent> &laserEnergies, std::vector<kelvin> &laserTemperatures,
 		std::vector<unitless> &pulseQuantities, std::vector<degree> &tiltAngles, std::vector<percent> &scales,

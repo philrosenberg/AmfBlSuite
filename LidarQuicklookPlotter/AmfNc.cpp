@@ -437,24 +437,24 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 		throw(sci::err(sci::SERR_USER, 0, sU("Attempting to write a netcdf file with an unknown standard version.")));
 
 	write(sci::NcAttribute(sU("Conventions"), sci::string(sU("CF-1.6, NCAS-AMF-")) + amfVersionString));
-	write(sci::NcAttribute(sU("source"), instrumentInfo.description));
-	write(sci::NcAttribute(sU("instrument_manufacturer"), instrumentInfo.manufacturer));
-	write(sci::NcAttribute(sU("instrument_model"), instrumentInfo.model));
-	write(sci::NcAttribute(sU("instrument_serial_number"), instrumentInfo.serial));
-	write(sci::NcAttribute(sU("instrument_software"), instrumentInfo.operatingSoftware));
-	write(sci::NcAttribute(sU("instrument_software_version"), instrumentInfo.operatingSoftwareVersion));
-	write(sci::NcAttribute(sU("creator_name"), author.name));
-	write(sci::NcAttribute(sU("creator_email"), author.email));
-	write(sci::NcAttribute(sU("creator_url"), author.orcidUrl));
-	write(sci::NcAttribute(sU("institution"), author.institution));
-	write(sci::NcAttribute(sU("processing_software_url"), processingsoftwareInfo.url));
-	write(sci::NcAttribute(sU("processing_software_version"), processingsoftwareInfo.version));
-	write(sci::NcAttribute(sU("calibration_sensitivity"), calibrationInfo.calibrationDescription));
+	write(sci::NcAttribute(sU("source"), instrumentInfo.description.length() > 0 ? instrumentInfo.description  : sU("not available")));
+	write(sci::NcAttribute(sU("instrument_manufacturer"), instrumentInfo.manufacturer.length() > 0 ? instrumentInfo.manufacturer : sU("not available")));
+	write(sci::NcAttribute(sU("instrument_model"), instrumentInfo.model.length() > 0 ? instrumentInfo.model : sU("not available")));
+	write(sci::NcAttribute(sU("instrument_serial_number"), instrumentInfo.serial.length() > 0 ? instrumentInfo.serial : sU("not available")));
+	write(sci::NcAttribute(sU("instrument_software"), instrumentInfo.operatingSoftware.length() > 0 ? instrumentInfo.operatingSoftware : sU("not available")));
+	write(sci::NcAttribute(sU("instrument_software_version"), instrumentInfo.operatingSoftwareVersion.length() > 0 ? instrumentInfo.operatingSoftwareVersion : sU("not available")));
+	write(sci::NcAttribute(sU("creator_name"), author.name.length() > 0 ? author.name : sU("not available")));
+	write(sci::NcAttribute(sU("creator_email"), author.email.length() > 0 ? author.email : sU("not available")));
+	write(sci::NcAttribute(sU("creator_url"), author.orcidUrl.length() > 0 ? author.orcidUrl : sU("not available")));
+	write(sci::NcAttribute(sU("institution"), author.institution.length() > 0 ? author.institution : sU("not available")));
+	write(sci::NcAttribute(sU("processing_software_url"), processingsoftwareInfo.url.length() > 0 ? processingsoftwareInfo.url : sU("not available")));
+	write(sci::NcAttribute(sU("processing_software_version"), processingsoftwareInfo.version.length() > 0 ? processingsoftwareInfo.version : sU("not available")));
+	write(sci::NcAttribute(sU("calibration_sensitivity"), calibrationInfo.calibrationDescription.length() > 0 ? calibrationInfo.calibrationDescription : sU("not available")));
 	if (calibrationInfo.certificationDate == sci::UtcTime(0, 1, 1, 0, 0, 0))
-		write(sci::NcAttribute(sU("calibration_certification_date"), sU("Not available")));
+		write(sci::NcAttribute(sU("calibration_certification_date"), sU("not available")));
 	else
 		write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate, sU("-"), sU(":"), sU("T"))));
-	write(sci::NcAttribute(sU("calibration_certification_url"), calibrationInfo.certificateUrl));
+	write(sci::NcAttribute(sU("calibration_certification_url"), calibrationInfo.certificateUrl.length() > 0 ? calibrationInfo.certificateUrl : sU("not available")));
 	sci::stringstream samplingIntervalString;
 	samplingIntervalString << dataInfo.samplingInterval;
 	write(sci::NcAttribute(sU("sampling_interval"), samplingIntervalString.str()));
@@ -462,13 +462,13 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	averagingIntervalString << dataInfo.averagingPeriod;
 	write(sci::NcAttribute(sU("averaging_interval"), averagingIntervalString.str()));
 	write(sci::NcAttribute(sU("processing_level"), dataInfo.processingLevel));
-	write(sci::NcAttribute(sU("project"), projectInfo.name));
-	write(sci::NcAttribute(sU("project_principal_investigator"), projectInfo.principalInvestigatorInfo.name));
-	write(sci::NcAttribute(sU("project_principal_investigator_email"), projectInfo.principalInvestigatorInfo.email));
-	write(sci::NcAttribute(sU("project_principal_investigator_url"), projectInfo.principalInvestigatorInfo.orcidUrl));
+	write(sci::NcAttribute(sU("project"), projectInfo.name.length() > 0 ? projectInfo.name : sU("not available")));
+	write(sci::NcAttribute(sU("project_principal_investigator"), projectInfo.principalInvestigatorInfo.name.length() > 0 ? projectInfo.principalInvestigatorInfo.name : sU("not available")));
+	write(sci::NcAttribute(sU("project_principal_investigator_email"), projectInfo.principalInvestigatorInfo.email.length() > 0 ? projectInfo.principalInvestigatorInfo.email : sU("not available")));
+	write(sci::NcAttribute(sU("project_principal_investigator_url"), projectInfo.principalInvestigatorInfo.orcidUrl.length() > 0 ? projectInfo.principalInvestigatorInfo.orcidUrl : sU("not available")));
 	write(sci::NcAttribute(sU("licence"), sci::string(sU("Data usage licence - UK Government Open Licence agreement: http://www.nationalarchives.gov.uk/doc/open-government-licence"))));
 	write(sci::NcAttribute(sU("acknowledgement"), sci::string(sU("Acknowledgement of NCAS as the data provider is required whenever and wherever these data are used"))));
-	write(sci::NcAttribute(sU("platform"), platform.getPlatformInfo().name));
+	write(sci::NcAttribute(sU("platform"), platform.getPlatformInfo().name.length() > 0 ? platform.getPlatformInfo().name : sU("not available")));
 	write(sci::NcAttribute(sU("platform_type"), g_platformTypeStrings.find(platform.getPlatformInfo().platformType)->second));
 	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings.find(platform.getPlatformInfo().deploymentMode)->second));
 	write(sci::NcAttribute(sU("title"), title));
@@ -566,9 +566,12 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 		std::vector<std::pair<sci::string, CellMethod>> motionMaxCellMethods{ {sU("time"), CellMethod::max} };
 		std::vector<sci::string> motionCoordinates{ sU("longitude"), sU("latitude") };
 
-		m_courseVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), m_courses, true, motionCoordinates, motionCellMethods));
-		m_speedVariable.reset(new AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), m_speeds, true, motionCoordinates, motionCellMethods));
-		m_orientationVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), sU("platform_orientation"), m_headings, true, motionCoordinates, motionCellMethods));
+		if(sci::anyTrue(sci::isEq(m_courses, m_courses)))
+			m_courseVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), m_courses, true, motionCoordinates, motionCellMethods));
+		if (sci::anyTrue(sci::isEq(m_speeds, m_speeds)))
+			m_speedVariable.reset(new AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), m_speeds, true, motionCoordinates, motionCellMethods));
+		if (sci::anyTrue(sci::isEq(m_headings, m_headings)))
+			m_orientationVariable.reset(new AmfNcVariable<degree, std::vector<degree>>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), sU("platform_orientation"), m_headings, true, motionCoordinates, motionCellMethods));
 
 		if (sci::anyTrue(sci::isEq(m_elevations, m_elevations)))
 		{
@@ -632,27 +635,39 @@ void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 
 	if (m_speeds.size() > 0)
 	{
-		write(*m_instrumentPitchVariable, m_elevations);
-		write(*m_instrumentPitchStdevVariable, m_elevationStdevs);
-		write(*m_instrumentPitchMinVariable, m_elevationMins);
-		write(*m_instrumentPitchMaxVariable, m_elevationMaxs);
-		write(*m_instrumentPitchRateVariable, m_elevationRates);
+		if (m_instrumentPitchVariable)
+		{
+			write(*m_instrumentPitchVariable, m_elevations);
+			write(*m_instrumentPitchStdevVariable, m_elevationStdevs);
+			write(*m_instrumentPitchMinVariable, m_elevationMins);
+			write(*m_instrumentPitchMaxVariable, m_elevationMaxs);
+			write(*m_instrumentPitchRateVariable, m_elevationRates);
+		}
 
-		write(*m_instrumentYawVariable, m_azimuths);
-		write(*m_instrumentYawStdevVariable, m_azimuthStdevs);
-		write(*m_instrumentYawMinVariable, m_azimuthMins);
-		write(*m_instrumentYawMaxVariable, m_azimuthMaxs);
-		write(*m_instrumentYawRateVariable, m_azimuthRates);
+		if (m_instrumentYawVariable)
+		{
+			write(*m_instrumentYawVariable, m_azimuths);
+			write(*m_instrumentYawStdevVariable, m_azimuthStdevs);
+			write(*m_instrumentYawMinVariable, m_azimuthMins);
+			write(*m_instrumentYawMaxVariable, m_azimuthMaxs);
+			write(*m_instrumentYawRateVariable, m_azimuthRates);
+		}
 
-		write(*m_instrumentRollVariable, m_rolls);
-		write(*m_instrumentRollStdevVariable, m_rollStdevs);
-		write(*m_instrumentRollMinVariable, m_rollMins);
-		write(*m_instrumentRollMaxVariable, m_rollMaxs);
-		write(*m_instrumentRollRateVariable, m_rollRates);
+		if (m_instrumentRollVariable)
+		{
+			write(*m_instrumentRollVariable, m_rolls);
+			write(*m_instrumentRollStdevVariable, m_rollStdevs);
+			write(*m_instrumentRollMinVariable, m_rollMins);
+			write(*m_instrumentRollMaxVariable, m_rollMaxs);
+			write(*m_instrumentRollRateVariable, m_rollRates);
+		}
 
-		write(*m_courseVariable, m_courses);
-		write(*m_speedVariable, m_speeds);
-		write(*m_orientationVariable, m_headings);
+		if(m_courseVariable)
+			write(*m_courseVariable, m_courses);
+		if(m_speedVariable)
+			write(*m_speedVariable, m_speeds);
+		if(m_orientationVariable)
+			write(*m_orientationVariable, m_headings);
 	}
 
 

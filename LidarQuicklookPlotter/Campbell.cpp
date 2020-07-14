@@ -405,7 +405,7 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	char* currentPoint = &data[0];
 	for (size_t i = 0; i < m_data.size(); ++i)
 	{
-		m_data[i] = steradianPerKilometre((steradianPerKilometre::valueType)hexTextToNumber(currentPoint))*m_scale / unitless((unitless::valueType)100000.0);
+		m_data[i] = perSteradianPerKilometre((perSteradianPerKilometre::valueType)hexTextToNumber(currentPoint))*m_scale / unitless((unitless::valueType)100000.0);
 		currentPoint += 5;
 	}
 

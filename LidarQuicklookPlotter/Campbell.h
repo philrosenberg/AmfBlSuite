@@ -71,7 +71,7 @@ class CampbellMessage2
 public:
 	CampbellMessage2(char endOfTextCharacter = '\3');
 	void read(std::istream &stream, const CampbellHeader &header);
-	const std::vector<steradianPerKilometre> &getData() const { return m_data; }
+	const std::vector<perSteradianPerKilometre> &getData() const { return m_data; }
 	std::vector<metre> getHeights() const { return std::vector<metre>{m_height1, m_height2, m_height3, m_height4, }; }
 	metre getHeight1() const { return m_height1; }
 	metre getHeight2() const { return m_height2; }
@@ -94,7 +94,7 @@ public:
 	ceilometerMessageStatus getMessageStatus() const { return m_messageStatus; }
 private:
 	char m_endOfTextCharacter;
-	std::vector<steradianPerKilometre> m_data;
+	std::vector<perSteradianPerKilometre> m_data;
 	metre m_height1;
 	metre m_height2;
 	metre m_height3;
