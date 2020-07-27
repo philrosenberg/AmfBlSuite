@@ -1418,23 +1418,25 @@ public:
 	//typedef typename Decibel<REFERENCE_UNIT>::referencePhysical::valueType valueType;
 	typedef typename Decibel<REFERENCE_UNIT>::referencePhysical referencePhysical;
 	//Data must be passed in in linear units, not decibels!!!
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimension)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<typename REFERENCE_UNIT::unit>>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
 		m_dataLinear = dataLinear;
 		m_isDbZ = isDbZ;
+		m_outputReferenceUnit = outputReferenceUnit;
 		referencePhysical validMin;
 		referencePhysical validMax;
 		getMinMax(m_dataLinear, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
 	{
 		//static_assert(std::is_same<sci::VectorTraits<U>::baseType, referencePhysical>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
 		m_dataLinear = dataLinear;
-		m_isDbZ = isDbZ; 
+		m_isDbZ = isDbZ;
+		m_outputReferenceUnit = outputReferenceUnit;
 		sci::VectorTraits<U>::baseType validMin;
 		sci::VectorTraits<U>::baseType validMax;
 		getMinMax(m_dataLinear, validMin, validMax);
@@ -1463,7 +1465,8 @@ private:
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		addAttribute(longNameAttribute, ncFile);
 		addAttribute(unitsAttribute, ncFile);
-		addAttribute(referenceUnitAttribute, ncFile);
+		if (m_outputReferenceUnit)
+			addAttribute(referenceUnitAttribute, ncFile);
 		addAttribute(validMinAttribute, ncFile);
 		addAttribute(validMaxAttribute, ncFile);
 		//addAttribute(typeAttribute, ncFile);
@@ -1482,6 +1485,7 @@ private:
 	//this is in reference units and is a 1d or multi-d vector.
 	U m_dataLinear;
 	bool m_isDbZ;
+	bool m_outputReferenceUnit;
 };
 
 class AmfNcTimeVariable : public AmfNcVariable<typename second::valueType, std::vector<typename second::valueType>>
