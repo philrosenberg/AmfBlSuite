@@ -1450,7 +1450,10 @@ private:
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), m_isDbZ ? sU("dBZ") : sU("dB"));
-		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referencePhysical::getShortUnitString());
+		sci::string referenceUnit = referencePhysical::getShortUnitString();
+		if (referenceUnit.length() == 0)
+			referenceUnit = sU("1");
+		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referenceUnit);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), Decibel<REFERENCE_UNIT>::linearToDecibel(validMinLinear));
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), Decibel<REFERENCE_UNIT>::linearToDecibel(validMaxLinear));
 		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<Decibel<REFERENCE_UNIT>::valueType>());

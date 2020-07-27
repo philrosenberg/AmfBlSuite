@@ -309,7 +309,6 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 			nonTimeDimensions.push_back(&indexDimension);
 		else
 			nonTimeDimensions.push_back(&altitudeDimension);
-		sci::string altitudeDimensionName = amfVersion == AmfVersion::v1_1_0 ? sU("index") : sU("altitude");
 
 		//create the file and dimensions. The time variable is added automatically
 		OutputAmfNcFile ceilometerBackscatterFile(amfVersion, directory, ceilometerInfo, author, processingSoftwareInfo, ceilometerCalibrationInfo, backscatterDataInfo,
@@ -329,7 +328,6 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		AmfNcFlagVariable profileFlagsVariable(sU("qc_flag_profiles"), ceilometerFlags, ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension() );
 		AmfNcFlagVariable gateFlagsVariable(sU("qc_flag_gate"), ceilometerFlags, ceilometerBackscatterFile, backscatterDimensions);
 
-		//add the data variables
 		if (amfVersion == AmfVersion::v1_1_0)
 		{
 			AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, backscatterDimensions, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, cellMethodsNone);
