@@ -1332,11 +1332,17 @@ private:
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
-		sci::NcAttribute unitsAttribute;
-		if (sci::Physical<T, VALUE_TYPE>::getShortUnitString() == sU(""))
-			unitsAttribute=sci::NcAttribute(sU("units"), sU("1"));
-		else
-			unitsAttribute = sci::NcAttribute(sU("units"), sci::Physical<T, VALUE_TYPE>::getShortUnitString());
+		//the unit needs a little editing to comply with AMF standard
+		sci::string unit = sci::Physical<T, VALUE_TYPE>::getShortUnitString<sci::string>();
+		//replace blank string (unitless) with 1
+		if (unit == sU(""))
+			unit = sU("1");
+		//replace degree symbol with the word degree
+		while (unit.find_first_of(sU('\u00b0')) != sci::string::npos)
+		{
+			unit.replace(unit.find_first_of(sU('\u00b0')), 1, sU("degree"), 0, sci::string::npos);
+		}
+		sci::NcAttribute unitsAttribute(sU("units"), unit);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>());
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<T>());
 		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<sci::Physical<T,VALUE_TYPE>>());
