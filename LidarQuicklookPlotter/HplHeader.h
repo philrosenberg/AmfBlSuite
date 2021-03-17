@@ -1,8 +1,9 @@
 #pragma once
 #include <string>
 #include <iostream>
-#include <svector\time.h>
+#include <svector/time.h>
 #include "Units.h"
+#include <svector/sstring.h>
 
 enum class ScanType
 {
