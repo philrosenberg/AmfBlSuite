@@ -24,7 +24,7 @@ struct HplHeader
 	sci::string filename;
 	unsigned int systemId;
 	size_t nGates;
-	metre rangeGateLength;
+	metreF rangeGateLength;
 	size_t pointsPerGate;
 	size_t pulsesPerRay;
 	size_t nRays;

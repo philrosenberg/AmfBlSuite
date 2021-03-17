@@ -25,8 +25,8 @@ std::vector<uint8_t> CampbellCeilometerProfile::getGateFlags() const
 	//Also data below 1e-7 sr m-1 is probably noise too so flag it
 
 	std::vector<uint8_t> result(getBetas().size(), ceilometerGoodFlag);
-	sci::assign(result, getBetas() < perSteradianPerMetre(1e-12f), ceilometerFilteredNoiseFlag);
-	sci::assign(result, getBetas() < perSteradianPerMetre(1e-7f), ceilometerLowSignalFlag);
+	sci::assign(result, getBetas() < perSteradianPerMetreF(1e-12f), ceilometerFilteredNoiseFlag);
+	sci::assign(result, getBetas() < perSteradianPerMetreF(1e-7f), ceilometerLowSignalFlag);
 	return result;
 }
 
@@ -45,12 +45,12 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	InstrumentInfo& ceilometerInfo,
 	CalibrationInfo& ceilometerCalibrationInfo,
 	DataInfo& dataInfo, std::vector<sci::UtcTime>& times,
-	std::vector<std::vector<metre>>& altitudesAboveInstrument,
-	std::vector<std::vector<perSteradianPerMetre>>& backscatter,
-	std::vector<metre>& cloudBase1, std::vector<metre>& cloudBase2, std::vector<metre>& cloudBase3,
-	std::vector<metre>& cloudBase4, std::vector<percent> &laserEnergies, std::vector<kelvin> &laserTemperatures,
-	std::vector<unitless>& pulseQuantities, std::vector<degree>& tiltAngles, std::vector<percent>& scales,
-	std::vector<percent>& windowTransmissions, std::vector<millivolt>& backgrounds, std::vector<perSteradian>& sums,
+	std::vector<std::vector<metreF>>& altitudesAboveInstrument,
+	std::vector<std::vector<perSteradianPerMetreF>>& backscatter,
+	std::vector<metreF>& cloudBase1, std::vector<metreF>& cloudBase2, std::vector<metreF>& cloudBase3,
+	std::vector<metreF>& cloudBase4, std::vector<percentF> &laserEnergies, std::vector<kelvinF> &laserTemperatures,
+	std::vector<unitlessF>& pulseQuantities, std::vector<degreeF>& tiltAngles, std::vector<percentF>& scales,
+	std::vector<percentF>& windowTransmissions, std::vector<millivoltF>& backgrounds, std::vector<perSteradianF>& sums,
 	std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags, std::vector<uint8_t>& cloudBaseFlags)
 {
 	
@@ -63,8 +63,8 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	ceilometerInfo.serial = sU("");
 
 	dataInfo.continuous = true;
-	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
-	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later;
+	dataInfo.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later;
 	dataInfo.startTime = profiles.size() > 0 ? profiles[0].getTime() : sci::UtcTime();
 	dataInfo.endTime = profiles.size() > 0 ? profiles.back().getTime() : sci::UtcTime();
 	dataInfo.featureType = FeatureType::timeSeriesProfile;
@@ -91,11 +91,11 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	cloudBaseFlags.resize(profiles.size());
 	gateFlags.resize(profiles.size());
 	//the vertical resolution of the profiles - we check this is the same for each profile
-	metre resolution;
+	metreF resolution;
 	//Some other housekeeping information
 	sci::assertThrow(profiles.size() < std::numeric_limits<long>::max(), sci::err(sci::SERR_USER, 0, "Profile is too long to fit in a netcdf"));
 	pulseQuantities.resize(profiles.size());
-	std::vector<megahertz> sampleRates(profiles.size());
+	std::vector<megahertzF> sampleRates(profiles.size());
 	windowTransmissions.resize(profiles.size());
 	laserEnergies.resize(profiles.size());
 	scales.resize(profiles.size());
@@ -103,7 +103,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	tiltAngles.resize(profiles.size());
 	backgrounds.resize(profiles.size());
 	sums.resize(profiles.size());
-	std::vector<std::vector<metre>> ranges(profiles.size());
+	std::vector<std::vector<metreF>> ranges(profiles.size());
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{
 		times[i] = profiles[i].getTime();
@@ -122,7 +122,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 		gateFlags[i] = profiles[i].getGateFlags();
 
 		//assign the housekeeping data
-		pulseQuantities[i] = unitless((unitless::valueType)profiles[i].getPulseQuantity());
+		pulseQuantities[i] = unitlessF((unitlessF::valueType)profiles[i].getPulseQuantity());
 		sampleRates[i] = profiles[i].getSampleRate();
 		windowTransmissions[i] = profiles[i].getWindowTransmission();
 		laserEnergies[i] = profiles[i].getLaserPulseEnergy();
@@ -136,10 +136,10 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 		auto gates = profiles[i].getGates();
 		ranges[i].resize(gates.size());
 		altitudesAboveInstrument[i].resize(gates.size());
-		unitless cosTilt = sci::cos(tiltAngles[i]);
+		unitlessF cosTilt = sci::cos(tiltAngles[i]);
 		for (size_t j = 0; j < ranges[i].size(); ++j)
 		{
-			ranges[i][j] = unitless(float(gates[j]) + 0.5f) * profiles[i].getResolution();
+			ranges[i][j] = unitlessF(float(gates[j]) + 0.5f) * profiles[i].getResolution();
 			altitudesAboveInstrument[i][j] = ranges[i][j] * cosTilt;
 		}
 
@@ -152,7 +152,7 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 	//work out time intervals
 	if (times.size() > 1)
 	{
-		dataInfo.samplingInterval = sci::median( sci::subvector(times, 1, times.size() - 1) - sci::subvector(times, 0, times.size() - 1) );
+		dataInfo.samplingInterval = secondF(sci::median( sci::subvector(times, 1, times.size() - 1) - sci::subvector(times, 0, times.size() - 1) ));
 	}
 
 	//if (times.size() > 0)
@@ -176,8 +176,8 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 
 	for (size_t i = 0; i < profiles.size(); ++i)
 	{
-		backscatter[i].resize(maxGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
-		altitudesAboveInstrument[i].resize(maxGates, std::numeric_limits<metre>::quiet_NaN());
+		backscatter[i].resize(maxGates, std::numeric_limits<perSteradianPerMetreF>::quiet_NaN());
+		altitudesAboveInstrument[i].resize(maxGates, std::numeric_limits<metreF>::quiet_NaN());
 		gateFlags[i].resize(maxGates, ceilometerPaddingFlag);
 	}
 }
@@ -212,20 +212,20 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 	CalibrationInfo ceilometerCalibrationInfo;
 	DataInfo dataInfo;
 	std::vector<sci::UtcTime> times;
-	std::vector<std::vector<metre>> altitudes;
-	std::vector<std::vector<perSteradianPerMetre>> backscatter;
-	std::vector<metre> cloudBase1;
-	std::vector<metre> cloudBase2;
-	std::vector<metre> cloudBase3;
-	std::vector<metre> cloudBase4;
-	std::vector<percent> laserEnergies;
-	std::vector<kelvin> laserTemperatures;
-	std::vector<unitless> pulseQuantities;
-	std::vector<degree> tiltAngles;
-	std::vector<percent> scales;
-	std::vector<percent> windowTransmissions;
-	std::vector<millivolt> backgrounds;
-	std::vector<perSteradian> sums;
+	std::vector<std::vector<metreF>> altitudes;
+	std::vector<std::vector<perSteradianPerMetreF>> backscatter;
+	std::vector<metreF> cloudBase1;
+	std::vector<metreF> cloudBase2;
+	std::vector<metreF> cloudBase3;
+	std::vector<metreF> cloudBase4;
+	std::vector<percentF> laserEnergies;
+	std::vector<kelvinF> laserTemperatures;
+	std::vector<unitlessF> pulseQuantities;
+	std::vector<degreeF> tiltAngles;
+	std::vector<percentF> scales;
+	std::vector<percentF> windowTransmissions;
+	std::vector<millivoltF> backgrounds;
+	std::vector<perSteradianF> sums;
 	std::vector<uint8_t> profileFlags;
 	std::vector<uint8_t> cloudBaseFlags;
 	std::vector<std::vector<uint8_t>> gateFlags;
@@ -237,7 +237,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		gateFlags, cloudBaseFlags);
 	dataInfo.processingOptions = processingOptions;
 	//build the cloud base data as a 2d vector, time dimension first
-	std::vector<std::vector<metre>> cloudBases(cloudBase1.size());
+	std::vector<std::vector<metreF>> cloudBases(cloudBase1.size());
 	for (size_t i = 0; i < cloudBases.size(); ++i)
 	{
 		cloudBases[i].resize(4);
@@ -250,9 +250,9 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 	{
 		if (times.size() > 0)
 		{
-			degree longitude;
-			degree latitude;
-			metre altitude;
+			degreeF longitude;
+			degreeF latitude;
+			metreF altitude;
 
 			platform.getLocation(times.front(), times.back(), latitude, longitude, altitude);
 
@@ -264,9 +264,9 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 	{
 		for (size_t i = 0; i < altitudes.size(); ++i)
 		{
-			degree longitude;
-			degree latitude;
-			metre altitude;
+			degreeF longitude;
+			degreeF latitude;
+			metreF altitude;
 
 			platform.getLocation(times[i], times[i] - dataInfo.averagingPeriod, latitude, longitude, altitude);
 
@@ -316,28 +316,28 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 
 		std::vector<sci::NcDimension*> backscatterDimensions{ &ceilometerBackscatterFile.getTimeDimension(), nonTimeDimensions[0] };
 
-		AmfNcVariable<perSteradianPerMetre, decltype(backscatter)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), nonTimeDimensions[0] }, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatter, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<percent, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<kelvin, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<degree, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<unitless, decltype(pulseQuantities)> pulseQuantitiesVariable(sU("profile_pulses"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Number of pulses in each profile"), sU(""), pulseQuantities, true, coordinates, cellMethodsTimeSum);
-		AmfNcVariable<percent, decltype(scales)> scalesVariable(sU("profile_scaling"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Scaling of range profile (default=100%)"), sU(""), scales, true, coordinates, cellMethodsTimePoint);
-		AmfNcVariable<percent, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<millivolt, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<perSteradian, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<perSteradianPerMetreF, decltype(backscatter)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), ceilometerBackscatterFile, std::vector<sci::NcDimension*>{ &ceilometerBackscatterFile.getTimeDimension(), nonTimeDimensions[0] }, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatter, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<percentF, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<kelvinF, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<degreeF, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<unitlessF, decltype(pulseQuantities)> pulseQuantitiesVariable(sU("profile_pulses"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Number of pulses in each profile"), sU(""), pulseQuantities, true, coordinates, cellMethodsTimeSum);
+		AmfNcVariable<percentF, decltype(scales)> scalesVariable(sU("profile_scaling"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Scaling of range profile (default=100%)"), sU(""), scales, true, coordinates, cellMethodsTimePoint);
+		AmfNcVariable<percentF, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<millivoltF, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<perSteradianF, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean);
 		AmfNcFlagVariable profileFlagsVariable(sU("qc_flag_profiles"), ceilometerFlags, ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension() );
 		AmfNcFlagVariable gateFlagsVariable(sU("qc_flag_gate"), ceilometerFlags, ceilometerBackscatterFile, backscatterDimensions);
 
 		if (amfVersion == AmfVersion::v1_1_0)
 		{
-			AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, backscatterDimensions, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, cellMethodsNone);
+			AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, backscatterDimensions, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, cellMethodsNone);
 			altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ceilometerBackscatterFile);
 			ceilometerBackscatterFile.writeTimeAndLocationData(platform);
 			ceilometerBackscatterFile.write(altitudeVariable);
 		}
 		else
 		{
-			AmfNcVariable<metre, std::vector<metre>> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, altitudeDimension, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes[0], true, coordinates, cellMethodsNone);
+			AmfNcVariable<metreF, std::vector<metreF>> altitudeVariable(sU("altitude"), ceilometerBackscatterFile, altitudeDimension, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes[0], true, coordinates, cellMethodsNone);
 			altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ceilometerBackscatterFile);
 			ceilometerBackscatterFile.writeTimeAndLocationData(platform);
 			ceilometerBackscatterFile.write(altitudeVariable);
@@ -377,15 +377,15 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 			projectInfo, platform, sU("ceilometer profile"), times, nonTimeDimensions, ceilometerGlobalAttributes);
 
 		//add the data variables
-		AmfNcVariable<metre, decltype(cloudBases)> cloudBaseVariable(sU("cloud_base_altitude"), ceilometerCloudBaseFile, std::vector<sci::NcDimension*>{ &ceilometerCloudBaseFile.getTimeDimension(), & layerIndexDimension }, sU("Cloud Base Altitude (Geometric height above geoid (WGS84))"), sU("cloud_base_altitude"), cloudBases, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<percent, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<kelvin, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<degree, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<unitless, decltype(pulseQuantities)> pulseQuantitiesVariable(sU("profile_pulses"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Number of pulses in each profile"), sU(""), pulseQuantities, true, coordinates, cellMethodsTimeSum);
-		AmfNcVariable<percent, decltype(scales)> scalesVariable(sU("profile_scaling"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Scaling of range profile (default=100%)"), sU(""), scales, true, coordinates, cellMethodsTimePoint);
-		AmfNcVariable<percent, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<millivolt, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<perSteradian, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<metreF, decltype(cloudBases)> cloudBaseVariable(sU("cloud_base_altitude"), ceilometerCloudBaseFile, std::vector<sci::NcDimension*>{ &ceilometerCloudBaseFile.getTimeDimension(), & layerIndexDimension }, sU("Cloud Base Altitude (Geometric height above geoid (WGS84))"), sU("cloud_base_altitude"), cloudBases, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<percentF, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<kelvinF, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<degreeF, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<unitlessF, decltype(pulseQuantities)> pulseQuantitiesVariable(sU("profile_pulses"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Number of pulses in each profile"), sU(""), pulseQuantities, true, coordinates, cellMethodsTimeSum);
+		AmfNcVariable<percentF, decltype(scales)> scalesVariable(sU("profile_scaling"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Scaling of range profile (default=100%)"), sU(""), scales, true, coordinates, cellMethodsTimePoint);
+		AmfNcVariable<percentF, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<millivoltF, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<perSteradianF, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean);
 		AmfNcFlagVariable profileFlagsVariable(sU("qc_flag"), ceilometerFlags, ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension());
 
 		ceilometerCloudBaseFile.writeTimeAndLocationData(platform);
@@ -426,16 +426,16 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 			projectInfo, platform, sU("ceilometer profile"), times, nonTimeDimensions, ceilometerGlobalAttributes);
 
 		//add the data variables
-		AmfNcVariable<metre, decltype(cloudBases)> cloudBaseVariable(sU("cloud_base_altitude"), ceilometerCloudCoverageFile, std::vector<sci::NcDimension*>{ &ceilometerCloudCoverageFile.getTimeDimension(), & layerIndexDimension }, sU("Cloud Base Altitude (Geometric height above geoid (WGS84))"), sU("cloud_base_altitude"), cloudBases, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<metreF, decltype(cloudBases)> cloudBaseVariable(sU("cloud_base_altitude"), ceilometerCloudCoverageFile, std::vector<sci::NcDimension*>{ &ceilometerCloudCoverageFile.getTimeDimension(), & layerIndexDimension }, sU("Cloud Base Altitude (Geometric height above geoid (WGS84))"), sU("cloud_base_altitude"), cloudBases, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<uint8_t, decltype(cloudCoverage)> cloudCoverVariable(sU("cloud_base_altitude"), ceilometerCloudCoverageFile, std::vector<sci::NcDimension*>{ &ceilometerCloudCoverageFile.getTimeDimension(), & layerIndexDimension }, sU("Cloud Coverage in oktas (0 = clear, 8 = full coverage)"), sU(""), sU("okta"), cloudCoverage, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<percent, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<kelvin, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<degree, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<unitless, decltype(pulseQuantities)> pulseQuantitiesVariable(sU("profile_pulses"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Number of pulses in each profile"), sU(""), pulseQuantities, true, coordinates, cellMethodsTimeSum);
-		AmfNcVariable<percent, decltype(scales)> scalesVariable(sU("profile_scaling"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Scaling of range profile (default=100%)"), sU(""), scales, true, coordinates, cellMethodsTimePoint);
-		AmfNcVariable<percent, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<millivolt, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<perSteradian, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<percentF, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<kelvinF, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<degreeF, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<unitlessF, decltype(pulseQuantities)> pulseQuantitiesVariable(sU("profile_pulses"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Number of pulses in each profile"), sU(""), pulseQuantities, true, coordinates, cellMethodsTimeSum);
+		AmfNcVariable<percentF, decltype(scales)> scalesVariable(sU("profile_scaling"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Scaling of range profile (default=100%)"), sU(""), scales, true, coordinates, cellMethodsTimePoint);
+		AmfNcVariable<percentF, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<millivoltF, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean);
+		AmfNcVariable<perSteradianF, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean);
 		sci::NcVariable<uint8_t> profileFlagsVariable(sU("profile-flag"), ceilometerCloudCoverageFile, ceilometerCloudCoverageFile.getTimeDimension());
 
 		ceilometerCloudCoverageFile.writeTimeAndLocationData(platform);
@@ -628,7 +628,7 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 	}
 }
 
-void CeilometerProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void CeilometerProcessor::plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::assertThrow(hasData(), sci::err(sci::SERR_USER, 0, sU("Attempted to plot Ceilometer data when it has not been read")));
 
@@ -636,7 +636,7 @@ void CeilometerProcessor::plotData(const sci::string &outputFilename, const std:
 	{
 		sci::ostringstream rangeLimitedfilename;
 		rangeLimitedfilename << outputFilename;
-		if (maxRanges[i].value<metre>() != std::numeric_limits<double>::max())
+		if (maxRanges[i].value<metreF>() != std::numeric_limits<double>::max())
 		{
 			rangeLimitedfilename << sU("_maxRange_");
 			rangeLimitedfilename << maxRanges[i];
@@ -645,7 +645,7 @@ void CeilometerProcessor::plotData(const sci::string &outputFilename, const std:
 	}
 }
 
-void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string filename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window;
 	splot2d *plot;
@@ -658,18 +658,18 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	while (profiles.size() / timeAveragePeriod > 800)
 		timeAveragePeriod *= 2;
 
-	std::vector<std::vector<perSteradianPerMetre>> data(profiles.size() / timeAveragePeriod);
+	std::vector<std::vector<perSteradianPerMetreF>> data(profiles.size() / timeAveragePeriod);
 	for (size_t i = 0; i < data.size(); ++i)
 	{
 		sci::convert(data[i], profiles[i*timeAveragePeriod].getBetas());
 		for (size_t j = 1; j < timeAveragePeriod; ++j)
 			data[i] += profiles[i*timeAveragePeriod + j].getBetas();
 	}
-	data /= unitless((unitless::valueType)timeAveragePeriod);
+	data /= unitlessF((unitlessF::valueType)timeAveragePeriod);
 
-	if (profiles[0].getResolution()*unitless(unitless::valueType(data[0].size() - 1)) > maxRange)
+	if (profiles[0].getResolution()*unitlessF(unitlessF::valueType(data[0].size() - 1)) > maxRange)
 	{
-		size_t pointsNeeded = std::min((size_t)std::ceil((maxRange / profiles[0].getResolution()).value<unitless>()), data[0].size());
+		size_t pointsNeeded = std::min((size_t)std::ceil((maxRange / profiles[0].getResolution()).value<unitlessF>()), data[0].size());
 		for (size_t i = 0; i < data.size(); ++i)
 			data[i].resize(pointsNeeded);
 	}
@@ -680,11 +680,11 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	if (heightAveragePeriod > 1)
 	{
 		for (size_t i = 0; i < data.size(); ++i)
-			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod, sci::PhysicalDivide<perSteradianPerMetre::unit,steradianPerMetre::valueType>);
+			data[i] = sci::boxcaraverage(data[i], heightAveragePeriod, sci::PhysicalDivide<perSteradianPerMetreF::unit,steradianPerMetreF::valueType>);
 	}
 
 	std::vector<second> xs(data.size() + 1);
-	std::vector<metre> ys(data[0].size() + 1);
+	std::vector<metreF> ys(data[0].size() + 1);
 
 	//calculating our heights assumes that the profiles have range gates of 0, 1, 2, 3, ... so check this;
 	bool gatesGood = true;
@@ -697,18 +697,18 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 
 	xs[0] = second(profiles[0].getTime().getUnixTime());
 	for (size_t i = 1; i < xs.size() - 1; ++i)
-		xs[i] = second((profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / unitless(2.0));
+		xs[i] = second((profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / unitlessF(2.0));
 	xs.back() = second(profiles.back().getTime().getUnixTime());
 
 	for (size_t i = 0; i < ys.size(); ++i)
-		ys[i] = unitless(unitless::valueType(i * heightAveragePeriod)) * header.rangeGateLength;
+		ys[i] = unitlessF(unitlessF::valueType(i * heightAveragePeriod)) * header.rangeGateLength;
 
 	std::vector<double> xsTemp;
 	std::vector<double> ysTemp;
 	std::vector<std::vector<double>> zsTemp;
 	sci::convert(xsTemp, sci::physicalsToValues<second>(xs));
-	sci::convert(ysTemp, sci::physicalsToValues<metre>(ys));
-	sci::convert(zsTemp, sci::physicalsToValues<perSteradianPerMetre>(data));
+	sci::convert(ysTemp, sci::physicalsToValues<metreF>(ys));
+	sci::convert(zsTemp, sci::physicalsToValues<perSteradianPerMetreF>(data));
 
 	std::shared_ptr<GridData> gridData(new GridData(xsTemp, ysTemp, zsTemp, g_lidarColourscale, true, true));
 
@@ -719,7 +719,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	plot->getyaxis()->settitle(sU("Height (m)"));
 
 	if (ys.back() > maxRange)
-		plot->setmaxy(sci::physicalsToValues<metre>(maxRange));
+		plot->setmaxy(sci::physicalsToValues<metreF>(maxRange));
 
 	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 }

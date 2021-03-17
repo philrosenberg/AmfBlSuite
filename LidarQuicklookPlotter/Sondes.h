@@ -8,7 +8,7 @@ public:
 	SondeProcessor(const InstrumentInfo &instrumentInfo, const CalibrationInfo &calibrationInfo);
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
 	void readData(const sci::string &inputFilename, const Platform &platform, ProgressReporter &progressReporter);
-	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override
+	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override
 	{
 		throw(sci::err(sci::SERR_USER, 0, "Sonde plotting is not yet supported."));
 	}
@@ -25,17 +25,17 @@ private:
 	InstrumentInfo m_instrumentInfo;
 	CalibrationInfo m_calibrationInfo;
 	bool m_hasData;
-	std::vector<metre> m_altitude;
-	std::vector<degree>m_latitude;
-	std::vector<degree> m_longitude;
-	std::vector<hectoPascal> m_airPressure;
-	std::vector<kelvin> m_temperature;
-	std::vector<kelvin> m_dewpoint;
-	std::vector<percent> m_relativeHumidity;
-	std::vector<metrePerSecond> m_windSpeed;
-	std::vector<degree> m_windFromDirection;
-	std::vector<metrePerSecond> m_balloonUpwardVelocity;
-	std::vector<secondf> m_elapsedTime;
+	std::vector<metreF> m_altitude;
+	std::vector<degreeF>m_latitude;
+	std::vector<degreeF> m_longitude;
+	std::vector<hectoPascalF> m_airPressure;
+	std::vector<kelvinF> m_temperature;
+	std::vector<kelvinF> m_dewpoint;
+	std::vector<percentF> m_relativeHumidity;
+	std::vector<metrePerSecondF> m_windSpeed;
+	std::vector<degreeF> m_windFromDirection;
+	std::vector<metrePerSecondF> m_balloonUpwardVelocity;
+	std::vector<second> m_elapsedTime;
 	std::vector<sci::UtcTime> m_time;
 	std::vector<unsigned char> m_motionFlags;
 	std::vector<unsigned char> m_temperatureFlags;

@@ -13,7 +13,7 @@
 //data do not need to be equally spaced, but if there is missing data this should be indicated with a nan. If there is missing
 //data for all parameters then add a valid time within the period of missing data and set all parameters to nan. This will
 //stop the code interpolating accross missing data periods.
-void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime> &times, std::vector<degree> &latitudes, std::vector<degree> &longitudes, std::vector<metre> &altitudes, std::vector<degree> &elevations, std::vector<degree> &azimuths, std::vector<degree> &rolls, std::vector<degree> &courses, std::vector<metrePerSecond> &speeds, ProgressReporter &progressReporter)
+void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime> &times, std::vector<degreeF> &latitudes, std::vector<degreeF> &longitudes, std::vector<metreF> &altitudes, std::vector<degreeF> &elevations, std::vector<degreeF> &azimuths, std::vector<degreeF> &rolls, std::vector<degreeF> &courses, std::vector<metrePerSecondF> &speeds, ProgressReporter &progressReporter)
 {
 	sci::InputNcFile file(locationFile);
 
@@ -83,17 +83,17 @@ void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime>
 	for (size_t i = 0; i < timesUnitless.size(); ++i)
 	{
 		times[i] = sci::UtcTime::getPosixEpoch() + second(timesUnitless[i]);
-		latitudes[i] = degree(latitudesUnitless[i]);
-		longitudes[i] = degree(longitudesUnitless[i]);
-		elevations[i] = degree(elevationsUnitless[i]);
-		azimuths[i] = degree(azimuthsUnitless[i]);
-		rolls[i] = degree(rollsUnitless[i]);
-		speeds[i] = metrePerSecond(speedsUnitless[i]);
-		courses[i] = degree(coursesUnitless[i]);
+		latitudes[i] = degreeF(latitudesUnitless[i]);
+		longitudes[i] = degreeF(longitudesUnitless[i]);
+		elevations[i] = degreeF(elevationsUnitless[i]);
+		azimuths[i] = degreeF(azimuthsUnitless[i]);
+		rolls[i] = degreeF(rollsUnitless[i]);
+		speeds[i] = metrePerSecondF(speedsUnitless[i]);
+		courses[i] = degreeF(coursesUnitless[i]);
 	}
 	altitudes.resize(altitudesUnitless.size());
 	for (size_t i = 0; i < altitudes.size(); ++i)
-		altitudes[i] = metre(altitudesUnitless[i]);
+		altitudes[i] = metreF(altitudesUnitless[i]);
 
 	/*
 	//sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "Not set up to read location data yet"));
@@ -559,7 +559,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 			allRead &= iter->m_read;
 		sci::assertThrow(allRead, sci::err(sci::SERR_USER, 0, "Could not find the fixed positions and orientation when parsing a stationary platform information - require latitude_degree, longitude_degree, altitude_m, elevation_degree, azimuth_degree, roll_degree."));
 		if (deploymentMode == sU("land"))
-			return std::shared_ptr<Platform>(new StationaryPlatform(name, metre(altitude_m), degree(latitude_degree), degree(longitude_degree), locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree)));
+			return std::shared_ptr<Platform>(new StationaryPlatform(name, metreF(altitude_m), degreeF(latitude_degree), degreeF(longitude_degree), locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree)));
 		else if (deploymentMode == sU("sea"))
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for stationary sea deployments"));
 		else if (deploymentMode == sU("air"))
@@ -596,14 +596,14 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 		sci::assertThrow(boolLinks.begin()->m_read, sci::err(sci::SERR_USER, 0, "Could not find the platformRelative parameter when parsing a moving platform."));
 
 		std::vector<sci::UtcTime> times;
-		std::vector<degree> latitudes;
-		std::vector<degree> longitudes;
-		std::vector<metre> altitudes;
-		std::vector<degree> elevations;
-		std::vector<degree> azimuths;
-		std::vector<degree> rolls;
-		std::vector<degree> courses;
-		std::vector<metrePerSecond> speeds;
+		std::vector<degreeF> latitudes;
+		std::vector<degreeF> longitudes;
+		std::vector<metreF> altitudes;
+		std::vector<degreeF> elevations;
+		std::vector<degreeF> azimuths;
+		std::vector<degreeF> rolls;
+		std::vector<degreeF> courses;
+		std::vector<metrePerSecondF> speeds;
 
 		readLocationData(locationFile, times, latitudes, longitudes, altitudes, elevations, azimuths, rolls, courses, speeds, progressReporter);
 		if (progressReporter.shouldStop())
@@ -613,9 +613,9 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 		{
 			progressReporter << sU("Generating motion correction parameters for the platform.\n");
 			if (platformRelative)
-				return std::shared_ptr<Platform>(new ShipPlatformShipRelativeCorrected(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
+				return std::shared_ptr<Platform>(new ShipPlatformShipRelativeCorrected(name, metreF(altitude_m), times, latitudes, longitudes, locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree), courses, speeds, elevations, azimuths, rolls));
 			else
-				return std::shared_ptr<Platform>(new ShipPlatform(name, metre(altitude_m), times, latitudes, longitudes, locationKeywords, degree(elevation_degree), degree(azimuth_degree), degree(roll_degree), courses, speeds, elevations, azimuths, rolls));
+				return std::shared_ptr<Platform>(new ShipPlatform(name, metreF(altitude_m), times, latitudes, longitudes, locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree), courses, speeds, elevations, azimuths, rolls));
 		}
 		else if (deploymentMode == sU("land"))
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for moving land deployments"));

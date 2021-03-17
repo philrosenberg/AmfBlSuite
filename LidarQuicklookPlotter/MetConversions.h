@@ -28,17 +28,23 @@
 //////////////////////////////////////////////////////////////////////
 
 //constants
-
-typedef unitless::valueType MET_FLT;
+#ifndef MET_FLT
+#define MET_FLT double
+//typedef unitless::valueType MET_FLT;
+#endif
 
 //g0-g7 constants for the wexler equation
 const MET_FLT gWexler[] = { (MET_FLT)-2.9912729e3, (MET_FLT)-6.0170128e3, (MET_FLT)1.887643854e1, (MET_FLT)-2.8354721e-2,
 						(MET_FLT)1.7838301e-5, (MET_FLT)-8.4150417e-10, (MET_FLT)4.4412543e-13, (MET_FLT)2.858487e0 };
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, sci::Kelvin<-1>>, MET_FLT> joulePerKilogramPerKelvin;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<>, sci::Second<-2>>, MET_FLT> metrePerSecondSquared;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Radian<>, sci::Second<-1>>, MET_FLT> radianPerSecond;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Joule<>, sci::Kilogram<-1>>, MET_FLT> joulePerKilogram;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Kilogram<>, sci::Metre<-3>>, MET_FLT> kilogramPerMetreCubed;
+typedef sci::Physical<sci::MultipliedUnit<sci::MultipliedUnit<sci::Joule<>, sci::Kilogram<-1>>, sci::Kelvin<-1>>, MET_FLT> joulePerKilogramPerKelvin;
+typedef sci::Physical<sci::MultipliedUnit<sci::Metre<>, sci::Second<-2>>, MET_FLT> metrePerSecondSquared;
+typedef sci::Physical<sci::MultipliedUnit<sci::Radian<>, sci::Second<-1>>, MET_FLT> radianPerSecond;
+typedef sci::Physical<sci::MultipliedUnit<sci::Joule<>, sci::Kilogram<-1>>, MET_FLT> joulePerKilogram;
+typedef sci::Physical<sci::MultipliedUnit<sci::Kilogram<>, sci::Metre<-3>>, MET_FLT> kilogramPerMetreCubed;
+typedef sci::Physical<sci::Unitless, MET_FLT> unitless;
+typedef sci::Physical<sci::Metre<>, MET_FLT> metre;
+typedef sci::Physical<sci::Kelvin<>, MET_FLT> kelvin;
+typedef sci::Physical<sci::Pascal<1, sci::hecto>, MET_FLT> hectoPascal;
 const joulePerKilogramPerKelvin dryAirGasConstant(287.04f); //J kg-1 K-1
 const joulePerKilogramPerKelvin dryAirCp(1005.7f); //J kg-1 K-1
 const unitless dryAirKappa(0.2854f); //1-cv/cp or 1-gamma
@@ -87,13 +93,13 @@ inline hectoPascal vapourPressureBolton(kelvin dewpoint)
 
 inline hectoPascal vapourPressureWexler(kelvin dewpoint)
 {
-	unitless sum = sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 2>, double>(-2.9912729e3) *sci::pow<-2>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 1>, double>(-6.0170128e3) *sci::pow<-1>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, 0>, double>(1.887643854e1) *sci::pow<0>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -1>, double>(-2.8354721e-2) *sci::pow<1>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -2>, double>(1.7838301e-5) *sci::pow<2>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -3>, double>(-8.4150417e-10) *sci::pow<3>(dewpoint) +
-		sci::Physical<sci::PoweredEncodedUnit<kelvin::unit, -4>, double>(4.4412543e-13) *sci::pow<4>(dewpoint);
+	unitless sum = sci::Physical<sci::PoweredUnit<kelvin::unit, 2>, double>(-2.9912729e3) *sci::pow<-2>(dewpoint) +
+		sci::Physical<sci::PoweredUnit<kelvin::unit, 1>, double>(-6.0170128e3) *sci::pow<-1>(dewpoint) +
+		sci::Physical<sci::PoweredUnit<kelvin::unit, 0>, double>(1.887643854e1) *sci::pow<0>(dewpoint) +
+		sci::Physical<sci::PoweredUnit<kelvin::unit, -1>, double>(-2.8354721e-2) *sci::pow<1>(dewpoint) +
+		sci::Physical<sci::PoweredUnit<kelvin::unit, -2>, double>(1.7838301e-5) *sci::pow<2>(dewpoint) +
+		sci::Physical<sci::PoweredUnit<kelvin::unit, -3>, double>(-8.4150417e-10) *sci::pow<3>(dewpoint) +
+		sci::Physical<sci::PoweredUnit<kelvin::unit, -4>, double>(4.4412543e-13) *sci::pow<4>(dewpoint);
 		
 	return sci::exp(sum + unitless((unitless::valueType)2.858487) * sci::ln(dewpoint/kelvin((kelvin::valueType)1.0)))*hectoPascal((hectoPascal::valueType)0.01);
 }

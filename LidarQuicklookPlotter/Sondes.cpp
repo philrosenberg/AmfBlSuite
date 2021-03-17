@@ -1,4 +1,5 @@
-#include"MetConversions.h"
+#define MET_FLT float
+#include<MetConversions.h>
 #include"Sondes.h"
 #include<list>
 #include<map>
@@ -750,8 +751,8 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	bufr.read(fin);
 
 	auto data = bufr.getData();
-	degree startingLongitude;
-	degree startingLatitude;
+	degreeF startingLongitude;
+	degreeF startingLatitude;
 	int year;
 	int month;
 	int day;
@@ -763,7 +764,7 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	for (auto iter = data.begin(); iter != data.end(); ++iter)
 	{
 		if (iter->descriptor == Bufr::Descriptor{ 0,7,4 } && iter->numericData.size() > m_airPressure.size())
-			sci::convert(m_airPressure, iter->numericData / 100.0);
+			sci::convert(m_airPressure,  iter->numericData / 100.0);
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 10, 9 } && iter->numericData.size() > m_altitude.size())
 			sci::convert(m_altitude, iter->numericData);
@@ -775,10 +776,10 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 			sci::convert(m_latitude, iter->numericData);
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 6, 1 })
-			startingLongitude = degree((degree::valueType)iter->numericData[0]);
+			startingLongitude = degreeF((degreeF::valueType)iter->numericData[0]);
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 5, 1 })
-			startingLatitude = degree((degree::valueType)iter->numericData[0]);
+			startingLatitude = degreeF((degreeF::valueType)iter->numericData[0]);
 
 		else if (iter->descriptor == Bufr::Descriptor{ 0, 12, 101 } && iter->numericData.size() > m_temperature.size())
 			sci::convert(m_temperature, iter->numericData);
@@ -827,13 +828,13 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	m_relativeHumidity.resize(m_dewpoint.size());
 	for (size_t i = 0; i < m_relativeHumidity.size(); ++i)
 	{
-		m_relativeHumidity[i] = relativeHumidityBolton(m_dewpoint[i], m_temperature[i]);
+		m_relativeHumidity[i] = met::bolton::relativeHumidity(m_dewpoint[i], m_temperature[i]);
 	}
 
 	m_time = sci::UtcTime(year,month, day, hour, minute, second) + m_elapsedTime;
-	m_balloonUpwardVelocity.resize(m_altitude.size(), std::numeric_limits<metrePerSecond>::quiet_NaN());
+	m_balloonUpwardVelocity.resize(m_altitude.size(), std::numeric_limits<metrePerSecondF>::quiet_NaN());
 	for (size_t i = 1; i < m_balloonUpwardVelocity.size(); ++i)
-		m_balloonUpwardVelocity[i] = (m_altitude[i] - m_altitude[i - 1]) / (m_elapsedTime[i] - m_elapsedTime[i - 1]);
+		m_balloonUpwardVelocity[i] = (m_altitude[i] - m_altitude[i - 1]) / secondF(m_elapsedTime[i] - m_elapsedTime[i - 1]);
 
 	//add an end of string character to the end of the serial numbers and software version
 	sondeSerialNumber.push_back(0);
@@ -857,8 +858,8 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	m_temperatureFlags.assign(m_time.size(), sondeTemperatureGoodDataFlag);
 	m_humidityFlags.assign(m_time.size(), sondeHumidityGoodDataFlag);
 	m_pressureFlags.assign(m_time.size(), sondePressureGoodDataFlag);
-	sci::assign(m_motionFlags, sci::isEq(m_windSpeed, metrePerSecond(0)), sondeMotionZeroWindSpeedFlag);
-	sci::assign(m_motionFlags, sci::isEq(m_balloonUpwardVelocity, metrePerSecond(0)), sondeMotionZeroAscentRateFlag);
+	sci::assign(m_motionFlags, sci::isEq(m_windSpeed, metrePerSecondF(0)), sondeMotionZeroWindSpeedFlag);
+	sci::assign(m_motionFlags, sci::isEq(m_balloonUpwardVelocity, metrePerSecondF(0)), sondeMotionZeroAscentRateFlag);
 	if (m_motionFlags.size() > 0)
 		m_motionFlags[0] = sondeMotionFirstPointNoAscentRateFlag;
 
@@ -868,7 +869,7 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	{
 		if (m_time[i] == m_time[i - 1])
 		{
-			m_balloonUpwardVelocity[i] = std::numeric_limits<metrePerSecond>::quiet_NaN();
+			m_balloonUpwardVelocity[i] = std::numeric_limits<metrePerSecondF>::quiet_NaN();
 			m_motionFlags[i] = sondeMotionRepeatedTimeFlag;
 		}
 	}
@@ -879,24 +880,24 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	//flags to permit this situation just in case.
 	for (size_t i = 0; i < m_time.size(); ++i)
 	{
-		if (m_windFromDirection[i] > degree(360) && m_latitude[i] > degree(90.0))
+		if (m_windFromDirection[i] > degreeF(360) && m_latitude[i] > degreeF(90.0))
 		{
-			m_windFromDirection[i] = std::numeric_limits<degree>::quiet_NaN();
-			m_windSpeed[i] = std::numeric_limits<metrePerSecond>::quiet_NaN();
-			m_latitude[i] = std::numeric_limits<degree>::quiet_NaN();
-			m_longitude[i] = std::numeric_limits<degree>::quiet_NaN();
+			m_windFromDirection[i] = std::numeric_limits<degreeF>::quiet_NaN();
+			m_windSpeed[i] = std::numeric_limits<metrePerSecondF>::quiet_NaN();
+			m_latitude[i] = std::numeric_limits<degreeF>::quiet_NaN();
+			m_longitude[i] = std::numeric_limits<degreeF>::quiet_NaN();
 			m_motionFlags[i] = sondeMotionNoWindOrPositionFlag;
 		}
-		else if (m_windFromDirection[i] > degree(360))
+		else if (m_windFromDirection[i] > degreeF(360))
 		{
-			m_windFromDirection[i] = std::numeric_limits<degree>::quiet_NaN();
-			m_windSpeed[i] = std::numeric_limits<metrePerSecond>::quiet_NaN();
+			m_windFromDirection[i] = std::numeric_limits<degreeF>::quiet_NaN();
+			m_windSpeed[i] = std::numeric_limits<metrePerSecondF>::quiet_NaN();
 			m_motionFlags[i] = sondeMotionNoWindFlag;
 		}
-		else if (m_latitude[i] > degree(90.0))
+		else if (m_latitude[i] > degreeF(90.0))
 		{
-			m_latitude[i] = std::numeric_limits<degree>::quiet_NaN();
-			m_longitude[i] = std::numeric_limits<degree>::quiet_NaN();
+			m_latitude[i] = std::numeric_limits<degreeF>::quiet_NaN();
+			m_longitude[i] = std::numeric_limits<degreeF>::quiet_NaN();
 			m_motionFlags[i] = sondeMotionNoPositionFlag;
 		}
 	}
@@ -942,8 +943,8 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	sci::assertThrow(m_hasData, sci::err(sci::SERR_USER, 0, sU("The sonde processor has been asked to write data to a netcdf, when it has no data to write.")));
 
 	DataInfo dataInfo;
-	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();
-	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();
+	dataInfo.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();
+	dataInfo.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();
 	dataInfo.continuous = false;
 	dataInfo.startTime = m_time[0];;
 	dataInfo.endTime = m_time.back();
@@ -966,7 +967,7 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 		samplingIntervals[i] = m_elapsedTime[i + 1] - m_elapsedTime[i];
 	}
 	std::sort(samplingIntervals.begin(), samplingIntervals.end());
-	dataInfo.samplingInterval = samplingIntervals[samplingIntervals.size() / 2];
+	dataInfo.samplingInterval = secondF(samplingIntervals[samplingIntervals.size() / 2]);
 	dataInfo.averagingPeriod = dataInfo.samplingInterval;
 
 
@@ -979,14 +980,14 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	std::vector<sci::string> coordinates{ sU("longitude"), sU("latitude"), sU("altitude") };
 
 	AmfNcAltitudeVariable altitudesVariable(file, file.getTimeDimension(), m_altitude, dataInfo.featureType);
-	AmfNcVariable<hectoPascal, std::vector<hectoPascal>> airPressureVariable(sU("air_pressure"), file, file.getTimeDimension(), sU("Air Pressure"), sU("air_pressure"), m_airPressure, true, coordinates, cellMethods);
-	AmfNcVariable<kelvin, std::vector<kelvin>> airTemperatureVariable(sU("air_temperature"), file, file.getTimeDimension(), sU("Air Temperature"), sU("air_temperature"), m_temperature, true, coordinates, cellMethods);
+	AmfNcVariable<hectoPascalF, std::vector<hectoPascalF>> airPressureVariable(sU("air_pressure"), file, file.getTimeDimension(), sU("Air Pressure"), sU("air_pressure"), m_airPressure, true, coordinates, cellMethods);
+	AmfNcVariable<kelvinF, std::vector<kelvinF>> airTemperatureVariable(sU("air_temperature"), file, file.getTimeDimension(), sU("Air Temperature"), sU("air_temperature"), m_temperature, true, coordinates, cellMethods);
 	//AmfNcVariable<kelvin, std::vector<kelvin>> dewPointVariable(sU("dew_point_temperature"), file, file.getTimeDimension(), sU("Dew Point Temperature"), sU("dew_point_temperature"), m_dewpoint, true, coordinates, cellMethods);
-	AmfNcVariable<percent, std::vector<percent>> dewPointVariable(sU("relative_humidity"), file, file.getTimeDimension(), sU("Relative Humidity"), sU("relative_humidity"), m_relativeHumidity, true, coordinates, cellMethods);
-	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> windSpeedVariable(sU("wind_speed"), file, file.getTimeDimension(), sU("Wind Speed"), sU("wind_speed"), m_windSpeed, true, coordinates, cellMethods);
-	AmfNcVariable<degree, std::vector<degree>> windDirectionVariable(sU("wind_from_direction"), file, file.getTimeDimension(), sU("Wind From Direction"), sU("wind_from_direction"), m_windFromDirection, true, coordinates, cellMethods);
-	AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>> upwardBalloonVelocityVariable(sU("upward_balloon_velocity"), file, file.getTimeDimension(), sU("Balloon Ascent Rate"), sU(""), m_balloonUpwardVelocity, true, coordinates, cellMethods);
-	AmfNcVariable<secondf, std::vector<secondf>> elapsedTimeVariable(sU("elapsed_time"), file, file.getTimeDimension(), sU("Elapsed Time"), sU(""), m_elapsedTime, true, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}});
+	AmfNcVariable<percentF, std::vector<percentF>> dewPointVariable(sU("relative_humidity"), file, file.getTimeDimension(), sU("Relative Humidity"), sU("relative_humidity"), m_relativeHumidity, true, coordinates, cellMethods);
+	AmfNcVariable<metrePerSecondF, std::vector<metrePerSecondF>> windSpeedVariable(sU("wind_speed"), file, file.getTimeDimension(), sU("Wind Speed"), sU("wind_speed"), m_windSpeed, true, coordinates, cellMethods);
+	AmfNcVariable<degreeF, std::vector<degreeF>> windDirectionVariable(sU("wind_from_direction"), file, file.getTimeDimension(), sU("Wind From Direction"), sU("wind_from_direction"), m_windFromDirection, true, coordinates, cellMethods);
+	AmfNcVariable<metrePerSecondF, std::vector<metrePerSecondF>> upwardBalloonVelocityVariable(sU("upward_balloon_velocity"), file, file.getTimeDimension(), sU("Balloon Ascent Rate"), sU(""), m_balloonUpwardVelocity, true, coordinates, cellMethods);
+	AmfNcVariable<second, std::vector<second>> elapsedTimeVariable(sU("elapsed_time"), file, file.getTimeDimension(), sU("Elapsed Time"), sU(""), m_elapsedTime, true, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}});
 	AmfNcFlagVariable motionFlagVariable(sU("qc_flag_motion"), sondeMotionFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
 	AmfNcFlagVariable temperatureFlagVariable(sU("qc_flag_temperature"), sondeTemperatureFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
 	AmfNcFlagVariable humidityFlagVariable(sU("qc_flag_humidity"), sondeHumidityFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });

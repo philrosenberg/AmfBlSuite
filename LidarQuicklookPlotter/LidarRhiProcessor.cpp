@@ -14,21 +14,21 @@ class RhiTransformer : public splotTransformer
 public:
 	virtual void transform(double oldx, double oldy, double& newx, double& newy)const override
 	{
-		degree elevation((degree::valueType)oldx);
-		metre range((metre::valueType)oldy);
-		newx = (range * sci::cos(elevation)).value<metre>();
-		newy = (range * sci::sin(elevation)).value<metre>();
+		degreeF elevation((degreeF::valueType)oldx);
+		metreF range((metreF::valueType)oldy);
+		newx = (range * sci::cos(elevation)).value<metreF>();
+		newy = (range * sci::sin(elevation)).value<metreF>();
 	}
 };
 
-void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::assertThrow(getNFilesRead() == 1, sci::err(sci::SERR_USER, 0, "Attempted to plot an RHI with either no files or multiple files. This code can only plot one file at a time."));
 	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{
 		sci::ostringstream rangeLimitedfilename;
 		rangeLimitedfilename << outputFilename;
-		if (maxRanges[i] != std::numeric_limits<metre>::max())
+		if (maxRanges[i] != std::numeric_limits<metreF>::max())
 			rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
 
 		splotframe *window;
@@ -36,15 +36,15 @@ void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::v
 		setupCanvas(&window, &plot, sU(""), parent);
 		WindowCleaner cleaner(window);
 
-		std::vector<std::vector<perSteradianPerMetre>> betas = getBetas();
-		std::vector<degree> angles(betas.size() + 1);
-		std::vector<metre> ranges = getGateBoundariesForPlotting(0);
+		std::vector<std::vector<perSteradianPerMetreF>> betas = getBetas();
+		std::vector<degreeF> angles(betas.size() + 1);
+		std::vector<metreF> ranges = getGateBoundariesForPlotting(0);
 
-		degree angleIntervalDeg = degree(360.0f) / unitless((unitless::valueType)(betas.size() - 1));
+		degreeF angleIntervalDeg = degreeF(360.0f) / unitlessF((unitlessF::valueType)(betas.size() - 1));
 		for (size_t i = 0; i < angles.size(); ++i)
-			angles[i] = unitless((unitless::valueType)(i - 0.5))*angleIntervalDeg;
+			angles[i] = unitlessF((unitlessF::valueType)(i - 0.5))*angleIntervalDeg;
 
-		std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>> gridData(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>(angles, ranges, betas, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new RhiTransformer)));
+		std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>> gridData(new PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>(angles, ranges, betas, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new RhiTransformer)));
 		plot->addData(gridData);
 
 		plot->getxaxis()->settitle(sU("Time"));

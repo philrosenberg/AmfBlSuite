@@ -310,29 +310,29 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	height3[5] = '\0';
 	height4[5] = '\0';
 	transmission[3] = '\0';
-	m_height1 = std::numeric_limits<metre>::quiet_NaN();
-	m_height2 = std::numeric_limits<metre>::quiet_NaN();
-	m_height3 = std::numeric_limits<metre>::quiet_NaN();
-	m_height4 = std::numeric_limits<metre>::quiet_NaN();
-	m_visibility = std::numeric_limits<metre>::quiet_NaN();
+	m_height1 = std::numeric_limits<metreF>::quiet_NaN();
+	m_height2 = std::numeric_limits<metreF>::quiet_NaN();
+	m_height3 = std::numeric_limits<metreF>::quiet_NaN();
+	m_height4 = std::numeric_limits<metreF>::quiet_NaN();
+	m_visibility = std::numeric_limits<metreF>::quiet_NaN();
 	m_highestSignal = std::numeric_limits<double>::quiet_NaN();
 
 	if (messageStatus == '5')
 	{
-		m_visibility = metre((metre::valueType)std::atof(height1));
+		m_visibility = metreF((metreF::valueType)std::atof(height1));
 		m_highestSignal = std::atof(height2);
 	}
 	else if (messageStatus < '5')
 	{
-		m_height1 = metre((metre::valueType)std::atof(height1));
+		m_height1 = metreF((metreF::valueType)std::atof(height1));
 		if (messageStatus > '1')
-			m_height2 = metre((metre::valueType)std::atof(height2));
+			m_height2 = metreF((metreF::valueType)std::atof(height2));
 		if (messageStatus > '2')
-			m_height3 = metre((metre::valueType)std::atof(height3));
+			m_height3 = metreF((metreF::valueType)std::atof(height3));
 		if (messageStatus > '3')
-			m_height4 = metre((metre::valueType)std::atof(height4));
+			m_height4 = metreF((metreF::valueType)std::atof(height4));
 	}
-	m_windowTransmission = percent((percent::valueType)std::atof(transmission));
+	m_windowTransmission = percentF((percentF::valueType)std::atof(transmission));
 	m_alarmStatus = parseAlarmStatus(alarmStatus);
 	m_messageStatus = parseMessageStatus(messageStatus);
 
@@ -377,18 +377,18 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	sum[3] = '\0';
 	bufferStream.read(crlf, 2);
 
-	m_scale = percent((percent::valueType)std::atof(scale));
-	m_resolution = metre((metre::valueType)std::atof(res));
-	m_laserPulseEnergy = percent((percent::valueType)std::atof(energy));
-	m_laserTemperature = kelvin((kelvin::valueType)std::atof(laserTemperature) + (kelvin::valueType)273.15);
-	m_tiltAngle = degree((degree::valueType)std::atof(tiltAngle));
-	m_background = millivolt((millivolt::valueType)std::atof(background));
+	m_scale = percentF((percentF::valueType)std::atof(scale));
+	m_resolution = metreF((metreF::valueType)std::atof(res));
+	m_laserPulseEnergy = percentF((percentF::valueType)std::atof(energy));
+	m_laserTemperature = kelvinF((kelvinF::valueType)std::atof(laserTemperature) + (kelvinF::valueType)273.15);
+	m_tiltAngle = degreeF((degreeF::valueType)std::atof(tiltAngle));
+	m_background = millivoltF((millivoltF::valueType)std::atof(background));
 	int intPulseQuantity = std::atoi(pulseQuantity);
 	sci::assertThrow(intPulseQuantity >= 0, sci::err(sci::SERR_USER, 0, "Found a negative pulse quantity while reading a Campbell file"));
 	sci::assertThrow(intPulseQuantity <= std::numeric_limits<size_t>::max()/1000, sci::err(sci::SERR_USER, 0, "Found a negative pulse quantity while reading a Campbell file"));
 	m_pulseQuantity = size_t(intPulseQuantity) * 1000;
-	m_sampleRate = megahertz((megahertz::valueType)std::atof(sampleRate));
-	m_sum = perSteradian((perSteradian::valueType)std::atof(sum));
+	m_sampleRate = megahertzF((megahertzF::valueType)std::atof(sampleRate));
+	m_sum = perSteradianF((perSteradianF::valueType)std::atof(sum));
 
 
 
@@ -405,7 +405,7 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	char* currentPoint = &data[0];
 	for (size_t i = 0; i < m_data.size(); ++i)
 	{
-		m_data[i] = perSteradianPerKilometre((perSteradianPerKilometre::valueType)hexTextToNumber(currentPoint))*m_scale / unitless((unitless::valueType)100000.0);
+		m_data[i] = perSteradianPerKilometreF((perSteradianPerKilometreF::valueType)hexTextToNumber(currentPoint))*m_scale / unitlessF((unitlessF::valueType)100000.0);
 		currentPoint += 5;
 	}
 

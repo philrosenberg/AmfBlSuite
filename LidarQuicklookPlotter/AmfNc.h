@@ -74,8 +74,8 @@ const std::map<FeatureType, sci::string> g_featureTypeStrings{ {FeatureType::tim
 
 struct DataInfo
 {
-	second samplingInterval;
-	second averagingPeriod;
+	secondF samplingInterval;
+	secondF averagingPeriod;
 	int processingLevel;
 	FeatureType featureType;
 	/*degree minLat;//for point measurements set min or max to nan
@@ -124,15 +124,15 @@ struct PlatformInfo
 #pragma warning(pop)
 
 template< class T >
-void correctDirection(T measuredX, T measuredY, T measuredZ, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, T &correctedX, T &correctedY, T &correctedZ)
+void correctDirection(T measuredX, T measuredY, T measuredZ, unitlessF sinInstrumentElevation, unitlessF sinInstrumentAzimuth, unitlessF sinInstrumentRoll, unitlessF cosInstrumentElevation, unitlessF cosInstrumentAzimuth, unitlessF cosInstrumentRoll, T &correctedX, T &correctedY, T &correctedZ)
 {
 	//make things a little easier with notation
-	unitless cosE = cosInstrumentElevation;
-	unitless sinE = sinInstrumentElevation;
-	unitless cosR = cosInstrumentRoll;
-	unitless sinR = sinInstrumentRoll;
-	unitless cosA = cosInstrumentAzimuth;
-	unitless sinA = sinInstrumentAzimuth;
+	unitlessF cosE = cosInstrumentElevation;
+	unitlessF sinE = sinInstrumentElevation;
+	unitlessF cosR = cosInstrumentRoll;
+	unitlessF sinR = sinInstrumentRoll;
+	unitlessF cosA = cosInstrumentAzimuth;
+	unitlessF sinA = sinInstrumentAzimuth;
 
 	//transform the unit vector into the correct direction
 	correctedX = measuredX * (cosR*cosA - sinR * sinE*sinA) + measuredY * (-cosE * sinA) + measuredZ * (sinR*cosA + cosR * sinE*sinA);
@@ -140,20 +140,20 @@ void correctDirection(T measuredX, T measuredY, T measuredZ, unitless sinInstrum
 	correctedZ = measuredX * (-sinR * cosE) + measuredY * (sinE)+measuredZ * (cosR*cosE);
 }
 
-void correctDirection(degree measuredElevation, degree measuredAzimuth, unitless sinInstrumentElevation, unitless sinInstrumentAzimuth, unitless sinInstrumentRoll, unitless cosInstrumentElevation, unitless cosInstrumentAzimuth, unitless cosInstrumentRoll, degree &correctedElevation, degree &correctedAzimuth);
-degree angleBetweenDirections(degree elevation1, degree azimuth1, degree elevation2, degree azimuth2);
+void correctDirection(degreeF measuredElevation, degreeF measuredAzimuth, unitlessF sinInstrumentElevation, unitlessF sinInstrumentAzimuth, unitlessF sinInstrumentRoll, unitlessF cosInstrumentElevation, unitlessF cosInstrumentAzimuth, unitlessF cosInstrumentRoll, degreeF &correctedElevation, degreeF &correctedAzimuth);
+degreeF angleBetweenDirections(degreeF elevation1, degreeF azimuth1, degreeF elevation2, degreeF azimuth2);
 
 struct AttitudeAverage
 {
-	AttitudeAverage(degree mean, degree min, degree max, degree stdev)
+	AttitudeAverage(degreeF mean, degreeF min, degreeF max, degreeF stdev)
 		:m_mean(mean), m_min(min), m_max(max), m_stdev(stdev)
 	{}
 	AttitudeAverage() {}
-	degree m_mean;
-	degree m_min;
-	degree m_max;
-	degree m_stdev;
-	degreePerSecond m_rate;
+	degreeF m_mean;
+	degreeF m_min;
+	degreeF m_max;
+	degreeF m_stdev;
+	degreePerSecondF m_rate;
 };
 
 class Platform
@@ -172,14 +172,14 @@ public:
 		return m_platformInfo;
 	};
 	virtual ~Platform() {}
-	void correctDirection(sci::UtcTime startTime, sci::UtcTime endTime, degree instrumentRelativeAzimuth, degree instrumentRelativeElevation, degree &correctedAzimuth, degree &correctedElevation) const
+	void correctDirection(sci::UtcTime startTime, sci::UtcTime endTime, degreeF instrumentRelativeAzimuth, degreeF instrumentRelativeElevation, degreeF &correctedAzimuth, degreeF &correctedElevation) const
 	{
-		unitless sinInstrumentElevation;
-		unitless sinInstrumentAzimuth;
-		unitless sinInstrumentRoll;
-		unitless cosInstrumentElevation;
-		unitless cosInstrumentAzimuth;
-		unitless cosInstrumentRoll;
+		unitlessF sinInstrumentElevation;
+		unitlessF sinInstrumentAzimuth;
+		unitlessF sinInstrumentRoll;
+		unitlessF cosInstrumentElevation;
+		unitlessF cosInstrumentAzimuth;
+		unitlessF cosInstrumentRoll;
 		getInstrumentTrigAttitudesForDirectionCorrection(startTime, endTime, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
 
 		::correctDirection(instrumentRelativeElevation, instrumentRelativeAzimuth, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedElevation, correctedAzimuth);
@@ -187,29 +187,29 @@ public:
 	template<class T>
 	void correctVector(sci::UtcTime startTime, sci::UtcTime endTime, T measuredX, T measuredY, T measuredZ, T &correctedX, T &correctedY, T &correctedZ) const
 	{
-		unitless sinInstrumentElevation;
-		unitless sinInstrumentAzimuth;
-		unitless sinInstrumentRoll;
-		unitless cosInstrumentElevation;
-		unitless cosInstrumentAzimuth;
-		unitless cosInstrumentRoll;
+		unitlessF sinInstrumentElevation;
+		unitlessF sinInstrumentAzimuth;
+		unitlessF sinInstrumentRoll;
+		unitlessF cosInstrumentElevation;
+		unitlessF cosInstrumentAzimuth;
+		unitlessF cosInstrumentRoll;
 		getInstrumentTrigAttitudesForDirectionCorrection(time, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll);
 
 		::correctDirection(measuredX, measuredY, measuredZ, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedX, correctedY, correctedZ);
 	}
-	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const = 0;
-	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const = 0;
-	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degree &latitude, degree &longitude, metre &altitude) const = 0;
-	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecond &speed, degree &course) const
+	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecondF &eastwardVelocity, metrePerSecondF &northwardVelocity, metrePerSecondF &upwardVelocity) const = 0;
+	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitlessF &sinInstrumentElevation, unitlessF &sinInstrumentAzimuth, unitlessF &sinInstrumentRoll, unitlessF &cosInstrumentElevation, unitlessF &cosInstrumentAzimuth, unitlessF &cosInstrumentRoll) const = 0;
+	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degreeF &latitude, degreeF &longitude, metreF &altitude) const = 0;
+	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecondF &speed, degreeF &course) const
 	{
-		metrePerSecond u;
-		metrePerSecond v;
-		metrePerSecond w;
+		metrePerSecondF u;
+		metrePerSecondF v;
+		metrePerSecondF w;
 		getInstrumentVelocity(startTime, endTime, u, v, w);
-		if (u == metrePerSecond(0) && v == metrePerSecond(0))
+		if (u == metrePerSecondF(0) && v == metrePerSecondF(0))
 		{
-			speed = metrePerSecond(0);
-			course = std::numeric_limits<degree>::quiet_NaN();
+			speed = metrePerSecondF(0);
+			course = std::numeric_limits<degreeF>::quiet_NaN();
 		}
 		speed = sci::sqrt(u*u + v * v);
 		course = sci::atan2(u, v);
@@ -225,7 +225,7 @@ private:
 class StationaryPlatform : public Platform
 {
 public:
-	StationaryPlatform(sci::string name, metre altitude, degree latitude, degree longitude, std::vector<sci::string> locationKeywords, degree instrumentElevation, degree instrumentAzimuth, degree instrumentRoll)
+	StationaryPlatform(sci::string name, metreF altitude, degreeF latitude, degreeF longitude, std::vector<sci::string> locationKeywords, degreeF instrumentElevation, degreeF instrumentAzimuth, degreeF instrumentRoll)
 		:Platform(name, PlatformType::stationary, DeploymentMode::land, locationKeywords)
 	{
 		m_latitude = latitude;
@@ -238,13 +238,13 @@ public:
 		m_cosInstrumentAzimuth = sci::cos(instrumentAzimuth);
 		m_cosInstrumentRoll = sci::cos(instrumentRoll);
 	}
-	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const override
+	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecondF &eastwardVelocity, metrePerSecondF &northwardVelocity, metrePerSecondF &upwardVelocity) const override
 	{
-		eastwardVelocity = metrePerSecond(0.0);
-		northwardVelocity = metrePerSecond(0.0);
-		upwardVelocity = metrePerSecond(0.0);
+		eastwardVelocity = metrePerSecondF(0.0);
+		northwardVelocity = metrePerSecondF(0.0);
+		upwardVelocity = metrePerSecondF(0.0);
 	}
-	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
+	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitlessF &sinInstrumentElevation, unitlessF &sinInstrumentAzimuth, unitlessF &sinInstrumentRoll, unitlessF &cosInstrumentElevation, unitlessF &cosInstrumentAzimuth, unitlessF &cosInstrumentRoll) const override
 	{
 		sinInstrumentElevation = m_sinInstrumentElevation;
 		sinInstrumentAzimuth = m_sinInstrumentAzimuth;
@@ -253,7 +253,7 @@ public:
 		cosInstrumentAzimuth = m_cosInstrumentAzimuth;
 		cosInstrumentRoll = m_cosInstrumentRoll;
 	}
-	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degree &latitude, degree &longitude, metre &altitude) const override
+	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degreeF &latitude, degreeF &longitude, metreF &altitude) const override
 	{
 		latitude = m_latitude;
 		longitude = m_longitude;
@@ -267,16 +267,16 @@ public:
 	}*/
 	virtual void getInstrumentAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const override
 	{
-		elevation = AttitudeAverage(m_elevation, m_elevation, m_elevation, degree(0));
-		azimuth = AttitudeAverage(m_azimuth, m_azimuth, m_azimuth, degree(0));
-		roll = AttitudeAverage(m_roll, m_roll, m_roll, degree(0));
+		elevation = AttitudeAverage(m_elevation, m_elevation, m_elevation, degreeF(0));
+		azimuth = AttitudeAverage(m_azimuth, m_azimuth, m_azimuth, degreeF(0));
+		roll = AttitudeAverage(m_roll, m_roll, m_roll, degreeF(0));
 	}
 	virtual void getPlatformAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const override
 	{
-		elevation.m_mean = std::numeric_limits<degree>::quiet_NaN();
-		elevation.m_min = std::numeric_limits<degree>::quiet_NaN();
-		elevation.m_max = std::numeric_limits<degree>::quiet_NaN();
-		elevation.m_stdev = std::numeric_limits<degree>::quiet_NaN();
+		elevation.m_mean = std::numeric_limits<degreeF>::quiet_NaN();
+		elevation.m_min = std::numeric_limits<degreeF>::quiet_NaN();
+		elevation.m_max = std::numeric_limits<degreeF>::quiet_NaN();
+		elevation.m_stdev = std::numeric_limits<degreeF>::quiet_NaN();
 		azimuth = elevation;
 		roll = elevation;
 
@@ -286,18 +286,18 @@ public:
 		return true;
 	}
 private:
-	degree m_latitude;
-	degree m_longitude;
-	metre m_altitude;
-	degree m_elevation;
-	degree m_azimuth;
-	degree m_roll;
-	unitless m_sinInstrumentElevation;
-	unitless m_sinInstrumentAzimuth;
-	unitless m_sinInstrumentRoll;
-	unitless m_cosInstrumentElevation;
-	unitless m_cosInstrumentAzimuth;
-	unitless m_cosInstrumentRoll;
+	degreeF m_latitude;
+	degreeF m_longitude;
+	metreF m_altitude;
+	degreeF m_elevation;
+	degreeF m_azimuth;
+	degreeF m_roll;
+	unitlessF m_sinInstrumentElevation;
+	unitlessF m_sinInstrumentAzimuth;
+	unitlessF m_sinInstrumentRoll;
+	unitlessF m_cosInstrumentElevation;
+	unitlessF m_cosInstrumentAzimuth;
+	unitlessF m_cosInstrumentRoll;
 };
 
 //class MovingLevelPlatform : public Platform
@@ -344,20 +344,20 @@ private:
 //the second element it adds or subtracts mutiples of 360 degrees
 //so that the absolute differnce between two elements is never
 //more than 180 degrees
-void makeContinuous(std::vector<degree> &angles);
+void makeContinuous(std::vector<degreeF> &angles);
 
 
 //this function puts an angle into the -180 to +180 degree range
-inline degree rangeLimitAngle(degree angle)
+inline degreeF rangeLimitAngle(degreeF angle)
 {
-	degree jumpAmount = sci::ceil((angle - degree(180)) / degree(360))*degree(360);
+	degreeF jumpAmount = sci::ceil<unitlessF::unit>((angle - degreeF(180)) / degreeF(360))*degreeF(360);
 	return angle - jumpAmount;
 }
 
 class ShipPlatform : public Platform
 {
 public:
-	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, const std::vector<degree> &instrumentElevationsShipRelative, const std::vector<degree> &instrumentAzimuthsShipRelative, const std::vector<degree> &instrumentRollsShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
+	ShipPlatform(sci::string name, metreF altitude, const std::vector<sci::UtcTime> &times, const std::vector<degreeF> &latitudes, const std::vector<degreeF> &longitudes, const std::vector<sci::string> &locationKeywords, const std::vector<degreeF> &instrumentElevationsShipRelative, const std::vector<degreeF> &instrumentAzimuthsShipRelative, const std::vector<degreeF> &instrumentRollsShipRelative, const std::vector<degreeF> &shipCourses, const std::vector<metrePerSecondF> &shipSpeeds, const std::vector<degreeF> &shipElevations, const std::vector<degreeF> &shipAzimuths, const std::vector<degreeF> &shipRolls)
 		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords)
 	{
 		m_previousLowerIndexEndTime = 0;
@@ -389,15 +389,15 @@ public:
 		makeContinuous(m_shipCoursesNoJumps);
 
 
-		m_instrumentElevationsAbsolute = std::vector<degree>(times.size(), degree(0.0));
-		m_instrumentAzimuthsAbsolute = std::vector<degree>(times.size(), degree(0.0));
-		m_instrumentRollsAbsolute = std::vector<degree>(times.size(), degree(0.0));
-		m_sinInstrumentElevationsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_sinInstrumentAzimuthsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_sinInstrumentRollsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_cosInstrumentElevationsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_cosInstrumentAzimuthsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_cosInstrumentRollsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_instrumentElevationsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
+		m_instrumentAzimuthsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
+		m_instrumentRollsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
+		m_sinInstrumentElevationsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_sinInstrumentAzimuthsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_sinInstrumentRollsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_cosInstrumentElevationsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_cosInstrumentAzimuthsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_cosInstrumentRollsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
 
 		for (size_t i = 0; i < m_times.size(); ++i)
 		{
@@ -422,10 +422,10 @@ public:
 			//up relative to the instrument if there was no absolute roll.
 			//The absolute roll is the angle between these two directions which
 			//we find useing the spherical trig cosine rule.
-			degree upElevation;
-			degree upAzimuth;
-			::correctDirection(degree(90.0),
-				degree(0.0),
+			degreeF upElevation;
+			degreeF upAzimuth;
+			::correctDirection(degreeF(90.0),
+				degreeF(0.0),
 				sci::sin(instrumentElevationsShipRelative[i]),
 				sci::sin(instrumentAzimuthsShipRelative[i]),
 				sci::sin(instrumentRollsShipRelative[i]),
@@ -444,8 +444,8 @@ public:
 				sci::cos(shipRolls[i]),
 				upElevation,
 				upAzimuth);
-			degree upElevationNoRoll = m_instrumentElevationsAbsolute[i] + degree(90.0);
-			degree upAzimuthNoRoll = m_instrumentAzimuthsAbsolute[i];
+			degreeF upElevationNoRoll = m_instrumentElevationsAbsolute[i] + degreeF(90.0);
+			degreeF upAzimuthNoRoll = m_instrumentAzimuthsAbsolute[i];
 			m_instrumentRollsAbsolute[i] = angleBetweenDirections(upElevationNoRoll, upAzimuthNoRoll, upElevation, upAzimuth);
 
 			m_sinInstrumentElevationsAbsolute[i] = sci::sin(m_instrumentElevationsAbsolute[i]);
@@ -460,7 +460,7 @@ public:
 		m_instrumentAzimuthsAbsoluteNoJumps = shipAzimuths;
 		makeContinuous(m_instrumentAzimuthsAbsoluteNoJumps);
 	}
-	ShipPlatform(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationShipRelative, degree instrumentAzimuthShipRelative, degree instrumentRollShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
+	ShipPlatform(sci::string name, metreF altitude, const std::vector<sci::UtcTime> &times, const std::vector<degreeF> &latitudes, const std::vector<degreeF> &longitudes, const std::vector<sci::string> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const std::vector<degreeF> &shipCourses, const std::vector<metrePerSecondF> &shipSpeeds, const std::vector<degreeF> &shipElevations, const std::vector<degreeF> &shipAzimuths, const std::vector<degreeF> &shipRolls)
 		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords)
 	{
 		m_previousLowerIndexEndTime = 0;
@@ -497,23 +497,23 @@ public:
 		m_longitudesNoJumps = longitudes;
 		makeContinuous(m_longitudesNoJumps);
 
-		m_instrumentElevationsAbsolute = std::vector<degree>(times.size(), degree(0.0));
-		m_instrumentAzimuthsAbsolute = std::vector<degree>(times.size(), degree(0.0));
-		m_instrumentRollsAbsolute = std::vector<degree>(times.size(), degree(0.0));
-		m_sinInstrumentElevationsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_sinInstrumentAzimuthsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_sinInstrumentRollsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_cosInstrumentElevationsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_cosInstrumentAzimuthsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
-		m_cosInstrumentRollsAbsolute = std::vector<unitless>(times.size(), unitless(0.0));
+		m_instrumentElevationsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
+		m_instrumentAzimuthsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
+		m_instrumentRollsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
+		m_sinInstrumentElevationsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_sinInstrumentAzimuthsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_sinInstrumentRollsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_cosInstrumentElevationsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_cosInstrumentAzimuthsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_cosInstrumentRollsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
 
 		//We can save some calculations by doing these outside of the loop
-		unitless sinE = sci::sin(instrumentElevationShipRelative);
-		unitless sinA = sci::sin(instrumentAzimuthShipRelative);
-		unitless sinR = sci::sin(instrumentRollShipRelative);
-		unitless cosE = sci::cos(instrumentElevationShipRelative);
-		unitless cosA = sci::cos(instrumentAzimuthShipRelative);
-		unitless cosR = sci::cos(instrumentRollShipRelative);
+		unitlessF sinE = sci::sin(instrumentElevationShipRelative);
+		unitlessF sinA = sci::sin(instrumentAzimuthShipRelative);
+		unitlessF sinR = sci::sin(instrumentRollShipRelative);
+		unitlessF cosE = sci::cos(instrumentElevationShipRelative);
+		unitlessF cosA = sci::cos(instrumentAzimuthShipRelative);
+		unitlessF cosR = sci::cos(instrumentRollShipRelative);
 
 		for (size_t i = 0; i < m_times.size(); ++i)
 		{
@@ -538,10 +538,10 @@ public:
 			//up relative to the instrument if there was no absolute roll.
 			//The absolute roll is the angle between these two directions which
 			//we find useing the spherical trig cosine rule.
-			degree upElevation;
-			degree upAzimuth;
-			::correctDirection(degree(90.0),
-				degree(0.0),
+			degreeF upElevation;
+			degreeF upAzimuth;
+			::correctDirection(degreeF(90.0),
+				degreeF(0.0),
 				sinE,
 				sinA,
 				sinR,
@@ -560,8 +560,8 @@ public:
 				sci::cos(shipRolls[i]),
 				upElevation,
 				upAzimuth);
-			degree upElevationNoRoll = m_instrumentElevationsAbsolute[i] + degree(90.0);
-			degree upAzimuthNoRoll = m_instrumentAzimuthsAbsolute[i];
+			degreeF upElevationNoRoll = m_instrumentElevationsAbsolute[i] + degreeF(90.0);
+			degreeF upAzimuthNoRoll = m_instrumentAzimuthsAbsolute[i];
 			m_instrumentRollsAbsolute[i] = angleBetweenDirections(upElevationNoRoll, upAzimuthNoRoll, upElevation, upAzimuth);
 
 			m_sinInstrumentElevationsAbsolute[i] = sci::sin(m_instrumentElevationsAbsolute[i]);
@@ -576,16 +576,16 @@ public:
 		m_instrumentAzimuthsAbsoluteNoJumps = shipAzimuths;
 		makeContinuous(m_instrumentAzimuthsAbsoluteNoJumps);
 	}
-	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degree &latitude, degree &longitude, metre &altitude) const
+	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degreeF &latitude, degreeF &longitude, metreF &altitude) const
 	{
 		latitude = findMean(startTime, endTime, m_latitudes);
 		longitude = findMean(startTime, endTime, m_longitudesNoJumps);
 		longitude = rangeLimitAngle(longitude);
 		altitude = m_altitude;
 	}
-	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecond &eastwardVelocity, metrePerSecond &northwardVelocity, metrePerSecond &upwardVelocity) const override
+	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecondF &eastwardVelocity, metrePerSecondF &northwardVelocity, metrePerSecondF &upwardVelocity) const override
 	{
-		upwardVelocity = metrePerSecond(0.0);
+		upwardVelocity = metrePerSecondF(0.0);
 		eastwardVelocity = findMean(startTime, endTime, m_u);
 		northwardVelocity = findMean(startTime, endTime, m_v);
 	}
@@ -609,7 +609,7 @@ public:
 		findStatistics(startTime, endTime, m_instrumentElevationsAbsolute, elevation.m_mean, elevation.m_stdev, elevation.m_min, elevation.m_max, elevation.m_rate);
 		findStatistics(startTime, endTime, m_instrumentAzimuthsAbsoluteNoJumps, azimuth.m_mean, azimuth.m_stdev, azimuth.m_min, azimuth.m_max, azimuth.m_rate);
 		findStatistics(startTime, endTime, m_instrumentRollsAbsolute, roll.m_mean, roll.m_stdev, roll.m_min, roll.m_max, roll.m_rate);
-		degree azimuthOffset = rangeLimitAngle(azimuth.m_mean) - azimuth.m_mean;
+		degreeF azimuthOffset = rangeLimitAngle(azimuth.m_mean) - azimuth.m_mean;
 		azimuth.m_mean += azimuthOffset;
 		azimuth.m_max += azimuthOffset;
 		azimuth.m_min += azimuthOffset;
@@ -619,12 +619,12 @@ public:
 		findStatistics(startTime, endTime, m_shipElevations, elevation.m_mean, elevation.m_stdev, elevation.m_min, elevation.m_max, elevation.m_rate);
 		findStatistics(startTime, endTime, m_shipAzimuthsNoJumps, azimuth.m_mean, azimuth.m_stdev, azimuth.m_min, azimuth.m_max, azimuth.m_rate);
 		findStatistics(startTime, endTime, m_shipRolls, roll.m_mean, roll.m_stdev, roll.m_min, roll.m_max, roll.m_rate);
-		degree azimuthOffset = rangeLimitAngle(azimuth.m_mean) - azimuth.m_mean;
+		degreeF azimuthOffset = rangeLimitAngle(azimuth.m_mean) - azimuth.m_mean;
 		azimuth.m_mean += azimuthOffset;
 		azimuth.m_max += azimuthOffset;
 		azimuth.m_min += azimuthOffset;
 	}
-	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
+	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitlessF &sinInstrumentElevation, unitlessF &sinInstrumentAzimuth, unitlessF &sinInstrumentRoll, unitlessF &cosInstrumentElevation, unitlessF &cosInstrumentAzimuth, unitlessF &cosInstrumentRoll) const override
 	{
 		sinInstrumentElevation = findMean(startTime, endTime, m_sinInstrumentElevationsAbsolute);
 		sinInstrumentAzimuth = findMean(startTime, endTime, m_sinInstrumentAzimuthsAbsolute);
@@ -639,30 +639,30 @@ public:
 	}
 private:
 	std::vector<sci::UtcTime> m_times;
-	metre m_altitude;
-	std::vector<degree> m_latitudes;
-	std::vector<degree> m_longitudes;
-	std::vector<degree> m_longitudesNoJumps;
-	std::vector<degree> m_instrumentElevationsAbsolute;
-	std::vector<degree> m_instrumentAzimuthsAbsolute;
-	std::vector<degree> m_instrumentAzimuthsAbsoluteNoJumps;
-	std::vector<degree> m_instrumentRollsAbsolute;
-	std::vector<degree> m_shipCourses;
-	std::vector<degree> m_shipElevations;
-	std::vector<degree> m_shipAzimuths;
-	std::vector<degree> m_shipRolls;
-	std::vector<degree> m_shipCoursesNoJumps;
-	std::vector<degree> m_shipAzimuthsNoJumps;
-	std::vector<metrePerSecond> m_shipSpeeds;
-	std::vector<metrePerSecond> m_u;
-	std::vector<metrePerSecond> m_v;
+	metreF m_altitude;
+	std::vector<degreeF> m_latitudes;
+	std::vector<degreeF> m_longitudes;
+	std::vector<degreeF> m_longitudesNoJumps;
+	std::vector<degreeF> m_instrumentElevationsAbsolute;
+	std::vector<degreeF> m_instrumentAzimuthsAbsolute;
+	std::vector<degreeF> m_instrumentAzimuthsAbsoluteNoJumps;
+	std::vector<degreeF> m_instrumentRollsAbsolute;
+	std::vector<degreeF> m_shipCourses;
+	std::vector<degreeF> m_shipElevations;
+	std::vector<degreeF> m_shipAzimuths;
+	std::vector<degreeF> m_shipRolls;
+	std::vector<degreeF> m_shipCoursesNoJumps;
+	std::vector<degreeF> m_shipAzimuthsNoJumps;
+	std::vector<metrePerSecondF> m_shipSpeeds;
+	std::vector<metrePerSecondF> m_u;
+	std::vector<metrePerSecondF> m_v;
 
-	std::vector<unitless> m_sinInstrumentElevationsAbsolute;
-	std::vector<unitless> m_sinInstrumentAzimuthsAbsolute;
-	std::vector<unitless> m_sinInstrumentRollsAbsolute;
-	std::vector<unitless> m_cosInstrumentElevationsAbsolute;
-	std::vector<unitless> m_cosInstrumentAzimuthsAbsolute;
-	std::vector<unitless> m_cosInstrumentRollsAbsolute;
+	std::vector<unitlessF> m_sinInstrumentElevationsAbsolute;
+	std::vector<unitlessF> m_sinInstrumentAzimuthsAbsolute;
+	std::vector<unitlessF> m_sinInstrumentRollsAbsolute;
+	std::vector<unitlessF> m_cosInstrumentElevationsAbsolute;
+	std::vector<unitlessF> m_cosInstrumentAzimuthsAbsolute;
+	std::vector<unitlessF> m_cosInstrumentRollsAbsolute;
 
 	mutable size_t m_previousLowerIndexStartTime;
 	mutable size_t m_previousLowerIndexEndTime;
@@ -709,7 +709,7 @@ private:
 		size_t endLowerIndex = findLowerIndex(endTime, false);
 		size_t endUpperIndex = std::min(endLowerIndex + 1, m_times.size() - 1);
 		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex + 1);
-		std::vector<degree> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex + 1);
+		std::vector<degreeF> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex + 1);
 		mean = T(sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime));
 		min = sci::min<T>(subProperty);
 		max = sci::max<T>(subProperty);
@@ -747,7 +747,7 @@ private:
 class ShipPlatformShipRelativeCorrected : public ShipPlatform
 {
 public:
-	ShipPlatformShipRelativeCorrected(sci::string name, metre altitude, const std::vector<sci::UtcTime> &times, const std::vector<degree> &latitudes, const std::vector<degree> &longitudes, const std::vector<sci::string> &locationKeywords, degree instrumentElevationShipRelative, degree instrumentAzimuthShipRelative, degree instrumentRollShipRelative, const std::vector<degree> &shipCourses, const std::vector<metrePerSecond> &shipSpeeds, const std::vector<degree> &shipElevations, const std::vector<degree> &shipAzimuths, const std::vector<degree> &shipRolls)
+	ShipPlatformShipRelativeCorrected(sci::string name, metreF altitude, const std::vector<sci::UtcTime> &times, const std::vector<degreeF> &latitudes, const std::vector<degreeF> &longitudes, const std::vector<sci::string> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const std::vector<degreeF> &shipCourses, const std::vector<metrePerSecondF> &shipSpeeds, const std::vector<degreeF> &shipElevations, const std::vector<degreeF> &shipAzimuths, const std::vector<degreeF> &shipRolls)
 		: ShipPlatform(name, altitude, times, latitudes, longitudes, locationKeywords, instrumentElevationShipRelative, instrumentAzimuthShipRelative, instrumentRollShipRelative, shipCourses, shipSpeeds, shipElevations, shipAzimuths, shipRolls)
 	{
 		m_sinInstrumentElevation = sci::sin(instrumentElevationShipRelative);
@@ -757,7 +757,7 @@ public:
 		m_cosInstrumentAzimuth = sci::cos(instrumentAzimuthShipRelative);
 		m_cosInstrumentRoll = sci::cos(instrumentRollShipRelative);
 	}
-	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitless &sinInstrumentElevation, unitless &sinInstrumentAzimuth, unitless &sinInstrumentRoll, unitless &cosInstrumentElevation, unitless &cosInstrumentAzimuth, unitless &cosInstrumentRoll) const override
+	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitlessF &sinInstrumentElevation, unitlessF &sinInstrumentAzimuth, unitlessF &sinInstrumentRoll, unitlessF &cosInstrumentElevation, unitlessF &cosInstrumentAzimuth, unitlessF &cosInstrumentRoll) const override
 	{
 		sinInstrumentElevation = m_sinInstrumentElevation;
 		sinInstrumentAzimuth = m_sinInstrumentAzimuth;
@@ -771,12 +771,12 @@ public:
 		return true;
 	}
 private:
-	unitless m_sinInstrumentElevation;
-	unitless m_sinInstrumentAzimuth;
-	unitless m_sinInstrumentRoll;
-	unitless m_cosInstrumentElevation;
-	unitless m_cosInstrumentAzimuth;
-	unitless m_cosInstrumentRoll;
+	unitlessF m_sinInstrumentElevation;
+	unitlessF m_sinInstrumentAzimuth;
+	unitlessF m_sinInstrumentRoll;
+	unitlessF m_cosInstrumentElevation;
+	unitlessF m_cosInstrumentAzimuth;
+	unitlessF m_cosInstrumentRoll;
 };
 
 class AmfNcTimeVariable;
@@ -822,8 +822,8 @@ public:
 		const Platform &platform,
 		const sci::string &title,
 		const std::vector<sci::UtcTime> &times,
-		const std::vector<degree> &latitudes,
-		const std::vector<degree> &longitudes,
+		const std::vector<degreeF> &latitudes,
+		const std::vector<degreeF> &longitudes,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
 		const std::vector< sci::NcAttribute*>& globalAttributes = std::vector< sci::NcAttribute*>(0),
 		bool incrementMajorVersion = false);
@@ -874,8 +874,8 @@ private:
 		const Platform &platform,
 		sci::string title,
 		const std::vector<sci::UtcTime> &times,
-		const std::vector<degree> &latitudes,
-		const std::vector<degree> &longitudes,
+		const std::vector<degreeF> &latitudes,
+		const std::vector<degreeF> &longitudes,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions,
 		const std::vector< sci::NcAttribute*>& globalAttributes,
 		bool incrementMajorVersion);
@@ -987,24 +987,24 @@ private:
 	std::unique_ptr<AmfNcVariable<float, std::vector<float>>> m_secondVariable;
 
 	//only used for moving platforms
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_courseVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_orientationVariable;
-	std::unique_ptr<AmfNcVariable<metrePerSecond, std::vector<metrePerSecond>>> m_speedVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentPitchVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentPitchStdevVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentPitchMinVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentPitchMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>> m_instrumentPitchRateVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentRollVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentRollStdevVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentRollMinVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentRollMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>> m_instrumentRollRateVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentYawVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentYawStdevVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentYawMinVariable;
-	std::unique_ptr<AmfNcVariable<degree, std::vector<degree>>> m_instrumentYawMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecond, std::vector<degreePerSecond>>> m_instrumentYawRateVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_courseVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_orientationVariable;
+	std::unique_ptr<AmfNcVariable<metrePerSecondF, std::vector<metrePerSecondF>>> m_speedVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentPitchVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentPitchStdevVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentPitchMinVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentPitchMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecondF, std::vector<degreePerSecondF>>> m_instrumentPitchRateVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentRollVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentRollStdevVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentRollMinVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentRollMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecondF, std::vector<degreePerSecondF>>> m_instrumentRollRateVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentYawVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentYawStdevVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentYawMinVariable;
+	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentYawMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecondF, std::vector<degreePerSecondF>>> m_instrumentYawRateVariable;
 
 	std::vector<sci::UtcTime> m_times;
 	std::vector<int> m_years;
@@ -1014,26 +1014,26 @@ private:
 	std::vector<int> m_hours;
 	std::vector<int> m_minutes;
 	std::vector<float> m_seconds;
-	std::vector<degree> m_latitudes;
-	std::vector<degree> m_longitudes;
-	std::vector<degree> m_elevations;
-	std::vector<degree> m_elevationStdevs;
-	std::vector<degree> m_elevationMins;
-	std::vector<degree> m_elevationMaxs;
-	std::vector<degreePerSecond> m_elevationRates;
-	std::vector<degree> m_azimuths;
-	std::vector<degree> m_azimuthStdevs;
-	std::vector<degree> m_azimuthMins;
-	std::vector<degree> m_azimuthMaxs;
-	std::vector<degreePerSecond> m_azimuthRates;
-	std::vector<degree> m_rolls;
-	std::vector<degree> m_rollStdevs;
-	std::vector<degree> m_rollMins;
-	std::vector<degree> m_rollMaxs;
-	std::vector<degreePerSecond> m_rollRates;
-	std::vector<degree> m_courses;
-	std::vector<metrePerSecond> m_speeds;
-	std::vector<degree> m_headings;
+	std::vector<degreeF> m_latitudes;
+	std::vector<degreeF> m_longitudes;
+	std::vector<degreeF> m_elevations;
+	std::vector<degreeF> m_elevationStdevs;
+	std::vector<degreeF> m_elevationMins;
+	std::vector<degreeF> m_elevationMaxs;
+	std::vector<degreePerSecondF> m_elevationRates;
+	std::vector<degreeF> m_azimuths;
+	std::vector<degreeF> m_azimuthStdevs;
+	std::vector<degreeF> m_azimuthMins;
+	std::vector<degreeF> m_azimuthMaxs;
+	std::vector<degreePerSecondF> m_azimuthRates;
+	std::vector<degreeF> m_rolls;
+	std::vector<degreeF> m_rollStdevs;
+	std::vector<degreeF> m_rollMins;
+	std::vector<degreeF> m_rollMaxs;
+	std::vector<degreePerSecondF> m_rollRates;
+	std::vector<degreeF> m_courses;
+	std::vector<metrePerSecondF> m_speeds;
+	std::vector<degreeF> m_headings;
 };
 
 template<class T>
@@ -1389,7 +1389,7 @@ public:
 	{
 		std::vector<valueType> result(linearPhysicals.size());
 		for (size_t i = 0; i < linearPhysicals.size(); ++i)
-			result[i] = Decibel<REFERENCE_UNIT>::linearToDecibel(linearPhysicals[i]).value<unitless>();
+			result[i] = Decibel<REFERENCE_UNIT>::linearToDecibel(linearPhysicals[i]).value<unitlessF>();
 		return result;
 	}
 	//This flattenData function accepts a multi-d vector of data in units compatible with reference units and returns a 1d
@@ -1458,7 +1458,7 @@ private:
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), m_isDbZ ? sU("dBZ") : sU("dB"));
-		sci::string referenceUnit = referencePhysical::getShortUnitString();
+		sci::string referenceUnit = referencePhysical::getShortUnitString<sci::string>();
 		if (referenceUnit.length() == 0)
 			referenceUnit = sU("1");
 		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referenceUnit);
@@ -1498,7 +1498,7 @@ class AmfNcTimeVariable : public AmfNcVariable<typename second::valueType, std::
 {
 public:
 	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<sci::UtcTime> &times)
-		:AmfNcVariable<typename second::valueType, std::vector<typename second::valueType >> (sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)), false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0))
+		:AmfNcVariable<typename second::valueType, std::vector<typename second::valueType >> (sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second::unit>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)), false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
 		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);
@@ -1512,18 +1512,18 @@ public:
 		return secondsAfterEpoch;
 	}
 };
-class AmfNcLongitudeVariable : public AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>
+class AmfNcLongitudeVariable : public AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>
 {
 public:
-	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &longitudes, FeatureType featureType)
-		:AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>(
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degreeF> &longitudes, FeatureType featureType)
+		:AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>(
 			sU("longitude"),
 			ncFile, 
 			dimension,
 			sU("Longitude"),
 			sU("longitude"),
 			sU("degrees_east"),
-			sci::physicalsToValues<degree>(longitudes),
+			sci::physicalsToValues<degreeF>(longitudes),
 			true,
 			std::vector<sci::string>(0),
 			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{{sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
@@ -1531,18 +1531,18 @@ public:
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
 };
-class AmfNcLatitudeVariable : public AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>
+class AmfNcLatitudeVariable : public AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>
 {
 public:
-	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degree> &latitudes, FeatureType featureType)
-		:AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>(
+	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degreeF> &latitudes, FeatureType featureType)
+		:AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>(
 			sU("latitude"),
 			ncFile,
 			dimension,
 			sU("Latitude"),
 			sU("latitude"),
 			sU("degrees_north"),
-			sci::physicalsToValues<degree>(latitudes),
+			sci::physicalsToValues<degreeF>(latitudes),
 			true,
 			std::vector<sci::string>(0),
 			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
@@ -1551,18 +1551,18 @@ public:
 	}
 };
 
-class AmfNcAltitudeVariable : public AmfNcVariable<typename metre::valueType, std::vector<typename metre::valueType>>
+class AmfNcAltitudeVariable : public AmfNcVariable<typename metreF::valueType, std::vector<typename metreF::valueType>>
 {
 public:
-	AmfNcAltitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<metre> &altitudes, FeatureType featureType)
-		:AmfNcVariable<typename degree::valueType, std::vector<typename degree::valueType>>(
+	AmfNcAltitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<metreF> &altitudes, FeatureType featureType)
+		:AmfNcVariable<typename metreF::valueType, std::vector<typename metreF::valueType>>(
 			sU("altitude"),
 			ncFile,
 			dimension,
 			sU("Geometric height above geoid (WGS84)"),
 			sU("altitude"),
 			sU("m"),
-			sci::physicalsToValues<metre>(altitudes),
+			sci::physicalsToValues<metreF>(altitudes),
 			true,
 			std::vector<sci::string>(0),
 			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))

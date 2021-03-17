@@ -71,46 +71,46 @@ class CampbellMessage2
 public:
 	CampbellMessage2(char endOfTextCharacter = '\3');
 	void read(std::istream &stream, const CampbellHeader &header);
-	const std::vector<perSteradianPerKilometre> &getData() const { return m_data; }
-	std::vector<metre> getHeights() const { return std::vector<metre>{m_height1, m_height2, m_height3, m_height4, }; }
-	metre getHeight1() const { return m_height1; }
-	metre getHeight2() const { return m_height2; }
-	metre getHeight3() const { return m_height3; }
-	metre getHeight4() const { return m_height4; }
-	metre getVisibility() const { return m_visibility; }
+	const std::vector<perSteradianPerKilometreF> &getData() const { return m_data; }
+	std::vector<metreF> getHeights() const { return std::vector<metreF>{m_height1, m_height2, m_height3, m_height4, }; }
+	metreF getHeight1() const { return m_height1; }
+	metreF getHeight2() const { return m_height2; }
+	metreF getHeight3() const { return m_height3; }
+	metreF getHeight4() const { return m_height4; }
+	metreF getVisibility() const { return m_visibility; }
 	double getHighestSignal() const { return m_highestSignal; }
-	percent getWindowTransmission() const { return m_windowTransmission; }
-	percent getScale() const { return m_scale; }
-	metre getResolution() const { return m_resolution; }
-	percent getLaserPulseEnergy() const { return m_laserPulseEnergy; }
-	kelvin getLaserTemperature() const { return m_laserTemperature; }
-	degree getTiltAngle() const { return m_tiltAngle; }
-	millivolt getBackground() const { return m_background; }
+	percentF getWindowTransmission() const { return m_windowTransmission; }
+	percentF getScale() const { return m_scale; }
+	metreF getResolution() const { return m_resolution; }
+	percentF getLaserPulseEnergy() const { return m_laserPulseEnergy; }
+	kelvinF getLaserTemperature() const { return m_laserTemperature; }
+	degreeF getTiltAngle() const { return m_tiltAngle; }
+	millivoltF getBackground() const { return m_background; }
 	size_t getPulseQuantity() const { return m_pulseQuantity; }
-	hertz getSampleRate() const { return m_sampleRate; }
-	perSteradian getSum() const { return m_sum; }
+	hertzF getSampleRate() const { return m_sampleRate; }
+	perSteradianF getSum() const { return m_sum; }
 	const bool getPassedChecksum() const { return m_passedChecksum; }
 	campbellAlarmStatus getAlarmStatus() const { return m_alarmStatus; }
 	ceilometerMessageStatus getMessageStatus() const { return m_messageStatus; }
 private:
 	char m_endOfTextCharacter;
-	std::vector<perSteradianPerKilometre> m_data;
-	metre m_height1;
-	metre m_height2;
-	metre m_height3;
-	metre m_height4;
-	metre m_visibility;
+	std::vector<perSteradianPerKilometreF> m_data;
+	metreF m_height1;
+	metreF m_height2;
+	metreF m_height3;
+	metreF m_height4;
+	metreF m_visibility;
 	double m_highestSignal;
-	percent m_windowTransmission;
-	percent m_scale;
-	metre m_resolution;
-	percent m_laserPulseEnergy;
-	kelvin m_laserTemperature;
-	degree m_tiltAngle;
-	millivolt m_background;
+	percentF m_windowTransmission;
+	percentF m_scale;
+	metreF m_resolution;
+	percentF m_laserPulseEnergy;
+	kelvinF m_laserTemperature;
+	degreeF m_tiltAngle;
+	millivoltF m_background;
 	size_t m_pulseQuantity;
-	megahertz m_sampleRate;
-	perSteradian m_sum;
+	megahertzF m_sampleRate;
+	perSteradianF m_sum;
 	bool m_passedChecksum;
 	campbellAlarmStatus m_alarmStatus;
 	ceilometerMessageStatus m_messageStatus;

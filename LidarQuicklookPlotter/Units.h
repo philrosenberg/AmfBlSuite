@@ -2,31 +2,31 @@
 
 #include<svector/Units.h>
 
-typedef sci::Physical<sci::Metre<>, float> metre;
+typedef sci::Physical<sci::Metre<>, float> metreF;
 typedef sci::Physical<sci::Second<>, double> second;
-typedef sci::Physical<sci::Second<>, float> secondf;
-typedef sci::Physical<sci::Kelvin<>, float> kelvin;
-typedef sci::Physical<sci::Degree<>, float> degree;
+typedef sci::Physical<sci::Second<>, float> secondF;
+typedef sci::Physical<sci::Kelvin<>, float> kelvinF;
+typedef sci::Physical<sci::Degree<>, float> degreeF;
 //typedef sci::Physical<sci::Radian<>, valueType> radian;
-typedef sci::Physical<sci::Hertz<>, float> hertz;
-typedef sci::Physical<sci::Hertz<1, 6>, float> megahertz;
-typedef sci::Physical<sci::Unitless, float> unitless;
-typedef sci::Physical<sci::Percent, float> percent;
-typedef sci::Physical<sci::Volt<1, -3>, float> millivolt;
-typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<>, sci::Metre<>>, float> steradianPerMetre;
-typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<>, sci::Metre<1, 3>>, float> steradianPerKilometre;
-typedef sci::Physical<sci::DividedEncodedUnit<sci::Steradian<-1>, sci::Metre<1, 3>>, float> perSteradianPerKilometre;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Steradian<-1>, sci::Metre<-1>>, float> perSteradianPerMetre;
-typedef sci::Physical<sci::Steradian<-1>, float> perSteradian;
-typedef sci::Physical<sci::DividedEncodedUnit<sci::Metre<>, sci::Second<>>, float> metrePerSecond;
-typedef sci::Physical<sci::DividedEncodedUnit<sci::Degree<>, sci::Second<>>, float> degreePerSecond;
-typedef sci::Physical<sci::Metre<1, -3>, float> millimetre;
-typedef sci::Physical<sci::Metre<1, -1>, float> perMetre;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<-3>, sci::Metre<-1, -3>>, float> perMetreCubedPerMillimetre;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<-3>, sci::Metre<-6, -3>>, float> reflectivity;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Metre<1, -3>, sci::Hour<-1>>, float> millimetrePerHour;
-typedef sci::Physical<sci::MultipliedEncodedUnit<sci::Gram<>, sci::Metre<-3>>, float> gramPerMetreCubed;
-typedef sci::Physical<sci::Pascal<1, 2>, float> hectoPascal;
+typedef sci::Physical<sci::Hertz<>, float> hertzF;
+typedef sci::Physical<sci::Hertz<1, 6>, float> megahertzF;
+typedef sci::Physical<sci::Unitless, float> unitlessF;
+typedef sci::Physical<sci::Percent, float> percentF;
+typedef sci::Physical<sci::Volt<1, -3>, float> millivoltF;
+typedef sci::Physical<sci::DividedUnit<sci::Steradian<>, sci::Metre<>>, float> steradianPerMetreF;
+typedef sci::Physical<sci::DividedUnit<sci::Steradian<>, sci::Metre<1, 3>>, float> steradianPerKilometreF;
+typedef sci::Physical<sci::DividedUnit<sci::Steradian<-1>, sci::Metre<1, 3>>, float> perSteradianPerKilometreF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Steradian<-1>, sci::Metre<-1>>, float> perSteradianPerMetreF;
+typedef sci::Physical<sci::Steradian<-1>, float> perSteradianF;
+typedef sci::Physical<sci::DividedUnit<sci::Metre<>, sci::Second<>>, float> metrePerSecondF;
+typedef sci::Physical<sci::DividedUnit<sci::Degree<>, sci::Second<>>, float> degreePerSecondF;
+typedef sci::Physical<sci::Metre<1, -3>, float> millimetreF;
+typedef sci::Physical<sci::Metre<1, -1>, float> perMetreF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Metre<-3>, sci::Metre<-1, -3>>, float> perMetreCubedPerMillimetreF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Metre<-3>, sci::Metre<-6, -3>>, float> reflectivityF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Metre<1, -3>, sci::Hour<-1>>, float> millimetrePerHourF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Gram<>, sci::Metre<-3>>, float> gramPerMetreCubedF;
+typedef sci::Physical<sci::Pascal<1, 2>, float> hectoPascalF;
 
 
 template<class REFERENCE_UNIT>

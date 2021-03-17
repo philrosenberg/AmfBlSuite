@@ -111,29 +111,29 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 
 			//correct for instrument misalignment
 			thisProfile.m_motionCorrectedWindDirections = thisProfile.m_instrumentRelativeWindDirections;
-			degree windElevation;
+			degreeF windElevation;
 			for (size_t j = 0; j < thisProfile.m_motionCorrectedWindDirections.size(); ++j)
 			{
-				platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_VadProcessor.getTimesUtcTime().back(), thisProfile.m_motionCorrectedWindDirections[j], degree(0.0), thisProfile.m_motionCorrectedWindDirections[j], windElevation);
-				if (thisProfile.m_motionCorrectedWindDirections[j] < degree(-180.0))
-					thisProfile.m_motionCorrectedWindDirections[j] += degree(360.0);
+				platform.correctDirection(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_VadProcessor.getTimesUtcTime().back(), thisProfile.m_motionCorrectedWindDirections[j], degreeF(0.0), thisProfile.m_motionCorrectedWindDirections[j], windElevation);
+				if (thisProfile.m_motionCorrectedWindDirections[j] < degreeF(-180.0))
+					thisProfile.m_motionCorrectedWindDirections[j] += degreeF(360.0);
 			}
 			//correct for instrument height
-			degree latitude;
-			degree longitude;
-			metre altitude;
+			degreeF latitude;
+			degreeF longitude;
+			metreF altitude;
 			platform.getLocation(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_VadProcessor.getTimesUtcTime().back(), latitude, longitude, altitude);
 			thisProfile.m_heights += altitude;
 			//correct for instrument speed
-			metrePerSecond platformU;
-			metrePerSecond platformV;
-			metrePerSecond platformW;
+			metrePerSecondF platformU;
+			metrePerSecondF platformV;
+			metrePerSecondF platformW;
 			thisProfile.m_motionCorrectedWindSpeeds.resize(thisProfile.m_instrumentRelativeWindSpeeds.size());
 			platform.getInstrumentVelocity(thisProfile.m_VadProcessor.getTimesUtcTime()[0], thisProfile.m_VadProcessor.getTimesUtcTime().back(), platformU, platformV, platformW);
 			for (size_t j = 0; j < thisProfile.m_motionCorrectedWindDirections.size(); ++j)
 			{
-				metrePerSecond u = thisProfile.m_instrumentRelativeWindSpeeds[j] * sci::sin(thisProfile.m_motionCorrectedWindDirections[j]) + platformU;
-				metrePerSecond v = thisProfile.m_instrumentRelativeWindSpeeds[j] * sci::cos(thisProfile.m_motionCorrectedWindDirections[j]) + platformV;
+				metrePerSecondF u = thisProfile.m_instrumentRelativeWindSpeeds[j] * sci::sin(thisProfile.m_motionCorrectedWindDirections[j]) + platformU;
+				metrePerSecondF v = thisProfile.m_instrumentRelativeWindSpeeds[j] * sci::cos(thisProfile.m_motionCorrectedWindDirections[j]) + platformV;
 				thisProfile.m_motionCorrectedWindSpeeds[j] = sci::root<2>(sci::pow<2>(u) + sci::pow<2>(v));
 				thisProfile.m_motionCorrectedWindDirections[j] = sci::atan2(u, v);
 			}
@@ -175,17 +175,23 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 	m_hasData = true;
 }
 
-void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
+		std::vector<sci::Physical<sci::Metre<>, double>> heightsDouble;
+		sci::convert(heightsDouble, m_profiles[i].m_heights);
+		std::vector<sci::Physical<sci::DividedUnit<sci::Metre<>,sci::Second<>>, double>> speedsDouble;
+		sci::convert(speedsDouble, m_profiles[i].m_instrumentRelativeWindSpeeds);
+		std::vector<sci::Physical<sci::Degree<>, double>> directionsDouble;
+		sci::convert(directionsDouble, m_profiles[i].m_instrumentRelativeWindDirections);
 		for (size_t j = 0; j < maxRanges.size(); ++j)
 		{
 			//split the suffix from the filename and insert additional bits
 			wxFileName outputFilenameSplit(sci::nativeUnicode(outputFilename));
 			sci::ostringstream finalOutputfilename;
 			finalOutputfilename << sci::fromWxString(outputFilenameSplit.GetPathWithSep()) << sci::fromWxString(outputFilenameSplit.GetName());
-			if (maxRanges[j] != std::numeric_limits<metre>::max() && maxRanges[j] != std::numeric_limits<metre>::infinity())
+			if (maxRanges[j] != std::numeric_limits<metreF>::max() && maxRanges[j] != std::numeric_limits<metreF>::infinity())
 				finalOutputfilename << sU("_maxRange_") << maxRanges[j];
 			finalOutputfilename << sU(".") << sci::fromWxString(outputFilenameSplit.GetExt());
 
@@ -193,8 +199,8 @@ void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, cons
 			WindowCleaner cleaner(window);
 			splot2d *speedPlot = window->addplot(0.1, 0.1, 0.4, 0.7, false, false);
 			splot2d *directionPlot = window->addplot(0.5, 0.1, 0.4, 0.7, false, false);
-			std::shared_ptr<PhysicalPointData<decltype(m_profiles[i].m_instrumentRelativeWindSpeeds)::value_type::unit, decltype(m_profiles[i].m_heights)::value_type::unit>> speedData(new PhysicalPointData<decltype(m_profiles[i].m_instrumentRelativeWindSpeeds)::value_type::unit, decltype(m_profiles[i].m_heights)::value_type::unit>(m_profiles[i].m_instrumentRelativeWindSpeeds, m_profiles[i].m_heights, Symbol(sym::filledCircle, 1.0)));
-			std::shared_ptr<PhysicalPointData<decltype(m_profiles[i].m_instrumentRelativeWindDirections)::value_type::unit, decltype(m_profiles[i].m_heights)::value_type::unit>> directionData(new PhysicalPointData<decltype(m_profiles[i].m_instrumentRelativeWindDirections)::value_type::unit, decltype(m_profiles[i].m_heights)::value_type::unit>(m_profiles[i].m_instrumentRelativeWindDirections, m_profiles[i].m_heights, Symbol(sym::filledCircle, 1.0)));
+			std::shared_ptr<PhysicalPointData<decltype(speedsDouble)::value_type::unit, decltype(heightsDouble)::value_type::unit>> speedData(new PhysicalPointData<decltype(speedsDouble)::value_type::unit, decltype(heightsDouble)::value_type::unit>(speedsDouble, heightsDouble, Symbol(sym::filledCircle, 1.0)));
+			std::shared_ptr<PhysicalPointData<decltype(directionsDouble)::value_type::unit, decltype(heightsDouble)::value_type::unit>> directionData(new PhysicalPointData<decltype(directionsDouble)::value_type::unit, decltype(heightsDouble)::value_type::unit>(directionsDouble, heightsDouble, Symbol(sym::filledCircle, 1.0)));
 
 			speedPlot->addData(speedData);
 			directionPlot->addData(directionData);
@@ -247,8 +253,8 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
 	DataInfo dataInfo;
-	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();
-	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();
+	dataInfo.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();
+	dataInfo.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();
 	dataInfo.continuous = true;
 	dataInfo.startTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
 	dataInfo.endTime = sci::UtcTime(0, 0, 0, 0, 0, 0.0);
@@ -269,7 +275,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		scanStartTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime()[0];
-		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back() + (unitless((unitless::valueType)m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * (unitless::valueType)m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0));//the second bit of this adds the duration of each ray
+		scanEndTimes[i] = m_profiles[i].m_VadProcessor.getTimesUtcTime().back() + (unitlessF((unitlessF::valueType)m_profiles[i].m_VadProcessor.getHeaderForProfile(0).pulsesPerRay * (unitlessF::valueType)m_profiles[i].m_VadProcessor.getHeaderForProfile(0).nRays) / sci::Physical<sci::Hertz<1, 3>, typename unitlessF::valueType>(15.0));//the second bit of this adds the duration of each ray
 	}
 
 	//work out the averaging time - this is the difference between the scan start and end times.
@@ -279,7 +285,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		std::vector<sci::TimeInterval> averagingTimes = scanEndTimes - scanStartTimes;
 		std::vector < sci::TimeInterval> sortedAveragingTimes = averagingTimes;
 		std::sort(sortedAveragingTimes.begin(), sortedAveragingTimes.end());
-		dataInfo.averagingPeriod = second(sortedAveragingTimes[sortedAveragingTimes.size() / 2]);
+		dataInfo.averagingPeriod = secondF(sortedAveragingTimes[sortedAveragingTimes.size() / 2]);
 	}
 
 	//work out the sampling interval - this is the difference between each start time.
@@ -289,7 +295,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(scanStartTimes.begin() + 1, scanStartTimes.end()) - std::vector<sci::UtcTime>(scanStartTimes.begin(), scanStartTimes.end() - 1);
 		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
 		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
-		dataInfo.samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
+		dataInfo.samplingInterval = secondF(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
 
 	std::vector<sci::NcDimension*> nonTimeDimensions;
@@ -304,9 +310,9 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 
 	if (m_profiles.size() > 0 && m_profiles[0].m_heights.size() > 0)
 	{
-		std::vector<std::vector<metre>> altitudes = sci::makevector<metre>(metre(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
-		std::vector<std::vector<metrePerSecond>> windSpeeds = sci::makevector<metrePerSecond>(metrePerSecond(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
-		std::vector<std::vector<degree>> windDirections = sci::makevector<degree>(degree(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
+		std::vector<std::vector<metreF>> altitudes = sci::makevector<metreF>(metreF(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
+		std::vector<std::vector<metrePerSecondF>> windSpeeds = sci::makevector<metrePerSecondF>(metrePerSecondF(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
+		std::vector<std::vector<degreeF>> windDirections = sci::makevector<degreeF>(degreeF(0.0), m_profiles.size(), m_profiles[0].m_heights.size());
 		std::vector<std::vector<uint8_t>> windFlags = sci::makevector<uint8_t>(lidarGoodDataFlag, m_profiles.size(), m_profiles[0].m_heights.size());
 
 		size_t maxLevels = 0;
@@ -324,12 +330,12 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		{
 			//We may have some missing data recorded as zeros instead of fill value as some data is set to
 			//zero in the data file. Change it to fill value
-			sci::assign(windSpeeds[i], sci::isEq(windFlags[i], lidarClippedWindProfileFlag), std::numeric_limits<metrePerSecond>::quiet_NaN());
-			sci::assign(windDirections[i], sci::isEq(windFlags[i], lidarClippedWindProfileFlag), std::numeric_limits<degree>::quiet_NaN());
+			sci::assign(windSpeeds[i], sci::isEq(windFlags[i], lidarClippedWindProfileFlag), std::numeric_limits<metrePerSecondF>::quiet_NaN());
+			sci::assign(windDirections[i], sci::isEq(windFlags[i], lidarClippedWindProfileFlag), std::numeric_limits<degreeF>::quiet_NaN());
 
-			altitudes[i].resize(maxLevels, std::numeric_limits<metre>::quiet_NaN());
-			windSpeeds[i].resize(maxLevels, std::numeric_limits<metrePerSecond>::quiet_NaN());
-			windDirections[i].resize(maxLevels, std::numeric_limits<degree>::quiet_NaN());
+			altitudes[i].resize(maxLevels, std::numeric_limits<metreF>::quiet_NaN());
+			windSpeeds[i].resize(maxLevels, std::numeric_limits<metrePerSecondF>::quiet_NaN());
+			windDirections[i].resize(maxLevels, std::numeric_limits<degreeF>::quiet_NaN());
 			windFlags[i].resize(maxLevels, lidarUserChangedGatesFlag);
 		}
 
@@ -337,9 +343,9 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		//std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_mean}, { sU("altitude"), cm_mean } };
 		std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
 		std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
-		AmfNcVariable<metre, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0));
-		AmfNcVariable<metrePerSecond, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));
-		AmfNcVariable<degree, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));
+		AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0));
+		AmfNcVariable<metrePerSecondF, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));
+		AmfNcVariable<degreeF, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));
 		AmfNcFlagVariable windFlagVariable(sU("qc_flag_wind"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
 		file.writeTimeAndLocationData(platform);

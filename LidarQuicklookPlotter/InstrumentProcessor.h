@@ -42,7 +42,7 @@ public:
 	sci::string getFileSearchRegex() const { return m_fileSearchRegEx; }
 	//virtual void readDataAndPlot(const std::string &inputFilename, const std::string &outputFilename, const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) = 0;
-	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) = 0;
+	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) = 0;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) = 0;

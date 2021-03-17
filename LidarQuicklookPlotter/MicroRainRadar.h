@@ -15,17 +15,17 @@ public:
 	bool readProfile(std::istream &stream);
 	sci::UtcTime getTime() const { return m_time; }
 	second getAveragingTime() const { return m_averagingTime; }
-	percent getValidFraction() const { return m_validFraction; }
-	std::vector<metre> getRanges() const { return m_ranges; }
-	std::vector<unitless> getPathIntegratedAttenuation() const { return m_pathIntegratedAttenuation; }
-	std::vector<reflectivity> getReflectivity() const { return m_reflectivity; }
-	std::vector< reflectivity> getReflectivityAttenuationCorrected() const { return m_reflectivityAttenuationCorrected; }
-	std::vector<millimetrePerHour> getRainRate() const { return m_rainRate; }
-	std::vector<gramPerMetreCubed> getLiquidWaterContent() const { return m_liquidWaterContent; }
-	std::vector<metrePerSecond> getFallVeocity() const { return m_fallVelocity; }
-	std::vector<std::vector<perMetre>> getSpectralReflectivities() { return m_spectralReflectivities; }
-	std::vector<std::vector<millimetre>> getDropDiameters() { return m_dropDiameters; }
-	std::vector<std::vector<perMetreCubedPerMillimetre>> getNumberDistribution() { return m_numberDistribution; }
+	percentF getValidFraction() const { return m_validFraction; }
+	std::vector<metreF> getRanges() const { return m_ranges; }
+	std::vector<unitlessF> getPathIntegratedAttenuation() const { return m_pathIntegratedAttenuation; }
+	std::vector<reflectivityF> getReflectivity() const { return m_reflectivity; }
+	std::vector< reflectivityF> getReflectivityAttenuationCorrected() const { return m_reflectivityAttenuationCorrected; }
+	std::vector<millimetrePerHourF> getRainRate() const { return m_rainRate; }
+	std::vector<gramPerMetreCubedF> getLiquidWaterContent() const { return m_liquidWaterContent; }
+	std::vector<metrePerSecondF> getFallVeocity() const { return m_fallVelocity; }
+	std::vector<std::vector<perMetreF>> getSpectralReflectivities() { return m_spectralReflectivities; }
+	std::vector<std::vector<millimetreF>> getDropDiameters() { return m_dropDiameters; }
+	std::vector<std::vector<perMetreCubedPerMillimetreF>> getNumberDistribution() { return m_numberDistribution; }
 private:
 
 	template<class T>
@@ -74,28 +74,28 @@ private:
 	//header parameters
 	sci::UtcTime m_time;
 	second m_averagingTime;
-	metre m_heightResolution;
-	metre m_instrumentHeight;
-	hertz m_samplingRate;
+	metreF m_heightResolution;
+	metreF m_instrumentHeight;
+	hertzF m_samplingRate;
 	sci::string m_serviceVersionNumber;
 	sci::string m_firmwareVersionNumber;
 	sci::string m_serialNumber;
-	unitless m_calibrationConstant;
-	percent m_validFraction;
+	unitlessF m_calibrationConstant;
+	percentF m_validFraction;
 	MicroRainRadarProfileType m_profileType;
 
 	//Height dependent parameters
-	std::vector<metre> m_ranges;
-	std::vector<unitless> m_transferFunction;
-	std::vector <std::vector<perMetre>> m_spectralReflectivities;
-	std::vector<std::vector<millimetre>> m_dropDiameters;
-	std::vector<std::vector<perMetreCubedPerMillimetre>> m_numberDistribution;
-	std::vector<unitless> m_pathIntegratedAttenuation;
-	std::vector<reflectivity> m_reflectivity;
-	std::vector< reflectivity> m_reflectivityAttenuationCorrected;
-	std::vector<millimetrePerHour> m_rainRate;
-	std::vector<gramPerMetreCubed> m_liquidWaterContent;
-	std::vector<metrePerSecond> m_fallVelocity;
+	std::vector<metreF> m_ranges;
+	std::vector<unitlessF> m_transferFunction;
+	std::vector <std::vector<perMetreF>> m_spectralReflectivities;
+	std::vector<std::vector<millimetreF>> m_dropDiameters;
+	std::vector<std::vector<perMetreCubedPerMillimetreF>> m_numberDistribution;
+	std::vector<unitlessF> m_pathIntegratedAttenuation;
+	std::vector<reflectivityF> m_reflectivity;
+	std::vector< reflectivityF> m_reflectivityAttenuationCorrected;
+	std::vector<millimetrePerHourF> m_rainRate;
+	std::vector<gramPerMetreCubedF> m_liquidWaterContent;
+	std::vector<metrePerSecondF> m_fallVelocity;
 };
 
 class MicroRainRadarProcessor : public InstrumentProcessor
@@ -104,7 +104,7 @@ public:
 	MicroRainRadarProcessor(const InstrumentInfo &instrumentInfo, const CalibrationInfo &calibrationInfo);
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
 	void readData(const sci::string &inputFilename, const Platform &platform, ProgressReporter &progressReporter, bool clear);
-	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override
+	virtual void plotData(const sci::string &baseOutputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override
 	{
 		throw(sci::err(sci::SERR_USER, 0, "Micro Rain Radar plotting is not yet supported."));
 	}

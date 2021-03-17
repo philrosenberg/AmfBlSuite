@@ -17,21 +17,21 @@ public:
 	template<>
 	second getTime<second>() const { return second(m_time.getUnixTime()); }
 	void setTime(const sci::UtcTime &time) { m_time = time; }
-	degree getAzimuth() const { return m_azimuth; }
-	degree getElevation() const { return m_elevation; }
+	degreeF getAzimuth() const { return m_azimuth; }
+	degreeF getElevation() const { return m_elevation; }
 	std::vector<size_t> getGates() const { return m_gates; }
-	std::vector<metrePerSecond> getDopplerVelocities() const { return m_dopplerVelocities; }
-	std::vector<unitless> getIntensities() const { return m_intensities; }
-	std::vector<perSteradianPerMetre> getBetas() const { return m_betas; }
+	std::vector<metrePerSecondF> getDopplerVelocities() const { return m_dopplerVelocities; }
+	std::vector<unitlessF> getIntensities() const { return m_intensities; }
+	std::vector<perSteradianPerMetreF> getBetas() const { return m_betas; }
 	size_t nGates() const { return m_gates.size(); }
 private:
 	sci::UtcTime m_time;
-	degree m_azimuth;
-	degree m_elevation;
-	degree m_pitch;
-	degree m_roll;
+	degreeF m_azimuth;
+	degreeF m_elevation;
+	degreeF m_pitch;
+	degreeF m_roll;
 	std::vector<size_t> m_gates;
-	std::vector<metrePerSecond> m_dopplerVelocities;
-	std::vector<unitless> m_intensities;
-	std::vector<perSteradianPerMetre> m_betas;
+	std::vector<metrePerSecondF> m_dopplerVelocities;
+	std::vector<unitlessF> m_intensities;
+	std::vector<perSteradianPerMetreF> m_betas;
 };

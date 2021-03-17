@@ -12,7 +12,7 @@
 class VadPlanTransformer : public splotTransformer
 {
 public:
-	VadPlanTransformer(degree elevation)
+	VadPlanTransformer(degreeF elevation)
 		:m_cosElevationRad(sci::cos(elevation)),
 		m_sinElevationRad(sci::sin(elevation))
 	{
@@ -20,23 +20,23 @@ public:
 	}
 	virtual void transform(double oldx, double oldy, double& newx, double& newy)const override
 	{
-		degree azimuth((degree::valueType)oldx);
+		degreeF azimuth((degreeF::valueType)oldx);
 
-		metre range((metre::valueType)oldy);
-		metre horizDistance = range * m_cosElevationRad;
+		metreF range((metreF::valueType)oldy);
+		metreF horizDistance = range * m_cosElevationRad;
 
-		newx = (horizDistance * sci::sin(azimuth)).value<metre>();
-		newy = (horizDistance * sci::cos(azimuth)).value<metre>();
+		newx = (horizDistance * sci::sin(azimuth)).value<metreF>();
+		newy = (horizDistance * sci::cos(azimuth)).value<metreF>();
 	}
 private:
-	const unitless m_cosElevationRad;
-	const unitless m_sinElevationRad;
+	const unitlessF m_cosElevationRad;
+	const unitlessF m_sinElevationRad;
 };
 
 class VadSideTransformer : public splotTransformer
 {
 public:
-	VadSideTransformer(degree elevation)
+	VadSideTransformer(degreeF elevation)
 		:m_cosElevationRad(sci::cos(elevation)),
 		m_sinElevationRad(sci::sin(elevation))
 	{
@@ -45,24 +45,24 @@ public:
 	//note that the input azimuths for dx, should be centred on the viewing direction 
 	virtual void transform(double oldx, double oldy, double& newx, double& newy)const override
 	{
-		degree enteredAzimuth = degree((degree::valueType)oldx);
+		degreeF enteredAzimuth = degreeF((degreeF::valueType)oldx);
 		//clip the azimuth to the view azimuth +/-90.
-		degree clippedAzimuth = std::max(std::min(enteredAzimuth, degree(90.0)), degree(-90.0));
+		degreeF clippedAzimuth = std::max(std::min(enteredAzimuth, degreeF(90.0)), degreeF(-90.0));
 
-		metre range = metre((metre::valueType)oldy);
-		metre horizDistance = range * m_cosElevationRad;
-		metre verticalDistance = range * m_sinElevationRad;
+		metreF range = metreF((metreF::valueType)oldy);
+		metreF horizDistance = range * m_cosElevationRad;
+		metreF verticalDistance = range * m_sinElevationRad;
 
 
-		newx = (horizDistance * sci::sin(clippedAzimuth)).value<metre>();
-		newy = verticalDistance.value<metre>();
+		newx = (horizDistance * sci::sin(clippedAzimuth)).value<metreF>();
+		newy = verticalDistance.value<metreF>();
 	}
 private:
-	const unitless m_cosElevationRad;
-	const unitless m_sinElevationRad;
+	const unitlessF m_cosElevationRad;
+	const unitlessF m_sinElevationRad;
 };
 
-void ConicalScanningProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void ConicalScanningProcessor::plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::assertThrow(getNFilesRead() == 1, sci::err(sci::SERR_USER, 0, "Attempted to plot a VAD with either no files or multiple files. This code can only plot one file at a time."));
 
@@ -74,11 +74,11 @@ void ConicalScanningProcessor::plotData(const sci::string &outputFilename, const
 	}
 }
 
-void ConicalScanningProcessor::plotDataPlan(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void ConicalScanningProcessor::plotDataPlan(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::ostringstream rangeLimitedfilename;
 	rangeLimitedfilename << outputFilename;
-	if (maxRange != std::numeric_limits<metre>::max())
+	if (maxRange != std::numeric_limits<metreF>::max())
 		rangeLimitedfilename << sU("_maxRange_") << maxRange;
 
 	splotframe *window;
@@ -88,39 +88,39 @@ void ConicalScanningProcessor::plotDataPlan(const sci::string &outputFilename, m
 
 
 	//sort the data into ascending azimuth
-	std::vector<std::vector<perSteradianPerMetre>> sortedBetas;
-	std::vector<degree> sortedElevations;
-	std::vector<degree> sortedMidAzimuths;
-	std::vector<degree> azimuths(sortedBetas.size() + 1);
+	std::vector<std::vector<perSteradianPerMetreF>> sortedBetas;
+	std::vector<degreeF> sortedElevations;
+	std::vector<degreeF> sortedMidAzimuths;
+	std::vector<degreeF> azimuths(sortedBetas.size() + 1);
 	getDataSortedByAzimuth(sortedBetas, sortedElevations, sortedMidAzimuths, azimuths);
-	std::vector<metre> ranges = getGateBoundariesForPlotting(0);
+	std::vector<metreF> ranges = getGateBoundariesForPlotting(0);
 
 	//We want to duplicate Each ray multiple times so that it looks more like a circle and less like a triangle or hexagon
 	size_t duplicationFactor = (size_t)std::ceil((double)m_nSegmentsMin / (double)sortedBetas.size());
 
 	//Plot each segment as a separate data set
-	std::vector< std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>>>gridData(sortedBetas.size());
+	std::vector< std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>>>gridData(sortedBetas.size());
 	for (size_t i = 0; i < sortedBetas.size(); ++i)
 	{
-		std::vector<degree> segmentAzimuths(duplicationFactor + 1);
-		std::vector<std::vector<perSteradianPerMetre>> segmentBetas(duplicationFactor);
+		std::vector<degreeF> segmentAzimuths(duplicationFactor + 1);
+		std::vector<std::vector<perSteradianPerMetreF>> segmentBetas(duplicationFactor);
 		for (size_t j = 0; j < duplicationFactor; ++j)
 		{
-			segmentAzimuths[j] = azimuths[i] + (azimuths[i + 1] - azimuths[i]) / (unitless)((unitless::valueType)duplicationFactor*(unitless::valueType)j);
+			segmentAzimuths[j] = azimuths[i] + (azimuths[i + 1] - azimuths[i]) / (unitlessF)((unitlessF::valueType)duplicationFactor*(unitlessF::valueType)j);
 			segmentBetas[j] = sortedBetas[i];
 		}
 		segmentAzimuths.back() = azimuths[i + 1];
-		gridData[i] = std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>>(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>(segmentAzimuths, ranges, segmentBetas, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new VadPlanTransformer(sortedElevations[i]))));
+		gridData[i] = std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>>(new PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>(segmentAzimuths, ranges, segmentBetas, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new VadPlanTransformer(sortedElevations[i]))));
 	}
 	for (size_t i = 0; i < gridData.size(); ++i)
 		plot->addData(gridData[i]);
 
 	//manually set limits as the transformer messes that up
-	metre maxHorizDistance = metre(0.0);
-	metre farthestRange = ranges.back();
+	metreF maxHorizDistance = metreF(0.0);
+	metreF farthestRange = ranges.back();
 	for (size_t i = 0; i < sortedBetas.size(); ++i)
 	{
-		metre thisHorizDistance = std::min(farthestRange, maxRange)*sci::cos(sortedElevations[i]);
+		metreF thisHorizDistance = std::min(farthestRange, maxRange)*sci::cos(sortedElevations[i]);
 		if (thisHorizDistance > maxHorizDistance)
 			maxHorizDistance = thisHorizDistance;
 	}
@@ -135,7 +135,7 @@ void ConicalScanningProcessor::plotDataPlan(const sci::string &outputFilename, m
 }
 
 
-void ConicalScanningProcessor::plotDataCone(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void ConicalScanningProcessor::plotDataCone(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window = new splotframe(parent, true);
 	WindowCleaner cleaner(window);
@@ -143,69 +143,69 @@ void ConicalScanningProcessor::plotDataCone(const sci::string &outputFilename, m
 	splot2d *plot;
 
 	plot = window->addplot(0.1, 0.8, 0.8, 0.15, false, false);
-	plotDataCone(degree(0.0), maxRange, plot);
+	plotDataCone(degreeF(0.0), maxRange, plot);
 
 	plot = window->addplot(0.1, 0.55, 0.8, 0.15, false, false);
-	plotDataCone(degree(90.0), maxRange, plot);
+	plotDataCone(degreeF(90.0), maxRange, plot);
 
 	plot = window->addplot(0.1, 0.3, 0.8, 0.15, false, false);
-	plotDataCone(degree(180.0), maxRange, plot);
+	plotDataCone(degreeF(180.0), maxRange, plot);
 
 	plot = window->addplot(0.1, 0.05, 0.8, 0.15, false, false);
-	plotDataCone(degree(270.0), maxRange, plot);
+	plotDataCone(degreeF(270.0), maxRange, plot);
 
 	createDirectoryAndWritePlot(window, outputFilename, 1000, 2000, progressReporter);
 }
 
-void ConicalScanningProcessor::plotDataCone(degree viewAzimuth, metre maxRange, splot2d * plot)
+void ConicalScanningProcessor::plotDataCone(degreeF viewAzimuth, metreF maxRange, splot2d * plot)
 {
 	//sort the data into ascending azimuth
-	std::vector<std::vector<perSteradianPerMetre>> sortedBetas;
-	std::vector<degree> sortedElevations;
-	std::vector<degree> sortedMidAzimuths;
-	std::vector<degree> azimuths(sortedBetas.size() + 1);
+	std::vector<std::vector<perSteradianPerMetreF>> sortedBetas;
+	std::vector<degreeF> sortedElevations;
+	std::vector<degreeF> sortedMidAzimuths;
+	std::vector<degreeF> azimuths(sortedBetas.size() + 1);
 	getDataSortedByAzimuth(sortedBetas, sortedElevations, sortedMidAzimuths, azimuths);
 
-	std::vector<metre> ranges = getGateBoundariesForPlotting(0);
+	std::vector<metreF> ranges = getGateBoundariesForPlotting(0);
 
 	//Plot each segment as a separate data set
 
-	std::vector<std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>>> plotData;
-	std::vector<degree> absRelativeAzimuths;
+	std::vector<std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>>> plotData;
+	std::vector<degreeF> absRelativeAzimuths;
 
 	for (size_t i = 0; i < sortedBetas.size(); ++i)
 	{
-		std::vector<std::vector<perSteradianPerMetre>> segmentData(1);
+		std::vector<std::vector<perSteradianPerMetreF>> segmentData(1);
 		segmentData[0] = sortedBetas[i];
-		degree lowerReleativeAzimuth = azimuths[i] - viewAzimuth;
-		degree upperReleativeAzimuth = azimuths[i + 1] - viewAzimuth;
+		degreeF lowerReleativeAzimuth = azimuths[i] - viewAzimuth;
+		degreeF upperReleativeAzimuth = azimuths[i + 1] - viewAzimuth;
 		if (upperReleativeAzimuth < lowerReleativeAzimuth)
-			upperReleativeAzimuth += degree(360.0);
-		if (lowerReleativeAzimuth >= degree(180.0))
+			upperReleativeAzimuth += degreeF(360.0);
+		if (lowerReleativeAzimuth >= degreeF(180.0))
 		{
-			lowerReleativeAzimuth -= degree(360.0);
-			upperReleativeAzimuth -= degree(360.0);
+			lowerReleativeAzimuth -= degreeF(360.0);
+			upperReleativeAzimuth -= degreeF(360.0);
 		}
-		if (upperReleativeAzimuth <= -degree(360.0))
+		if (upperReleativeAzimuth <= -degreeF(360.0))
 		{
-			lowerReleativeAzimuth += degree(360.0);
-			upperReleativeAzimuth += degree(360.0);
+			lowerReleativeAzimuth += degreeF(360.0);
+			upperReleativeAzimuth += degreeF(360.0);
 		}
 
 		//don't plot if limits are outside view range
-		if (upperReleativeAzimuth <= -degree(90.0) || lowerReleativeAzimuth >= degree(90.0))
+		if (upperReleativeAzimuth <= -degreeF(90.0) || lowerReleativeAzimuth >= degreeF(90.0))
 			continue;
 
 
-		std::vector<degree> segmentAzimuths = std::vector<degree>{ std::max(lowerReleativeAzimuth, degree(-90.0)), std::min(upperReleativeAzimuth, degree(90.0)) };
+		std::vector<degreeF> segmentAzimuths = std::vector<degreeF>{ std::max(lowerReleativeAzimuth, degreeF(-90.0)), std::min(upperReleativeAzimuth, degreeF(90.0)) };
 
-		plotData.push_back(std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>>(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit, metre::unit, metre::unit>(segmentAzimuths, ranges, segmentData, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new VadSideTransformer(sortedElevations[i])))));
-		absRelativeAzimuths.push_back(sci::abs(lowerReleativeAzimuth + upperReleativeAzimuth) / unitless(2.0));
+		plotData.push_back(std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>>(new PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>(segmentAzimuths, ranges, segmentData, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new VadSideTransformer(sortedElevations[i])))));
+		absRelativeAzimuths.push_back(sci::abs(lowerReleativeAzimuth + upperReleativeAzimuth) / unitlessF(2.0));
 	}
 
 	//plot the segments farthest first.
 	std::vector<size_t> plotDataNewLocations;
-	std::vector<degree> sortedAbsRelativeAzimuths;
+	std::vector<degreeF> sortedAbsRelativeAzimuths;
 	sci::sort(absRelativeAzimuths, sortedAbsRelativeAzimuths, plotDataNewLocations);
 	plotData = sci::reorder(plotData, plotDataNewLocations);
 	for (size_t i = 0; i < plotData.size(); ++i)
@@ -224,7 +224,7 @@ void ConicalScanningProcessor::plotDataCone(degree viewAzimuth, metre maxRange, 
 	plot->getyaxis()->settitledistance(4.5);
 }
 
-void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent)
+void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	splotframe *window = new splotframe(parent, true);
 	splot2d *plot;
@@ -233,13 +233,13 @@ void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilena
 	window->SetClientSize(1000, 2000);
 
 	//sort the data into ascending azimuth
-	std::vector<std::vector<perSteradianPerMetre>> sortedBetas;
-	std::vector<degree> sortedElevations;
-	std::vector<degree> sortedMidAzimuths;
-	std::vector<degree> azimuths(sortedBetas.size() + 1);
+	std::vector<std::vector<perSteradianPerMetreF>> sortedBetas;
+	std::vector<degreeF> sortedElevations;
+	std::vector<degreeF> sortedMidAzimuths;
+	std::vector<degreeF> azimuths(sortedBetas.size() + 1);
 	getDataSortedByAzimuth(sortedBetas, sortedElevations, sortedMidAzimuths, azimuths);
 
-	std::vector<metre> ranges = getGateBoundariesForPlotting(0);
+	std::vector<metreF> ranges = getGateBoundariesForPlotting(0);
 
 	bool allSameElevation = true;
 	for (size_t i = 1; i < sortedElevations.size(); ++i)
@@ -247,7 +247,7 @@ void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilena
 
 	if (allSameElevation)
 	{
-		std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>(azimuths, ranges, sortedBetas, g_lidarColourscale, true, true));
+		std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit>> gridData(new PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit>(azimuths, ranges, sortedBetas, g_lidarColourscale, true, true));
 
 		plot->addData(gridData);
 
@@ -258,14 +258,14 @@ void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilena
 	}
 	else
 	{
-		degree angleRange =std::min(degree(30), degree(degree(360) / unitless((unitless::valueType)sortedElevations.size())));
+		degreeF angleRange =std::min(degreeF(30), degreeF(degreeF(360) / unitlessF((unitlessF::valueType)sortedElevations.size())));
 		for (size_t i = 0; i < sortedBetas.size(); ++i)
 		{
-			std::vector<degree> thisAzimuths(2);
-			thisAzimuths[0] = sortedMidAzimuths[i] - angleRange / unitless(2);
-			thisAzimuths[1] = sortedMidAzimuths[i] + angleRange / unitless(2);
-			std::vector<std::vector<perSteradianPerMetre>> thisBetas(1, sortedBetas[i]);
-			std::shared_ptr<PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<degree::unit, metre::unit, perSteradianPerMetre::unit>(thisAzimuths, ranges, thisBetas, g_lidarColourscale, true, true));
+			std::vector<degreeF> thisAzimuths(2);
+			thisAzimuths[0] = sortedMidAzimuths[i] - angleRange / unitlessF(2);
+			thisAzimuths[1] = sortedMidAzimuths[i] + angleRange / unitlessF(2);
+			std::vector<std::vector<perSteradianPerMetreF>> thisBetas(1, sortedBetas[i]);
+			std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit>> gridData(new PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit>(thisAzimuths, ranges, thisBetas, g_lidarColourscale, true, true));
 			plot->addData(gridData);
 
 
@@ -281,30 +281,30 @@ void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilena
 	createDirectoryAndWritePlot(window, outputFilename, 1000, 1000, progressReporter);
 }
 
-void ConicalScanningProcessor::getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<degree> &sortedElevations, std::vector<degree> &sortedMidAzimuths, std::vector<degree> &azimuthBoundaries)
+void ConicalScanningProcessor::getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetreF>> &sortedBetas, std::vector<degreeF> &sortedElevations, std::vector<degreeF> &sortedMidAzimuths, std::vector<degreeF> &azimuthBoundaries)
 {
 
-	std::vector<degree> midAzimuths = getInstrumentRelativeAzimuths();
+	std::vector<degreeF> midAzimuths = getInstrumentRelativeAzimuths();
 	std::vector<size_t> newLocations;
 	sci::sort(midAzimuths, sortedMidAzimuths, newLocations);
-	std::vector<std::vector<perSteradianPerMetre>> betas = getBetas();
+	std::vector<std::vector<perSteradianPerMetreF>> betas = getBetas();
 	sortedBetas = sci::reorder(betas, newLocations);
-	std::vector<degree> elevations = getInstrumentRelativeElevations();
+	std::vector<degreeF> elevations = getInstrumentRelativeElevations();
 	sortedElevations = sci::reorder(elevations, newLocations);
 
 	azimuthBoundaries.resize(sortedBetas.size() + 1);
 	if (sortedMidAzimuths.back() > sortedMidAzimuths[0])
-		azimuthBoundaries[0] = (sortedMidAzimuths[0] + sortedMidAzimuths.back() - degree(360.0)) / unitless(2.0);
+		azimuthBoundaries[0] = (sortedMidAzimuths[0] + sortedMidAzimuths.back() - degreeF(360.0)) / unitlessF(2.0);
 	else
-		azimuthBoundaries[0] = (sortedMidAzimuths[0] + sortedMidAzimuths.back()) / unitless(2.0);
+		azimuthBoundaries[0] = (sortedMidAzimuths[0] + sortedMidAzimuths.back()) / unitlessF(2.0);
 
 	for (size_t i = 1; i < azimuthBoundaries.size() - 1; ++i)
 	{
 		if (sortedMidAzimuths[i - 1] > sortedMidAzimuths[i])
-			azimuthBoundaries[i] = (sortedMidAzimuths[i] + sortedMidAzimuths[i - 1] - degree(360.0)) / unitless(2.0);
+			azimuthBoundaries[i] = (sortedMidAzimuths[i] + sortedMidAzimuths[i - 1] - degreeF(360.0)) / unitlessF(2.0);
 		else
-			azimuthBoundaries[i] = (sortedMidAzimuths[i] + sortedMidAzimuths[i - 1]) / unitless(2.0);
+			azimuthBoundaries[i] = (sortedMidAzimuths[i] + sortedMidAzimuths[i - 1]) / unitlessF(2.0);
 	}
 
-	azimuthBoundaries.back() = azimuthBoundaries[0] + degree(360.0);
+	azimuthBoundaries.back() = azimuthBoundaries[0] + degreeF(360.0);
 }

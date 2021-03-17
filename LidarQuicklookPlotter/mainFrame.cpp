@@ -402,7 +402,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 
 				if (processor.hasData())
 				{
-					processor.plotData(outputFile, { std::numeric_limits<metre>::max(), metre(2000.0), metre(1000.0) }, *m_progressReporter, this);
+					processor.plotData(outputFile, { std::numeric_limits<metreF>::max(), metreF(2000.0), metreF(1000.0) }, *m_progressReporter, this);
 
 					if (m_progressReporter->shouldStop())
 					{

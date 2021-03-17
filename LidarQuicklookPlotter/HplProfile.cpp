@@ -15,10 +15,10 @@ bool HplProfile::readFromStream(std::istream &stream, const HplHeader &header)
 		stream >> decimalHour >> azimuthDeg >> elevationDeg >> pitchDeg >> rollDeg;
 	else
 		stream >> decimalHour >> azimuthDeg >> elevationDeg;
-	m_azimuth = degree(azimuthDeg);
-	m_elevation = degree(elevationDeg);
-	m_pitch = degree(pitchDeg);
-	m_roll = degree(rollDeg);
+	m_azimuth = degreeF(azimuthDeg);
+	m_elevation = degreeF(elevationDeg);
+	m_pitch = degreeF(pitchDeg);
+	m_roll = degreeF(rollDeg);
 	sci::assertThrow(stream.eof() || stream.good(), sci::err(sci::SERR_USER, 0, sU("Read of file failed - it may be locked or inaccessible.")));
 	if (stream.eof())
 	{

@@ -74,21 +74,21 @@ public:
 	virtual std::vector<sci::string> getProcessingOptions() const = 0;
 	std::vector<second> getTimesSeconds() const;
 	std::vector<sci::UtcTime> getTimesUtcTime() const;
-	std::vector<std::vector<perSteradianPerMetre>> getBetas() const;
-	std::vector<std::vector<metrePerSecond>> getInstrumentRelativeDopplerVelocities() const;
-	std::vector<std::vector<metrePerSecond>> getMotionCorrectedDopplerVelocities() const { return m_correctedDopplerVelocities; }
-	std::vector<std::vector<unitless>> getSignalToNoiseRatios() const;
-	std::vector<std::vector<unitless>> getSignalToNoiseRatiosPlusOne() const;
+	std::vector<std::vector<perSteradianPerMetreF>> getBetas() const;
+	std::vector<std::vector<metrePerSecondF>> getInstrumentRelativeDopplerVelocities() const;
+	std::vector<std::vector<metrePerSecondF>> getMotionCorrectedDopplerVelocities() const { return m_correctedDopplerVelocities; }
+	std::vector<std::vector<unitlessF>> getSignalToNoiseRatios() const;
+	std::vector<std::vector<unitlessF>> getSignalToNoiseRatiosPlusOne() const;
 	std::vector<std::vector<uint8_t>> getDopplerFlags() const { return m_dopplerFlags; }
 	std::vector<std::vector<uint8_t>> getBetaFlags() const { return m_betaFlags; }
-	std::vector<metre> getGateBoundariesForPlotting(size_t profileIndex) const;
-	std::vector<metre> getGateLowerBoundaries(size_t profileIndex) const;
-	std::vector<metre> getGateUpperBoundaries(size_t profileIndex) const;
-	std::vector<metre> getGateCentres(size_t profileIndex) const;
-	std::vector<degree> getAttitudeCorrectedAzimuths() const { return m_correctedAzimuths; }
-	std::vector<degree> getInstrumentRelativeElevations() const;
-	std::vector<degree> getInstrumentRelativeAzimuths() const;
-	std::vector<degree> getAttitudeCorrectedElevations() const { return m_correctedElevations; }
+	std::vector<metreF> getGateBoundariesForPlotting(size_t profileIndex) const;
+	std::vector<metreF> getGateLowerBoundaries(size_t profileIndex) const;
+	std::vector<metreF> getGateUpperBoundaries(size_t profileIndex) const;
+	std::vector<metreF> getGateCentres(size_t profileIndex) const;
+	std::vector<degreeF> getAttitudeCorrectedAzimuths() const { return m_correctedAzimuths; }
+	std::vector<degreeF> getInstrumentRelativeElevations() const;
+	std::vector<degreeF> getInstrumentRelativeAzimuths() const;
+	std::vector<degreeF> getAttitudeCorrectedElevations() const { return m_correctedElevations; }
 	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
 	void setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent)
@@ -108,9 +108,9 @@ private:
 	std::vector<size_t> m_headerIndex; //this links headers to profiles m_hplHeader[m_headerIndex[i]] is the header for the ith profile
 	const InstrumentInfo m_instrumentInfo;
 	const CalibrationInfo m_calibrationInfo;
-	std::vector<degree> m_correctedAzimuths;
-	std::vector<degree> m_correctedElevations;
-	std::vector<std::vector<metrePerSecond>> m_correctedDopplerVelocities;
+	std::vector<degreeF> m_correctedAzimuths;
+	std::vector<degreeF> m_correctedElevations;
+	std::vector<std::vector<metrePerSecondF>> m_correctedDopplerVelocities;
 };
 
 class LidarScanningProcessor : public LidarBackscatterDopplerProcessor
@@ -128,24 +128,24 @@ class LidarStareProcessor : public LidarBackscatterDopplerProcessor
 {
 public:
 	LidarStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, bool inCrossFolder) : LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, sU("Stare"), inCrossFolder, true) {}
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
 	void getFormattedData(std::vector<sci::UtcTime> &times,
-		std::vector<degree> &instrumentRelativeAzimuthAngles,
-		std::vector<degree> &instrumentRelativeElevationAngles,
-		std::vector<std::vector<metrePerSecond>> &instrumentRelativeDopplerVelocities,
-		std::vector<degree> &attitudeCorrectedAzimuthAngles,
-		std::vector<degree> &attitudeCorrectedElevationAngles,
-		std::vector<std::vector<metrePerSecond>> &motionCorrectedDopplerVelocities,
-		std::vector<std::vector<perSteradianPerMetre>> &backscatters,
-		std::vector<std::vector<unitless>> &snrPlusOne,
+		std::vector<degreeF> &instrumentRelativeAzimuthAngles,
+		std::vector<degreeF> &instrumentRelativeElevationAngles,
+		std::vector<std::vector<metrePerSecondF>> &instrumentRelativeDopplerVelocities,
+		std::vector<degreeF> &attitudeCorrectedAzimuthAngles,
+		std::vector<degreeF> &attitudeCorrectedElevationAngles,
+		std::vector<std::vector<metrePerSecondF>> &motionCorrectedDopplerVelocities,
+		std::vector<std::vector<perSteradianPerMetreF>> &backscatters,
+		std::vector<std::vector<unitlessF>> &snrPlusOne,
 		std::vector<std::vector<uint8_t>> &dopplerVelocityFlags,
 		std::vector<std::vector<uint8_t>> &backscatterFlags,
-		std::vector<std::vector<metre>> &ranges,
-		second &averagingPeriod,
-		second &samplingInterval);
+		std::vector<std::vector<metreF>> &ranges,
+		secondF &averagingPeriod,
+		secondF &samplingInterval);
 };
 
 class LidarCopolarisedStareProcessor : public LidarStareProcessor
@@ -166,7 +166,7 @@ class LidarRhiProcessor : public LidarScanningProcessor
 {
 public:
 	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarScanningProcessor(instrumentInfo, calibrationInfo, sU("RHI")) {}
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("rhi") }; }
 };
 
@@ -176,14 +176,14 @@ class ConicalScanningProcessor : public LidarScanningProcessor
 {
 public:
 	ConicalScanningProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix, size_t  nSegmentsMin = 10) : LidarScanningProcessor(instrumentInfo, calibrationInfo, filePrefix), m_nSegmentsMin(nSegmentsMin) {}
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	void plotDataPlan(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
-	void plotDataCone(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
-	void plotDataCone(degree viewAzimuth, metre maxRange, splot2d * plot);
-	void plotDataUnwrapped(const sci::string &outputFilename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	void plotDataPlan(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+	void plotDataCone(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+	void plotDataCone(degreeF viewAzimuth, metreF maxRange, splot2d * plot);
+	void plotDataUnwrapped(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 private:
 	size_t m_nSegmentsMin;
-	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetre>> &sortedBetas, std::vector<degree> &sortedElevations, std::vector<degree> &sortedMidAzimuths, std::vector<degree> &azimuthBoundaries);
+	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetreF>> &sortedBetas, std::vector<degreeF> &sortedElevations, std::vector<degreeF> &sortedMidAzimuths, std::vector<degreeF> &azimuthBoundaries);
 };
 
 class LidarVadProcessor : public ConicalScanningProcessor
@@ -206,7 +206,7 @@ class LidarUserProcessor : public LidarScanningProcessor
 {
 public:
 	LidarUserProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix) : LidarScanningProcessor(instrumentInfo, calibrationInfo, filePrefix) {}
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 private:
 	sci::string m_userNumber;
 };
@@ -251,7 +251,7 @@ class LidarWindProfileProcessor : public HplFileLidar
 public:
 	LidarWindProfileProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) :HplFileLidar(sU("Processed_Wind_Profile"), false, false), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo) {}
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
@@ -263,11 +263,11 @@ private:
 	struct Profile
 	{
 		Profile(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : m_VadProcessor(instrumentInfo, calibrationInfo) {}
-		std::vector<metre> m_heights;
-		std::vector<degree> m_instrumentRelativeWindDirections;
-		std::vector<metrePerSecond> m_instrumentRelativeWindSpeeds;
-		std::vector<degree> m_motionCorrectedWindDirections;
-		std::vector<metrePerSecond> m_motionCorrectedWindSpeeds;
+		std::vector<metreF> m_heights;
+		std::vector<degreeF> m_instrumentRelativeWindDirections;
+		std::vector<metrePerSecondF> m_instrumentRelativeWindSpeeds;
+		std::vector<degreeF> m_motionCorrectedWindDirections;
+		std::vector<metrePerSecondF> m_motionCorrectedWindSpeeds;
 		InstrumentInfo m_instrumentInfo;
 		//sci::UtcTime m_time;
 		LidarWindVadProcessor m_VadProcessor; // have a separate Wind VAD processor for each profile
@@ -283,7 +283,7 @@ class LidarDepolProcessor : public PlotableLidar
 public:
 	LidarDepolProcessor(const LidarCopolarisedStareProcessor &copolarisedProcessor, LidarCrosspolarisedStareProcessor crosspolarisedProcessor) : PlotableLidar(copolarisedProcessor.getFileSearchRegex() + sU("|") + crosspolarisedProcessor.getFileSearchRegex()), m_copolarisedProcessor(copolarisedProcessor), m_crosspolarisedProcessor(crosspolarisedProcessor) {}
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;

@@ -8,14 +8,14 @@
 #include"ProgressReporter.h"
 #include<wx/filename.h>
 
-void LidarStareProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarStareProcessor::plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::assertThrow(getNFilesRead() == 1, sci::err(sci::SERR_USER, 0, "Attempted to plot a set of stares with either no files or multiple files. This code can only plot one file at a time."));
 	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{
 		sci::ostringstream rangeLimitedfilename;
 		rangeLimitedfilename << outputFilename;
-		if (maxRanges[i] != std::numeric_limits<metre>::max())
+		if (maxRanges[i] != std::numeric_limits<metreF>::max())
 			rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
 
 		splotframe *window;
@@ -31,7 +31,7 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 		else
 			times.push_back(times.back() + times.back() - times[times.size() - 2]);
 
-		std::shared_ptr<PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>(times, getGateBoundariesForPlotting(0), getBetas(), g_lidarColourscale, true, true));
+		std::shared_ptr<PhysicalGridData<second::unit, metreF::unit, perSteradianPerMetreF::unit>> gridData(new PhysicalGridData<second::unit, metreF::unit, perSteradianPerMetreF::unit>(times, getGateBoundariesForPlotting(0), getBetas(), g_lidarColourscale, true, true));
 		plot->addData(gridData);
 
 		plot->getxaxis()->settitle(sU("Time"));
@@ -51,8 +51,8 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 {
 	DataInfo dataInfo;
 	dataInfo.continuous = true;
-	dataInfo.samplingInterval = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
-	dataInfo.averagingPeriod = std::numeric_limits<second>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later
 	dataInfo.startTime = getTimesUtcTime()[0];
 	dataInfo.endTime = getTimesUtcTime().back();
 	dataInfo.featureType = FeatureType::timeSeriesProfile;
@@ -61,17 +61,17 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	dataInfo.productName = sU("aerosol backscatter radial winds");
 	dataInfo.processingOptions = processingOptions;
 	std::vector<sci::UtcTime> times;
-	std::vector<degree> instrumentRelativeAzimuthAngles;
-	std::vector<degree> instrumentRelativeElevationAngles;
-	std::vector<std::vector<metrePerSecond>> instrumentRelativeDopplerVelocities;
-	std::vector<degree> attitudeCorrectedAzimuthAngles;
-	std::vector<degree> attitudeCorrectedElevationAngles;
-	std::vector<std::vector<metrePerSecond>> motionCorrectedDopplerVelocities;
-	std::vector<std::vector<perSteradianPerMetre>> backscatters;
-	std::vector<std::vector<unitless>> snrPlusOne;
+	std::vector<degreeF> instrumentRelativeAzimuthAngles;
+	std::vector<degreeF> instrumentRelativeElevationAngles;
+	std::vector<std::vector<metrePerSecondF>> instrumentRelativeDopplerVelocities;
+	std::vector<degreeF> attitudeCorrectedAzimuthAngles;
+	std::vector<degreeF> attitudeCorrectedElevationAngles;
+	std::vector<std::vector<metrePerSecondF>> motionCorrectedDopplerVelocities;
+	std::vector<std::vector<perSteradianPerMetreF>> backscatters;
+	std::vector<std::vector<unitlessF>> snrPlusOne;
 	std::vector<std::vector<uint8_t>> dopplerVelocityFlags;
 	std::vector<std::vector<uint8_t>> backscatterFlags;
-	std::vector<std::vector<metre>> ranges;
+	std::vector<std::vector<metreF>> ranges;
 
 	getFormattedData(times, instrumentRelativeAzimuthAngles, instrumentRelativeElevationAngles, instrumentRelativeDopplerVelocities,
 		attitudeCorrectedAzimuthAngles, attitudeCorrectedElevationAngles, motionCorrectedDopplerVelocities, backscatters,
@@ -97,15 +97,15 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 	std::vector<sci::string> coordinatesAnglesEarthFrame{ sU("latitude"), sU("longitude") };
 	std::vector<sci::string> coordinatesRange{ sU("latitude"), sU("longitude") };
 
-	AmfNcVariable<metre, decltype(ranges)> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), ranges, true, coordinatesRange, cellMethodsRange);
-	AmfNcVariable<degree, decltype(instrumentRelativeAzimuthAngles)> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning Head Azimuth Angle"), sU("sensor_azimuth_angle"), instrumentRelativeAzimuthAngles, true, coordinatesAngles, cellMethodsAngles, sU("Relative to the instrument with 0 degrees being to the \"front\" of the instruments."));
-	AmfNcVariable<degree, decltype(instrumentRelativeElevationAngles)> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning Head Elevation Angle"), sU("sensor_view_angle"), instrumentRelativeElevationAngles, true, coordinatesAngles, cellMethodsAngles, sU("Relative to the instruments with 0 degrees being \"horizontal\", positive being upwards, negative being downwards."));
-	AmfNcVariable<metrePerSecond, decltype(instrumentRelativeDopplerVelocities)> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), instrumentRelativeDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Instrument relative. Positive is away, negative is towards."));
-	AmfNcVariable<degree, decltype(attitudeCorrectedAzimuthAngles)> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning Head Azimuth Angle Earth Frame"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinatesAnglesEarthFrame, cellMethodsAnglesEarthFrame, sU("Relative to the geoid with 0 degrees being north."));
-	AmfNcVariable<degree, decltype(attitudeCorrectedElevationAngles)> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning Head Elevation Angle Earth Frame"), sU(""), attitudeCorrectedElevationAngles, true, coordinatesAnglesEarthFrame, cellMethodsAnglesEarthFrame, sU("Relative to the geoid with 0 degrees being horizontal, positive being upwards, negative being downwards."));
-	AmfNcVariable<metrePerSecond, decltype(motionCorrectedDopplerVelocities)> dopplerVariableEarthFrame(sU("radial_velocity_of_scatterers_away_from_instrument_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument - Earth Frame"), sU(""), motionCorrectedDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Instrument relative. Positive is away, negative is towards."));
-	AmfNcVariable<perSteradianPerMetre, decltype(backscatters)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatters, true, coordinatesData, cellMethodsData);
-	AmfNcVariable<unitless, decltype(snrPlusOne)> snrPlusOneVariable(sU("signal_to_noise_ratio_plus_1"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1"), sU(""), snrPlusOne, true, coordinatesData, cellMethodsData);
+	AmfNcVariable<metreF, decltype(ranges)> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), ranges, true, coordinatesRange, cellMethodsRange);
+	AmfNcVariable<degreeF, decltype(instrumentRelativeAzimuthAngles)> azimuthVariable(sU("sensor_azimuth_angle"), file, file.getTimeDimension(), sU("Scanning Head Azimuth Angle"), sU("sensor_azimuth_angle"), instrumentRelativeAzimuthAngles, true, coordinatesAngles, cellMethodsAngles, sU("Relative to the instrument with 0 degrees being to the \"front\" of the instruments."));
+	AmfNcVariable<degreeF, decltype(instrumentRelativeElevationAngles)> elevationVariable(sU("sensor_view_angle"), file, file.getTimeDimension(), sU("Scanning Head Elevation Angle"), sU("sensor_view_angle"), instrumentRelativeElevationAngles, true, coordinatesAngles, cellMethodsAngles, sU("Relative to the instruments with 0 degrees being \"horizontal\", positive being upwards, negative being downwards."));
+	AmfNcVariable<metrePerSecondF, decltype(instrumentRelativeDopplerVelocities)> dopplerVariable(sU("radial_velocity_of_scatterers_away_from_instrument"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument"), sU("radial_velocity_of_scatterers_away_from_instrument"), instrumentRelativeDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Instrument relative. Positive is away, negative is towards."));
+	AmfNcVariable<degreeF, decltype(attitudeCorrectedAzimuthAngles)> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning Head Azimuth Angle Earth Frame"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinatesAnglesEarthFrame, cellMethodsAnglesEarthFrame, sU("Relative to the geoid with 0 degrees being north."));
+	AmfNcVariable<degreeF, decltype(attitudeCorrectedElevationAngles)> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, file.getTimeDimension(), sU("Scanning Head Elevation Angle Earth Frame"), sU(""), attitudeCorrectedElevationAngles, true, coordinatesAnglesEarthFrame, cellMethodsAnglesEarthFrame, sU("Relative to the geoid with 0 degrees being horizontal, positive being upwards, negative being downwards."));
+	AmfNcVariable<metrePerSecondF, decltype(motionCorrectedDopplerVelocities)> dopplerVariableEarthFrame(sU("radial_velocity_of_scatterers_away_from_instrument_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Radial Velocity of Scatterers Away From Instrument - Earth Frame"), sU(""), motionCorrectedDopplerVelocities, true, coordinatesData, cellMethodsData, sU("Instrument relative. Positive is away, negative is towards."));
+	AmfNcVariable<perSteradianPerMetreF, decltype(backscatters)> backscatterVariable(sU("attenuated_aerosol_backscatter_coefficient"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient"), sU(""), backscatters, true, coordinatesData, cellMethodsData);
+	AmfNcVariable<unitlessF, decltype(snrPlusOne)> snrPlusOneVariable(sU("signal_to_noise_ratio_plus_1"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1"), sU(""), snrPlusOne, true, coordinatesData, cellMethodsData);
 	AmfNcFlagVariable dopplerFlagVariable(sU("qc_flag_radial_velocity_of_scatterers_away_from_instrument"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable backscatterFlagVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 
@@ -128,19 +128,19 @@ void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonIn
 }
 
 void LidarStareProcessor::getFormattedData(std::vector<sci::UtcTime> &times,
-	std::vector<degree> &instrumentRelativeAzimuthAngles,
-	std::vector<degree> &instrumentRelativeElevationAngles,
-	std::vector<std::vector<metrePerSecond>> &instrumentRelativeDopplerVelocities,
-	std::vector<degree> &attitudeCorrectedAzimuthAngles,
-	std::vector<degree> &attitudeCorrectedElevationAngles,
-	std::vector<std::vector<metrePerSecond>> &motionCorrectedDopplerVelocities,
-	std::vector<std::vector<perSteradianPerMetre>> &backscatters,
-	std::vector<std::vector<unitless>> &snrPlusOne,
+	std::vector<degreeF> &instrumentRelativeAzimuthAngles,
+	std::vector<degreeF> &instrumentRelativeElevationAngles,
+	std::vector<std::vector<metrePerSecondF>> &instrumentRelativeDopplerVelocities,
+	std::vector<degreeF> &attitudeCorrectedAzimuthAngles,
+	std::vector<degreeF> &attitudeCorrectedElevationAngles,
+	std::vector<std::vector<metrePerSecondF>> &motionCorrectedDopplerVelocities,
+	std::vector<std::vector<perSteradianPerMetreF>> &backscatters,
+	std::vector<std::vector<unitlessF>> &snrPlusOne,
 	std::vector<std::vector<uint8_t>> &dopplerVelocityFlags,
 	std::vector<std::vector<uint8_t>> &backscatterFlags,
-	std::vector<std::vector<metre>> &ranges,
-	second &averagingPeriod,
-	second &samplingInterval)
+	std::vector<std::vector<metreF>> &ranges,
+	secondF &averagingPeriod,
+	secondF &samplingInterval)
 {
 	//build up our data arrays.
 	times = getTimesUtcTime();
@@ -169,11 +169,11 @@ void LidarStareProcessor::getFormattedData(std::vector<sci::UtcTime> &times,
 	}
 	for (size_t i = 0; i < times.size(); ++i)
 	{
-		instrumentRelativeDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
-		motionCorrectedDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecond>::quiet_NaN());
-		backscatters[i].resize(maxNGates, std::numeric_limits<perSteradianPerMetre>::quiet_NaN());
-		snrPlusOne[i].resize(maxNGates, std::numeric_limits<unitless>::quiet_NaN());
-		ranges[i].resize(maxNGates, std::numeric_limits<metre>::quiet_NaN());
+		instrumentRelativeDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecondF>::quiet_NaN());
+		motionCorrectedDopplerVelocities[i].resize(maxNGates, std::numeric_limits<metrePerSecondF>::quiet_NaN());
+		backscatters[i].resize(maxNGates, std::numeric_limits<perSteradianPerMetreF>::quiet_NaN());
+		snrPlusOne[i].resize(maxNGates, std::numeric_limits<unitlessF>::quiet_NaN());
+		ranges[i].resize(maxNGates, std::numeric_limits<metreF>::quiet_NaN());
 		dopplerVelocityFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
 		backscatterFlags[i].resize(maxNGates, lidarUserChangedGatesFlag);
 	}
@@ -187,7 +187,7 @@ void LidarStareProcessor::getFormattedData(std::vector<sci::UtcTime> &times,
 			pulsesPerPoint[i] = getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays;
 		std::vector <size_t> sortedPulsesPerRay = pulsesPerPoint;
 		std::sort(sortedPulsesPerRay.begin(), sortedPulsesPerRay.end());
-		averagingPeriod = unitless((unitless::valueType)sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>, typename unitless::valueType>(15.0);
+		averagingPeriod = unitlessF((unitlessF::valueType)sortedPulsesPerRay[sortedPulsesPerRay.size() / 2]) / sci::Physical<sci::Hertz<1, 3>, typename unitlessF::valueType>(15.0);
 	}
 
 	//work out the sampling interval.
@@ -197,7 +197,7 @@ void LidarStareProcessor::getFormattedData(std::vector<sci::UtcTime> &times,
 		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(times.begin() + 1, times.end()) - std::vector<sci::UtcTime>(times.begin(), times.end() - 1);
 		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
 		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
-		samplingInterval = second(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
+		samplingInterval = secondF(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
 	}
 
 

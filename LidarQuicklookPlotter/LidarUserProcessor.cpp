@@ -9,14 +9,14 @@
 #include<svector/sstring.h>
 #include"ProgressReporter.h"
 
-void LidarUserProcessor::plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
+void LidarUserProcessor::plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
 	sci::assertThrow(getNFilesRead() == 1, sci::err(sci::SERR_USER, 0, "Attempted to plot a User scan with either no files or multiple files. This code can only plot one file at a time."));
 	for (size_t i = 0; i < maxRanges.size(); ++i)
 	{
 		sci::ostringstream rangeLimitedfilename;
 		rangeLimitedfilename << outputFilename;
-		if (maxRanges[i] != std::numeric_limits<metre>::max())
+		if (maxRanges[i] != std::numeric_limits<metreF>::max())
 			rangeLimitedfilename << sU("_maxRange_") << maxRanges[i];
 
 		splotframe *window;
@@ -32,7 +32,7 @@ void LidarUserProcessor::plotData(const sci::string &outputFilename, const std::
 		else
 			times.push_back(times.back() + times.back() - times[times.size() - 2]);
 
-		std::shared_ptr<PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>> gridData(new PhysicalGridData<second::unit, metre::unit, perSteradianPerMetre::unit>(times, getGateBoundariesForPlotting(0), getBetas(), g_lidarColourscale, true, true));
+		std::shared_ptr<PhysicalGridData<second::unit, metreF::unit, perSteradianPerMetreF::unit>> gridData(new PhysicalGridData<second::unit, metreF::unit, perSteradianPerMetreF::unit>(times, getGateBoundariesForPlotting(0), getBetas(), g_lidarColourscale, true, true));
 		plot->addData(gridData);
 
 		plot->getxaxis()->settitle(sU("Time"));

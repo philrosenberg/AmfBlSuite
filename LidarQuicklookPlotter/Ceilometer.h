@@ -39,26 +39,26 @@ public:
 	CampbellCeilometerProfile(const sci::UtcTime &time, const CampbellMessage2 &profile)
 		:m_time(time), m_profile(profile)
 	{}
-	const std::vector<perSteradianPerKilometre> &getBetas() const { return m_profile.getData(); }
+	const std::vector<perSteradianPerKilometreF> &getBetas() const { return m_profile.getData(); }
 	std::vector<size_t> getGates() const { return sci::indexvector<size_t>(m_profile.getData().size()); }
 	void setTime(const sci::UtcTime &time) { m_time = time; }
 	const sci::UtcTime &getTime() const { return m_time; }
-	metre getCloudBase1() const { return m_profile.getHeight1(); }
-	metre getCloudBase2() const { return m_profile.getHeight2(); }
-	metre getCloudBase3() const { return m_profile.getHeight3(); }
-	metre getCloudBase4() const { return m_profile.getHeight4(); }
-	metre getVisibility() const { return m_profile.getVisibility(); }
+	metreF getCloudBase1() const { return m_profile.getHeight1(); }
+	metreF getCloudBase2() const { return m_profile.getHeight2(); }
+	metreF getCloudBase3() const { return m_profile.getHeight3(); }
+	metreF getCloudBase4() const { return m_profile.getHeight4(); }
+	metreF getVisibility() const { return m_profile.getVisibility(); }
 	double getHighestSignal() const { return m_profile.getHighestSignal(); }
-	percent getWindowTransmission() const { return m_profile.getWindowTransmission(); }
-	metre getResolution() const { return m_profile.getResolution(); }
-	percent getLaserPulseEnergy() const { return m_profile.getLaserPulseEnergy(); }
-	percent getScale() const { return m_profile.getScale(); }
-	kelvin getLaserTemperature() const { return m_profile.getLaserTemperature(); }
-	degree getTiltAngle() const { return m_profile.getTiltAngle(); }
-	millivolt getBackground() const { return m_profile.getBackground(); }
+	percentF getWindowTransmission() const { return m_profile.getWindowTransmission(); }
+	metreF getResolution() const { return m_profile.getResolution(); }
+	percentF getLaserPulseEnergy() const { return m_profile.getLaserPulseEnergy(); }
+	percentF getScale() const { return m_profile.getScale(); }
+	kelvinF getLaserTemperature() const { return m_profile.getLaserTemperature(); }
+	degreeF getTiltAngle() const { return m_profile.getTiltAngle(); }
+	millivoltF getBackground() const { return m_profile.getBackground(); }
 	size_t getPulseQuantity() const { return m_profile.getPulseQuantity(); }
-	hertz getSampleRate() const { return m_profile.getSampleRate(); }
-	perSteradian getSum() const { return m_profile.getSum(); }
+	hertzF getSampleRate() const { return m_profile.getSampleRate(); }
+	perSteradianF getSum() const { return m_profile.getSum(); }
 	uint8_t getProfileFlag() const;
 	std::vector<uint8_t> getGateFlags() const;
 private:
@@ -102,11 +102,11 @@ public:
 		const std::vector<double> maxRanges, ProgressReporter &progressReporter, wxWindow *parent);
 
 	void plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
-		sci::string filename, metre maxRange, ProgressReporter &progressReporter, wxWindow *parent);
+		sci::string filename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 
 	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
 	virtual void readData(const sci::string &inputFilename, ProgressReporter &progressReporter, bool clearPrevious);
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metre> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual void writeToNc(const sci::string& directory, const PersonInfo& author,
 		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter) override;
@@ -127,11 +127,11 @@ private:
 	std::vector<sci::string> m_inputFilenames;
 	static void formatDataForOutput(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
 		InstrumentInfo& ceilometerInfo, CalibrationInfo& ceilometerCalibrationInfo,
-		DataInfo& dataInfo, std::vector<sci::UtcTime>& times, std::vector<std::vector<metre>>& altitudesAboveInstrument,
-		std::vector<std::vector<perSteradianPerMetre>> &backscatter,
-		std::vector<metre> &cloudBase1, std::vector<metre> &cloudBase2, std::vector<metre> &cloudBase3,
-		std::vector<metre> &cloudBase4, std::vector<percent> &laserEnergies, std::vector<kelvin> &laserTemperatures,
-		std::vector<unitless> &pulseQuantities, std::vector<degree> &tiltAngles, std::vector<percent> &scales,
-		std::vector<percent> &windowTransmissions, std::vector<millivolt> &backgrounds, std::vector<perSteradian> &sums,
+		DataInfo& dataInfo, std::vector<sci::UtcTime>& times, std::vector<std::vector<metreF>>& altitudesAboveInstrument,
+		std::vector<std::vector<perSteradianPerMetreF>> &backscatter,
+		std::vector<metreF> &cloudBase1, std::vector<metreF> &cloudBase2, std::vector<metreF> &cloudBase3,
+		std::vector<metreF> &cloudBase4, std::vector<percentF> &laserEnergies, std::vector<kelvinF> &laserTemperatures,
+		std::vector<unitlessF> &pulseQuantities, std::vector<degreeF> &tiltAngles, std::vector<percentF> &scales,
+		std::vector<percentF> &windowTransmissions, std::vector<millivoltF> &backgrounds, std::vector<perSteradianF> &sums,
 		std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags, std::vector<uint8_t>& cloudBaseFlags);
 };
