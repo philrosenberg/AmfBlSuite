@@ -304,6 +304,10 @@ private:
 					if (attributes[j] == sU("axis"))
 						axes.push_back(variables[i]);
 			}
+			if (axes.size() == 0)
+			{
+				axes = variables;
+			}
 		}
 		sci::string filename;
 		mutable sci::InputNcFile file;
