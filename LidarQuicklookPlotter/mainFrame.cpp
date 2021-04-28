@@ -288,7 +288,7 @@ void mainFrame::process(InstrumentProcessor &processor)
 {
 	try
 	{
-		(*m_progressReporter) << sU("Beginning processing with the next processor.\n\n");
+		(*m_progressReporter) << sU("Starting ") << processor.getName() <<  sU(".\n\n");
 		//Check that the input/output diectories are actually there
 		checkDirectoryStructue();
 

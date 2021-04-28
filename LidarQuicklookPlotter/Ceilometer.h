@@ -119,6 +119,10 @@ public:
 	virtual bool hasData() const override { return m_hasData; }
 	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
+	sci::string getName() const override
+	{
+		return sU("Lidar Processor");
+	}
 private:
 	std::vector<CampbellCeilometerProfile> m_allData;
 	CampbellHeader m_firstHeaderCampbell;

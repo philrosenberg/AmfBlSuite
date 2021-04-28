@@ -1,4 +1,5 @@
 #define _USE_MATH_DEFINES
+#include<wx/filename.h>
 #include"Lidar.h"
 #include<fstream>
 #include"Units.h"
@@ -6,7 +7,6 @@
 #include"Plotting.h"
 #include<svector\splot.h>
 #include"ProgressReporter.h"
-#include<wx/filename.h>
 #include"AmfNc.h"
 
 void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter)

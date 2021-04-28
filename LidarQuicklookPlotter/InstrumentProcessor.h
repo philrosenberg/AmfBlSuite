@@ -66,6 +66,7 @@ public:
 		}
 		return finalFiles;
 	}
+	virtual sci::string getName() const = 0;
 private:
 	sci::string m_fileSearchRegEx;
 	static std::vector<sci::string> selectRelevantFilesUsingRegEx(const std::vector<sci::string> &allFiles, sci::string regEx);
