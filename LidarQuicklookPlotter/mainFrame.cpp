@@ -89,7 +89,7 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &sett
 
 	m_plotting = false;
 
-	m_progressReporter.reset(new TextCtrlProgressReporter(m_logText, true, this));
+	m_progressReporter.reset(new TextCtrlProgressReporter<std::ostream>(m_logText, true, this, &sci::nulloutch));
 	m_progressReporter->setShouldStop(true);
 
 	try
@@ -105,7 +105,7 @@ mainFrame::mainFrame(wxFrame *frame, const wxString& title, const wxString &sett
 		start();
 	else
 	{
-		m_logText->SetValue("To run Lidar Quicklook Plotter either run with a command line arguments - which "
+		m_logText->SetValue("To run AMF Boundary Layer Suite either run with command line arguments - which "
 			"provides a settings file, or modify the default settings file \"processingSettings.xml\". If"
 			" the /processingSettings/runImmediately element of this file is set to true, then the processing "
 			"will begin running straight away. Otherwise, the software will wait until you hit Run on the "
@@ -236,6 +236,18 @@ void mainFrame::OnCheckDataTimer(wxTimerEvent& event)
 	if (m_plotting || m_progressReporter->shouldStop())
 		return;
 	process();
+
+
+	//Tell the user we are done for now
+	if (m_progressReporter->shouldStop())
+		m_logText->AppendText("Stopped\n\n");
+	else if (m_processingOptions.checkForNewFiles)
+		(*m_progressReporter) << sU("Processed all files found. Waiting approx 10 mins to check again.\n\n");
+	else
+	{
+		(*m_progressReporter) << sU("Processed all files found. Processing complete.\n\n");
+		stop();
+	}
 }
 
 std::vector<std::string> getDirectoryListing(const std::string &directory, const std::string &filespec)
@@ -268,19 +280,21 @@ void mainFrame::process()
 	if (!m_isSetup)
 		return;
 
+	//set the setup file - it will automatically be unset once this object goes out of scope
+	std::fstream logOut;
+	std::fstream* logOutPtr = nullptr;
+	if (m_processingOptions.logFileName.length() > 0)
+	{
+		logOut.open(sci::nativeUnicode(m_processingOptions.logFileName), std::ios::out);
+		sci::assertThrow(logOut.is_open(), sci::err(sci::SERR_USER, 0, sU("Could not open log file ")+ m_processingOptions.logFileName));
+		logOutPtr = &logOut;
+		(*m_progressReporter) << sU("Set log file to ") << m_processingOptions.logFileName << sU("\n\n");
+	}
+	ProgressReporterStreamSetter<std::ostream> logFileSetter(m_progressReporter.get(), logOutPtr);
+
 	for (size_t i = 0; i < m_instrumentProcessors.size(); ++i)
 		process(*m_instrumentProcessors[i]);
 
-	//Tell the user we are done for now
-	if (m_progressReporter->shouldStop())
-		m_logText->AppendText("Stopped\n\n");
-	else if (m_processingOptions.checkForNewFiles)
-		(*m_progressReporter) << sU("Processed all files found. Waiting approx 10 mins to check again.\n\n");
-	else
-	{
-		(*m_progressReporter) << sU("Processed all files found. Processing complete.\n\n");
-		stop();
-	}
 
 }
 

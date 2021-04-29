@@ -74,6 +74,31 @@ public:
 	void setErrorModeFormat() override {}
 };
 
+template<class STREAM>
+class StreamProgressReporter : public ProgressReporter
+{
+public:
+	StreamProgressReporter(STREAM* stream = nullptr)
+		:m_stream(stream)
+	{
+	}
+	void setstream(STREAM* stream)
+	{
+		m_stream = stream
+	}
+	void disconnectStream()
+	{
+		m_stream = nullptr;
+	}
+	virtual void reportProgress(const sci::string& progress)
+	{
+		if(m_stream)
+			(*m_stream) << progress;
+	}
+private:
+	STREAM* m_stream;
+};
+
 class WarningSetter
 {
 public:

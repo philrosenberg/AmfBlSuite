@@ -33,6 +33,7 @@ struct ProcessingOptions
 	sci::string outputDirectory;
 	sci::string comment;
 	sci::string reasonForProcessing;
+	sci::string logFileName;
 	bool beta;
 	sci::UtcTime startTime;
 	sci::UtcTime endTime;

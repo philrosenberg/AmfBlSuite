@@ -363,12 +363,21 @@ PersonInfo parsePersonInfo(wxXmlNode *node)
 
 ProcessingOptions parseProcessingOptions(wxXmlNode *node)
 {
+
 	ProcessingOptions result;
+
+	//comment logfile, start and end times are optional, so ensure they have sensible defaults
+	result.comment = sU("");
+	result.logFileName = sU("");
+	result.startTime = sci::UtcTime(1900, 1, 1, 0, 0, 0);
+	result.endTime = sci::UtcTime(2200, 1, 1, 0, 0, 0);
+
 	std::vector<nameVarPair<sci::string>> textLinks
 	{ nameVarPair<sci::string>(sU("inputDirectory"), &(result.inputDirectory)),
 		nameVarPair<sci::string>(sU("outputDirectory"), &(result.outputDirectory)),
 		nameVarPair<sci::string>(sU("comment"), &(result.comment)),
-		nameVarPair<sci::string>(sU("reasonForProcessing"), &(result.reasonForProcessing))
+		nameVarPair<sci::string>(sU("reasonForProcessing"), &(result.reasonForProcessing)),
+		nameVarPair<sci::string>(sU("logFile"), &(result.logFileName))
 	};
 	std::vector<nameVarPair<bool>> boolLinks
 	{ nameVarPair<bool>(sU("startImmediately"), &(result.startImmediately)),
@@ -388,11 +397,16 @@ ProcessingOptions parseProcessingOptions(wxXmlNode *node)
 	parseXmlNode(node, sU("endTime"), result.endTime, readEndTime);
 
 	for (auto iter = textLinks.begin(); iter != textLinks.end(); ++iter)
+	{
+		//coment and logFile are optional
+		if (iter->m_name == sU("comment"))
+			continue;
+		if (iter->m_name == sU("logFile"))
+			continue;
 		sci::assertThrow(iter->m_read, sci::err(sci::SERR_USER, 0, "missing parameter " + sci::nativeCodepage(iter->m_name) + " when parsing processing options."));
+	}
 	for (auto iter = boolLinks.begin(); iter != boolLinks.end(); ++iter)
 		sci::assertThrow(iter->m_read, sci::err(sci::SERR_USER, 0, "missing parameter " + sci::nativeCodepage(iter->m_name) + " when parsing processing options."));
-	sci::assertThrow(readEndTime, sci::err(sci::SERR_USER, 0, "missing parameter endTime when parsing processing options."));
-	sci::assertThrow(readStartTime, sci::err(sci::SERR_USER, 0, "missing parameter startTime when parsing processing options."));
 
 	return result;
 }

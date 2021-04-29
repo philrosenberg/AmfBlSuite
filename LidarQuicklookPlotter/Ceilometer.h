@@ -121,7 +121,7 @@ public:
 	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
 	sci::string getName() const override
 	{
-		return sU("Lidar Processor");
+		return sU("Ceilometer Processor");
 	}
 private:
 	std::vector<CampbellCeilometerProfile> m_allData;

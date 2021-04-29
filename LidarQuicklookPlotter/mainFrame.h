@@ -42,7 +42,9 @@ private:
 	wxTimer *m_instantCheckTimer;
 
 	bool m_plotting;
-	std::unique_ptr<TextCtrlProgressReporter> m_progressReporter;
+	std::fstream m_fstream;
+	//std::unique_ptr<StreamProgressReporter<wxTextCtrl>> m_progressReporter;
+	std::unique_ptr<TextCtrlProgressReporter<std::ostream>> m_progressReporter;
 
 	bool m_isSetup;
 	sci::string m_setupFileName;

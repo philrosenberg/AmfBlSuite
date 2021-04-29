@@ -1,11 +1,27 @@
 #pragma once
+#include<string>
+namespace sci
+{
+	using string = std::basic_string<char16_t>;
+	std::string nativeCodepage(const sci::string&);
+}
+
+inline wxTextCtrl& operator << (wxTextCtrl& stream, const sci::string& str)
+{
+	return stream << sci::nativeCodepage(str);
+}
+
+#include<svector/sstring.h>
+
 #include "ProgressReporter.h"
 #include<wx/textctrl.h>
 
-class TextCtrlProgressReporter : public ProgressReporter
+template<class STREAM>
+class TextCtrlProgressReporter : public StreamProgressReporter<sci::Oteestream<wxTextCtrl, STREAM>>
 {
 public:
-	TextCtrlProgressReporter(wxTextCtrl *textControl, bool yieldOnReport, wxWindow* windowToRemainEnabledOnYield)
+	TextCtrlProgressReporter(wxTextCtrl *textControl, bool yieldOnReport, wxWindow* windowToRemainEnabledOnYield, STREAM *additionalStream)
+		:StreamProgressReporter<sci::Oteestream<wxTextCtrl, STREAM>>(&m_stream), m_stream(textControl, additionalStream)
 	{
 		m_textControl = textControl;
 		m_yieldOnReport = yieldOnReport;
@@ -13,11 +29,13 @@ public:
 		m_shouldStop = false;
 		m_originalStyle = textControl->GetDefaultStyle();
 	}
-	void reportProgress(const sci::string &progress) override
+	void setAdditionalStream(STREAM* stream)
 	{
-		m_textControl->AppendText(sci::nativeUnicode(progress));
-		if (m_yieldOnReport)
-			wxSafeYield(m_windowToRemainEnabledOnYield, true);
+		m_stream.setStream2(stream);
+	}
+	STREAM* getAdditionalStream() const
+	{
+		return m_stream.getStream2();
 	}
 	void setShouldStop(bool shouldStop)
 	{
@@ -45,4 +63,23 @@ private:
 	wxWindow* m_windowToRemainEnabledOnYield;
 	bool m_shouldStop;
 	wxTextAttr m_originalStyle;
+	sci::Oteestream<wxTextCtrl, STREAM> m_stream;
+};
+
+template<class STREAM>
+class ProgressReporterStreamSetter
+{
+public:
+	ProgressReporterStreamSetter(TextCtrlProgressReporter<STREAM>* progressReporter, STREAM* stream)
+		:m_stream(progressReporter->getAdditionalStream()), m_progressReporter(progressReporter)
+	{
+		progressReporter->setAdditionalStream(stream);
+	}
+	~ProgressReporterStreamSetter()
+	{
+		m_progressReporter->setAdditionalStream(m_stream);
+	}
+private:
+	STREAM* m_stream;
+	TextCtrlProgressReporter<STREAM>* m_progressReporter;
 };

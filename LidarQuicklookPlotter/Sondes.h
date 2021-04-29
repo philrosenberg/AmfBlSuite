@@ -23,7 +23,7 @@ public:
 	virtual std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	sci::string getName() const override
 	{
-		return sU("Lidar Processor");
+		return sU("Sonde Processor");
 	}
 private:
 	InstrumentInfo m_instrumentInfo;
