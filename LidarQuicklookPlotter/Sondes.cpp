@@ -926,7 +926,7 @@ bool SondeProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime sta
 	return bufr.getTime() >= startTime && bufr.getTime() <= endTime;
 }
 
-std::vector<std::vector<sci::string>> SondeProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+std::vector<std::vector<sci::string>> SondeProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
 	//Sondes are always processed singly so we don't need to group any of the files
 	//just report them singly

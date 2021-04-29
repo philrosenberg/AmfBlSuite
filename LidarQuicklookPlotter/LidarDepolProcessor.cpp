@@ -26,11 +26,11 @@ bool LidarDepolProcessor::isCrossFile(const sci::string &fileName) const
 	return (regularExpression.Matches(sci::nativeUnicode(fileName)));
 }
 
-std::vector<std::vector<sci::string>> LidarDepolProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+std::vector<std::vector<sci::string>> LidarDepolProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
 	//just pass these all to the copolarised processor - the process to check the day is the same
 	//for both files, but it is way easier to just send all the files to one processor
-	return m_copolarisedProcessor.groupFilesPerDayForReprocessing(newFiles, allFiles);
+	return m_copolarisedProcessor.groupInputFilesbyOutputFiles(newFiles, allFiles);
 }
 
 void LidarDepolProcessor::plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)

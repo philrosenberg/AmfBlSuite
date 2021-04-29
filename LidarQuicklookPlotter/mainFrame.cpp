@@ -454,7 +454,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 		(*m_progressReporter) << sU("Looking for data files to process into netcdf format.\n");
 		std::vector<sci::string> newNcFiles = ncChangesLister.getChanges(processor, m_processingOptions.startTime, m_processingOptions.endTime);
 		std::vector<sci::string> allFiles = ncChangesLister.listFolderContents(processor, m_processingOptions.startTime, m_processingOptions.endTime);
-		std::vector<std::vector<sci::string>> dayFileSets = processor.groupFilesPerDayForReprocessing(newNcFiles, allFiles);
+		std::vector<std::vector<sci::string>> dayFileSets = processor.groupInputFilesbyOutputFiles(newNcFiles, allFiles);
 		for (size_t i = 0; i < dayFileSets.size(); ++i)
 		{
 			(*m_progressReporter) << sU("Day ") << i + 1 << sU(": Found the following files:\n");

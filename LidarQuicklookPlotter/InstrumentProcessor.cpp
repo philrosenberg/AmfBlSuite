@@ -44,7 +44,7 @@ bool InstrumentProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTim
 	return fileStartTime < endTime && (fileStartTime + fileDuration) >= startTime;
 }
 
-std::vector<std::vector<sci::string>> InstrumentProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter, size_t dateLength)
+std::vector<std::vector<sci::string>> InstrumentProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter, size_t dateLength)
 {
 	//Here we grab the date from each file based on it starting at the given character in the filename (path removed)
 	//it doesn't matter what format the date is in, providing it is consistent as we just check for equality

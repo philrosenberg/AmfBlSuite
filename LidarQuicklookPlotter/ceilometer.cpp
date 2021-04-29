@@ -724,9 +724,9 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
 }
 
-std::vector<std::vector<sci::string>> CeilometerProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+std::vector<std::vector<sci::string>> CeilometerProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
-	return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, 0, 8);
+	return InstrumentProcessor::groupInputFilesbyOutputFiles(newFiles, allFiles, 0, 8);
 }
 
 bool CeilometerProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const

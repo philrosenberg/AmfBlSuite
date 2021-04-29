@@ -467,7 +467,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	file2d.write(spectralFlagVariable2dDiameter, spectralFlagsDiameter);
 }
 
-std::vector<std::vector<sci::string>> MicroRainRadarProcessor::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+std::vector<std::vector<sci::string>> MicroRainRadarProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
 	//The MRR has daily files, so just return all the new files
 	std::vector<std::vector<sci::string>> result(newFiles.size());

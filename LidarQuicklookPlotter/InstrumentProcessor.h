@@ -49,8 +49,8 @@ public:
 	virtual bool hasData() const = 0;
 	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const = 0;
 	static bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime, size_t dateStartCharacter, size_t hourStartCharacter, size_t minuteStartCharacter, size_t secondStartCharacter, second fileDuration);
-	virtual std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const = 0;
-	static std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter, size_t dateLength);
+	virtual std::vector<std::vector<sci::string>> groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const = 0;
+	static std::vector<std::vector<sci::string>> groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles, size_t dateStartCharacter, size_t dateLength);
 	virtual std::vector<sci::string> selectRelevantFiles(const std::vector<sci::string> &allFiles, sci::UtcTime startTime, sci::UtcTime endTime) const
 	{
 		std::vector<sci::string> regexMatchingFiles = selectRelevantFilesUsingRegEx(allFiles, m_fileSearchRegEx);

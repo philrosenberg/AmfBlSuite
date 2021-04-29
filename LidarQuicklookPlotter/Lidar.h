@@ -57,7 +57,7 @@ public:
 		sci::UtcTime fileTime = extractDateFromLidarFilename(fileName);
 		return fileTime < endTime && fileTime >= startTime;
 	}
-	std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	std::vector<std::vector<sci::string>> groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	sci::string getName() const override
 	{
 		return sU("Lidar Processor");
@@ -299,7 +299,7 @@ public:
 		else
 			return m_copolarisedProcessor.fileCoversTimePeriod(fileName, startTime, endTime);
 	}
-	virtual std::vector<std::vector<sci::string>> groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
+	virtual std::vector<std::vector<sci::string>> groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const override;
 	sci::string getName() const override
 	{
 		return sU("Lidar Depolarisation Processor");

@@ -562,7 +562,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	file.write(backscatterFlagVariable, backscatterFlags);
 }
 
-std::vector<std::vector<sci::string>> HplFileLidar::groupFilesPerDayForReprocessing(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
+std::vector<std::vector<sci::string>> HplFileLidar::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
 {
 	if (newFiles.size() == 0)
 		return std::vector<std::vector<sci::string>>(0);
@@ -595,13 +595,13 @@ std::vector<std::vector<sci::string>> HplFileLidar::groupFilesPerDayForReprocess
 	if (nUnderscores == 1)
 	{
 		//this is an old style filename
-		return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, m_filePrefix.length()+1, 6);
+		return InstrumentProcessor::groupInputFilesbyOutputFiles(newFiles, allFiles, m_filePrefix.length()+1, 6);
 	}
 	else
 	{
 		//this is an new style filename
 		//this is an old style filename
-		return InstrumentProcessor::groupFilesPerDayForReprocessing(newFiles, allFiles, firstUnderscorePosition + 1, 8);
+		return InstrumentProcessor::groupInputFilesbyOutputFiles(newFiles, allFiles, firstUnderscorePosition + 1, 8);
 		
 	}
 }
