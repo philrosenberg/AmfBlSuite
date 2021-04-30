@@ -285,10 +285,12 @@ void mainFrame::process()
 	std::fstream* logOutPtr = nullptr;
 	if (m_processingOptions.logFileName.length() > 0)
 	{
-		logOut.open(sci::nativeUnicode(m_processingOptions.logFileName), std::ios::out);
+		logOut.open(sci::nativeUnicode(m_processingOptions.logFileName), std::ios::app);
+		bool open = logOut.is_open();
 		sci::assertThrow(logOut.is_open(), sci::err(sci::SERR_USER, 0, sU("Could not open log file ")+ m_processingOptions.logFileName));
 		logOutPtr = &logOut;
 		(*m_progressReporter) << sU("Set log file to ") << m_processingOptions.logFileName << sU("\n\n");
+		(*m_progressReporter) << sU("Beginning processing at") << sci::fromCodepage(sci::UtcTime::now().getIso8601String()) << sU("\n\n");
 	}
 	ProgressReporterStreamSetter<std::ostream> logFileSetter(m_progressReporter.get(), logOutPtr);
 
@@ -316,14 +318,14 @@ void mainFrame::process(InstrumentProcessor &processor)
 			//This class in particular assumes that when
 			//it performs a search of previously existing files, the last one alphabetically
 			//will have changed, but the rest will not.
-			plotChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFiles.txt")));
-			ncChangesLister.reset(new AlphabeticallyLastCouldHaveChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFiles.txt")));
+			plotChangesLister.reset(new FolderChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFilesByTime.txt")));
+			ncChangesLister.reset(new FolderChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFilesByTime.txt")));
 		}
 		else
 		{
 			//This class just assumes all files have changed so we process all files even if they existed previously and are unmodified
-			plotChangesLister.reset(new AssumeAllChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFiles.txt")));
-			ncChangesLister.reset(new AssumeAllChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFiles.txt")));
+			plotChangesLister.reset(new AssumeAllChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyPlottedFilesByTime.txt")));
+			ncChangesLister.reset(new AssumeAllChangedChangesLister(m_processingOptions.inputDirectory, m_processingOptions.outputDirectory + sU("previouslyProcessedFilesByTime.txt")));
 		}
 
 		if (!m_progressReporter->shouldStop())
@@ -382,6 +384,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 	{
 		//check for new files
 		(*m_progressReporter) << sU("Looking for data files to plot.\n");
+		sci::UtcTime checkedForChangesTime = sci::UtcTime::now();
 		std::vector<sci::string> newPlotFiles = plotChangesLister.getChanges(processor, m_processingOptions.startTime, m_processingOptions.endTime);
 
 		//Keep the user updated
@@ -425,7 +428,7 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 					}
 
 					//remember which files have been plotted
-					plotChangesLister.updateSnapshotFile(newPlotFiles[i]);
+					plotChangesLister.updateSnapshotFile(newPlotFiles[i], checkedForChangesTime);
 				}
 			}
 			catch (sci::err err)
@@ -452,9 +455,10 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 	{
 		//check for new files
 		(*m_progressReporter) << sU("Looking for data files to process into netcdf format.\n");
-		std::vector<sci::string> newNcFiles = ncChangesLister.getChanges(processor, m_processingOptions.startTime, m_processingOptions.endTime);
-		std::vector<sci::string> allFiles = ncChangesLister.listFolderContents(processor, m_processingOptions.startTime, m_processingOptions.endTime);
-		std::vector<std::vector<sci::string>> dayFileSets = processor.groupInputFilesbyOutputFiles(newNcFiles, allFiles);
+		//std::vector<sci::string> newNcFiles = ncChangesLister.getChanges(processor, m_processingOptions.startTime, m_processingOptions.endTime);
+		//std::vector<sci::string> allFiles = ncChangesLister.listFolderContents(processor, m_processingOptions.startTime, m_processingOptions.endTime);
+		sci::UtcTime checkedForChangesTime = sci::UtcTime::now();
+		std::vector<std::vector<sci::string>> dayFileSets = ncChangesLister.getChangesSeparatedByOutput(processor, m_processingOptions.startTime, m_processingOptions.endTime);
 		for (size_t i = 0; i < dayFileSets.size(); ++i)
 		{
 			(*m_progressReporter) << sU("Day ") << i + 1 << sU(": Found the following files:\n");
@@ -484,12 +488,12 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 
 					//remember which files have been plotted
 					for (size_t j = 0; j < dayFileSets[i].size(); ++j)
-						ncChangesLister.updateSnapshotFile(dayFileSets[i][j]);
+						ncChangesLister.updateSnapshotFile(dayFileSets[i][j], checkedForChangesTime);
 				}
 				else
 				{
 					WarningSetter setter(m_progressReporter.get());
-					(*m_progressReporter) << sU("No valid data found for this day, not netcdf will be written\n\n");;
+					(*m_progressReporter) << sU("No valid data found for this day, not netcdf will be written\n\n");
 				}
 			}
 			catch (sci::err err)
