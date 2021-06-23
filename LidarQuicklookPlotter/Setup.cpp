@@ -15,51 +15,70 @@
 //stop the code interpolating accross missing data periods.
 void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime> &times, std::vector<degreeF> &latitudes, std::vector<degreeF> &longitudes, std::vector<metreF> &altitudes, std::vector<degreeF> &elevations, std::vector<degreeF> &azimuths, std::vector<degreeF> &rolls, std::vector<degreeF> &courses, std::vector<metrePerSecondF> &speeds, ProgressReporter &progressReporter)
 {
-	sci::InputNcFile file(locationFile);
-
-	std::vector<sci::string> names = file.getVariableNames();
-
-	progressReporter << sU("Reading platform time data.\n");
-	std::vector<double> timesUnitless = file.getVariable<double>(sU("time"));
-	if (progressReporter.shouldStop())
-		return;
-	progressReporter << sU("Reading platform latitude data.\n");
-	std::vector<double> latitudesUnitless = file.getVariable<double>(sU("latitude"));
-	if (progressReporter.shouldStop())
-		return;
-	progressReporter << sU("Reading platform longitude data.\n");
-	std::vector<double> longitudesUnitless = file.getVariable<double>(sU("longitude"));
-	if (progressReporter.shouldStop())
-		return;
-	progressReporter << sU("Reading platform elevation data.\n");
-	std::vector<double> elevationsUnitless = file.getVariable<double>(sU("elevation"));
-	if (progressReporter.shouldStop())
-		return;
-	progressReporter << sU("Reading platform azimuth data.\n");
-	std::vector<double> azimuthsUnitless = file.getVariable<double>(sU("azimuth"));
-	if (progressReporter.shouldStop())
-		return;
-	progressReporter << sU("Reading platform roll data.\n");
-	std::vector<double> rollsUnitless = file.getVariable<double>(sU("roll"));
-	if (progressReporter.shouldStop())
-		return;
-	progressReporter << sU("Reading platform course data.\n");
-	std::vector<double> coursesUnitless = file.getVariable<double>(sU("course"));
-	if (progressReporter.shouldStop())
-		return;
-	progressReporter << sU("Reading platform speed data.\n");
-	std::vector<double> speedsUnitless = file.getVariable<double>(sU("speed"));
-	if (progressReporter.shouldStop())
-		return;
-
-	progressReporter << sU("Reading platform altitude data.\n");
+	sci::assertThrow(wxFileExists(sci::nativeUnicode(locationFile)), sci::err(sci::errcategory::SERR_USER, 0, sU("Location data file \"") + locationFile + sU("\" does not exist.")));
+	
+	std::vector<double> timesUnitless;
+	std::vector<double> latitudesUnitless;
+	std::vector<double> longitudesUnitless;
+	std::vector<double> elevationsUnitless;
+	std::vector<double> azimuthsUnitless;
+	std::vector<double> rollsUnitless;
+	std::vector<double> coursesUnitless;
+	std::vector<double> speedsUnitless;
 	std::vector<double> altitudesUnitless;
-	if (sci::anyTrue(sci::isEq(names, sci::string(sU("altitude")))))
-		altitudesUnitless = file.getVariable<double>(sU("altitude"));
-	else
-		altitudesUnitless = std::vector<double>{ file.getGlobalAttribute<double>(sU("altitude")) };
-	if (progressReporter.shouldStop())
-		return;
+	try
+	{
+		progressReporter << sU("Attempting to open location data file.\n");
+		sci::InputNcFile file(locationFile);
+
+		std::vector<sci::string> names = file.getVariableNames();
+
+		progressReporter << sU("Reading platform time data.\n");
+		timesUnitless = file.getVariable<double>(sU("time"));
+		if (progressReporter.shouldStop())
+			return;
+		progressReporter << sU("Reading platform latitude data.\n");
+		latitudesUnitless = file.getVariable<double>(sU("latitude"));
+		if (progressReporter.shouldStop())
+			return;
+		progressReporter << sU("Reading platform longitude data.\n");
+		longitudesUnitless = file.getVariable<double>(sU("longitude"));
+		if (progressReporter.shouldStop())
+			return;
+		progressReporter << sU("Reading platform elevation data.\n");
+		elevationsUnitless = file.getVariable<double>(sU("elevation"));
+		if (progressReporter.shouldStop())
+			return;
+		progressReporter << sU("Reading platform azimuth data.\n");
+		azimuthsUnitless = file.getVariable<double>(sU("azimuth"));
+		if (progressReporter.shouldStop())
+			return;
+		progressReporter << sU("Reading platform roll data.\n");
+		rollsUnitless = file.getVariable<double>(sU("roll"));
+		if (progressReporter.shouldStop())
+			return;
+		progressReporter << sU("Reading platform course data.\n");
+		coursesUnitless = file.getVariable<double>(sU("course"));
+		if (progressReporter.shouldStop())
+			return;
+		progressReporter << sU("Reading platform speed data.\n");
+		speedsUnitless = file.getVariable<double>(sU("speed"));
+		if (progressReporter.shouldStop())
+			return;
+
+		progressReporter << sU("Reading platform altitude data.\n");
+		altitudesUnitless;
+		if (sci::anyTrue(sci::isEq(names, sci::string(sU("altitude")))))
+			altitudesUnitless = file.getVariable<double>(sU("altitude"));
+		else
+			altitudesUnitless = std::vector<double>{ file.getGlobalAttribute<double>(sU("altitude")) };
+		if (progressReporter.shouldStop())
+			return;
+	}
+	catch (...)
+	{
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Location data file \"") + locationFile + sU("\" could not be opened or a variable could not be read. The last action listed above is the one that failed")));
+	}
 
 	sci::assertThrow(latitudesUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the latitude variable has a different numer of elements to the time variable.")));
 	sci::assertThrow(longitudesUnitless.size() == timesUnitless.size(), sci::err(sci::SERR_USER, 0, sU("When reading location file, the longitude variable has a different numer of elements to the time variable.")));
