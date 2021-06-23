@@ -977,7 +977,7 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 		projectInfo, platform, sU("radio sonde trajectory"), m_time, m_latitude, m_longitude);
 
 	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::point} };
-	std::vector<sci::string> coordinates{ sU("longitude"), sU("latitude"), sU("altitude") };
+	std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude"), sU("altitude") };
 
 	AmfNcAltitudeVariable altitudesVariable(file, file.getTimeDimension(), m_altitude, dataInfo.featureType);
 	AmfNcVariable<hectoPascalF, std::vector<hectoPascalF>> airPressureVariable(sU("air_pressure"), file, file.getTimeDimension(), sU("Air Pressure"), sU("air_pressure"), m_airPressure, true, coordinates, cellMethods);
