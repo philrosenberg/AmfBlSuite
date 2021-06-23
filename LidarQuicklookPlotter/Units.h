@@ -1,5 +1,6 @@
 #pragma once
 
+#define UNITS_H_NOT_CP1253
 #include<svector/Units.h>
 
 typedef sci::Physical<sci::Metre<>, float> metreF;
