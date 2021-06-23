@@ -91,10 +91,10 @@ class wxWindow;
 class CeilometerProcessor : public PlotableLidar
 {
 public:
-	CeilometerProcessor::CeilometerProcessor()
-		:PlotableLidar(sU("[/\\\\]........_ceilometer\\.csv$")), m_hasData(false)
+	CeilometerProcessor::CeilometerProcessor(const InstrumentInfo& instrumentInfo, const CalibrationInfo& calibrationInfo)
+		:PlotableLidar(sU("[/\\\\]........_ceilometer\\.csv$")), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo)
 	{}
-	static void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
+	virtual void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
 		sci::string directory, const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo,
 		const ProjectInfo &projectInfo, const Platform &platform, const ProcessingOptions &processingOptions);
 
@@ -110,10 +110,10 @@ public:
 	virtual void writeToNc(const sci::string& directory, const PersonInfo& author,
 		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter) override;
-	static void writeToNc_1_1_0(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
+	void writeToNc_1_1_0(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
 		sci::string directory, const PersonInfo& author, const ProcessingSoftwareInfo& processingSoftwareInfo,
 		const ProjectInfo& projectInfo, const Platform& platform, const ProcessingOptions& processingOptions);
-	static void writeToNc_2_0_0(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
+	void writeToNc_2_0_0(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
 		sci::string directory, const PersonInfo& author, const ProcessingSoftwareInfo& processingSoftwareInfo,
 		const ProjectInfo& projectInfo, const Platform& platform, const ProcessingOptions& processingOptions);
 	virtual bool hasData() const override { return m_hasData; }
@@ -129,13 +129,16 @@ private:
 	HplHeader m_firstHeaderHpl;
 	bool m_hasData;
 	std::vector<sci::string> m_inputFilenames;
-	static void formatDataForOutput(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
+	void formatDataForOutput(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
 		InstrumentInfo& ceilometerInfo, CalibrationInfo& ceilometerCalibrationInfo,
 		DataInfo& dataInfo, std::vector<sci::UtcTime>& times, std::vector<std::vector<metreF>>& altitudesAboveInstrument,
 		std::vector<std::vector<perSteradianPerMetreF>> &backscatter,
 		std::vector<metreF> &cloudBase1, std::vector<metreF> &cloudBase2, std::vector<metreF> &cloudBase3,
 		std::vector<metreF> &cloudBase4, std::vector<percentF> &laserEnergies, std::vector<kelvinF> &laserTemperatures,
 		std::vector<unitlessF> &pulseQuantities, std::vector<degreeF> &tiltAngles, std::vector<percentF> &scales,
-		std::vector<percentF> &windowTransmissions, std::vector<millivoltF> &backgrounds, std::vector<perSteradianF> &sums,
+		std::vector<percentF> &windowTransmissions, std::vector<millivoltF>& windowContaminations, std::vector<millivoltF> &backgrounds, std::vector<perSteradianF> &sums,
 		std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags, std::vector<uint8_t>& cloudBaseFlags);
+	CalibrationInfo m_calibrationInfo;
+	InstrumentInfo m_instrumentInfo;
+	sci::string m_ceilometerOsVersion;
 };

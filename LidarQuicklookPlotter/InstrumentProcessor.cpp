@@ -148,7 +148,7 @@ std::shared_ptr<InstrumentProcessor> getProcessorByName(sci::string name, Instru
 	if (name == sU("LidarDepolarisationProcessor"))
 		return std::shared_ptr<InstrumentProcessor>(new LidarDepolProcessor(LidarCopolarisedStareProcessor(instrumentInfo, calibrationInfo), LidarCrosspolarisedStareProcessor(instrumentInfo, calibrationInfo)));
 	if (name == sU("CeilometerProcessor"))
-		return std::shared_ptr<InstrumentProcessor>(new CeilometerProcessor());
+		return std::shared_ptr<InstrumentProcessor>(new CeilometerProcessor(instrumentInfo, calibrationInfo));
 	if (name == sU("MicroRainRadarProcessor"))
 		return std::shared_ptr<InstrumentProcessor>(new MicroRainRadarProcessor(instrumentInfo, calibrationInfo));
 	if (name == sU("SondeProcessor"))
