@@ -316,7 +316,8 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	baseFilename = baseFilename + sU("_") + dataInfo.productName;
 	//add any options
 	for (size_t i = 0; i < dataInfo.options.size(); ++i)
-		baseFilename = baseFilename + sU("_") + dataInfo.options[i];
+		if(dataInfo.options[i].length() > 0)
+			baseFilename = baseFilename + sU("_") + dataInfo.options[i];
 
 	//Swap spaces for hyphens and make lower case
 	std::locale locale;
