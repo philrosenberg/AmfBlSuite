@@ -783,7 +783,7 @@ private:
 class AmfNcTimeVariable;
 class AmfNcLatitudeVariable;
 class AmfNcLongitudeVariable;
-template<class T, class U>
+template<class T, class U, bool SWAP=false>
 class AmfNcVariable;
 
 enum class AmfVersion
@@ -1203,14 +1203,35 @@ inline sci::string getCellMethodsAttributeText(const std::vector<std::pair<sci::
 	return result.str();
 }
 
-template <class T, class U>
+template<class T, bool SWAP>
+struct DataType
+{
+
+};
+
+template<class T>
+struct DataType<T, true>
+{
+	typedef T& type;
+};
+
+template<class T>
+struct DataType<T, false>
+{
+	typedef const T& type;
+};
+
+template <class T, class U, bool SWAP>
 class AmfNcVariable : public sci::NcVariable<T>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
 		:NcVariable<T>(name, ncFile, dimension)
 	{
-		m_data = data;
+		if constexpr (SWAP)
+			std::swap(m_data, data);
+		else
+			m_data = data;
 		T validMin;
 		T validMax;
 		getMinMax(m_data, validMin, validMax);
@@ -1219,7 +1240,10 @@ public:
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
 		:NcVariable<T>(name, ncFile, dimensions)
 	{
-		m_data = data;
+		if constexpr (SWAP)
+			std::swap(m_data, data);
+		else
+			m_data = data;
 		T validMin;
 		T validMax;
 		getMinMax(m_data, validMin, validMax);
@@ -1299,25 +1323,31 @@ private:
 };
 
 //create a partial specialization for any AmfNcVariable based on a sci::Physical value
-template <class T, class VALUE_TYPE, class U>
-class AmfNcVariable<sci::Physical<T, VALUE_TYPE>, U> : public sci::NcVariable<sci::Physical<T, VALUE_TYPE>>
+template <class T, class VALUE_TYPE, class U, bool SWAP>
+class AmfNcVariable<sci::Physical<T, VALUE_TYPE>, U, SWAP> : public sci::NcVariable<sci::Physical<T, VALUE_TYPE>>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T, VALUE_TYPE>>(name, ncFile, dimension)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T, VALUE_TYPE>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
-		m_data = data;
+		if constexpr (SWAP)
+			std::swap(m_data, data);
+		else
+			m_data = data;
 		sci::Physical<T, VALUE_TYPE> validMin;
 		sci::Physical<T, VALUE_TYPE> validMax;
 		getMinMax(m_data, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T, VALUE_TYPE>>(name, ncFile, dimensions)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T, VALUE_TYPE>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
-		m_data = data;
+		if constexpr (SWAP)
+			std::swap(m_data, data);
+		else
+			m_data = data;
 		sci::Physical<T, VALUE_TYPE> validMin;
 		sci::Physical<T, VALUE_TYPE> validMax;
 		getMinMax(m_data, validMin, validMax);
