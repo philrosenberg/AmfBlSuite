@@ -29,9 +29,9 @@ struct HplHeader
 	size_t pulsesPerRay;
 	size_t nRays;
 	ScanType scanType;
-	size_t focusRange;
+	metreF focusRange;
 	sci::UtcTime startTime;
-	double dopplerResolution;
+	metrePerSecondF dopplerResolution;
 	bool oldType;
 };
 #pragma warning(pop)

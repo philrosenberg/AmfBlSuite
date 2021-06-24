@@ -332,6 +332,9 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 			//zero in the data file. Change it to fill value
 			sci::assign(windSpeeds[i], sci::isEq(windFlags[i], lidarClippedWindProfileFlag), std::numeric_limits<metrePerSecondF>::quiet_NaN());
 			sci::assign(windDirections[i], sci::isEq(windFlags[i], lidarClippedWindProfileFlag), std::numeric_limits<degreeF>::quiet_NaN());
+			for (size_t j = 0; j < windDirections[i].size(); ++j)
+				if (windDirections[i][j] < degreeF(0.0f))
+					windDirections[i][j] += degreeF(360.0f);
 
 			altitudes[i].resize(maxLevels, std::numeric_limits<metreF>::quiet_NaN());
 			windSpeeds[i].resize(maxLevels, std::numeric_limits<metrePerSecondF>::quiet_NaN());
@@ -344,8 +347,9 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
 		std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
 		AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0));
-		AmfNcVariable<metrePerSecondF, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));
-		AmfNcVariable<degreeF, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods, sU("Derived by data logging software, assuming lidar is perfectly level. In Earth frame for moving platforms."));
+		altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")),file);
+		AmfNcVariable<metrePerSecondF, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Mean Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods);
+		AmfNcVariable<degreeF, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind From Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods);
 		AmfNcFlagVariable windFlagVariable(sU("qc_flag_wind"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
 		file.writeTimeAndLocationData(platform);

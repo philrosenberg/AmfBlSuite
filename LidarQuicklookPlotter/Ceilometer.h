@@ -70,9 +70,9 @@ private:
 inline HplHeader createCeilometerHeader(const sci::string &filename, const CampbellHeader &firstHeader, const CampbellCeilometerProfile &firstProfile)
 {
 	HplHeader result;
-	result.dopplerResolution = std::numeric_limits<double>::quiet_NaN();
+	result.dopplerResolution = std::numeric_limits<metrePerSecondF>::quiet_NaN();
 	result.filename = filename;
-	result.focusRange = 0;
+	result.focusRange = std::numeric_limits<metreF>::quiet_NaN();
 	result.nGates = 2046;
 	result.nRays = 1;
 	result.pointsPerGate = 1;

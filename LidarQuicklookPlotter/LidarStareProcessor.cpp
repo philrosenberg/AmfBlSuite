@@ -45,7 +45,7 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 	}
 }
 
-void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
+/*void LidarStareProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
@@ -201,4 +201,4 @@ void LidarStareProcessor::getFormattedData(std::vector<sci::UtcTime> &times,
 	}
 
 
-}
+}*/

@@ -38,10 +38,12 @@ void LidarDepolProcessor::plotData(const sci::string &outputFilename, const std:
 	throw(sci::err(sci::SERR_USER, 0, sU("Plotting lidar depolarisation is not currently supported")));
 }
 
-void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
-	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
+void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonInfo& author,
+	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
+}
+/*{
 	DataInfo dataInfo;
 	dataInfo.continuous = true;
 	dataInfo.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later
@@ -359,4 +361,4 @@ void LidarDepolProcessor::writeToNc(const sci::string &directory, const PersonIn
 	file.write(backscatterFlagCoVariable, averagedFlagsCo);
 	file.write(backscatterFlagCrossVariable, averagedFlagsCross);
 	file.write(depolarisationFlagVariable, depolarisationFlags);
-}
+}*/

@@ -103,13 +103,19 @@ public:
 	const HplHeader &getHeaderForProfile(size_t profileIndex) { return m_hplHeaders[m_headerIndex[profileIndex]]; }
 	size_t getNGates(size_t profile) { return m_profiles[profile].nGates(); }
 	size_t getNFilesRead() { return m_hplHeaders.size(); }
+	size_t getPulsesPerRay(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].pulsesPerRay; }
+	size_t getNRays(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].nRays; }
+	metreF getFocus(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].focusRange; }
+	metrePerSecondF getDopplerResolution(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].dopplerResolution; }
+	metreF getGateLength(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].rangeGateLength; }
+	size_t getNPointsPerGate(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].pointsPerGate; }
 private:
 	bool m_hasData;
 	std::vector<HplHeader> m_hplHeaders;
 	std::vector<HplProfile> m_profiles;
 	std::vector<std::vector<uint8_t>> m_dopplerFlags;
 	std::vector<std::vector<uint8_t>> m_betaFlags;
-	std::vector<size_t> m_headerIndex; //this links headers to profiles m_hplHeader[m_headerIndex[i]] is the header for the ith profile
+	std::vector<size_t> m_headerIndex; //this links headers to profiles m_hplHeaders[m_headerIndex[i]] is the header for the ith profile
 	const InstrumentInfo m_instrumentInfo;
 	const CalibrationInfo m_calibrationInfo;
 	std::vector<degreeF> m_correctedAzimuths;
@@ -120,20 +126,20 @@ private:
 class LidarScanningProcessor : public LidarBackscatterDopplerProcessor
 {
 public:
-	LidarScanningProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix)
-		:LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, filePrefix, false, false)
+	LidarScanningProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix, bool inCrossFolder, bool twoDigitTime)
+		:LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, filePrefix, inCrossFolder, twoDigitTime)
 	{}
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
 };
 
-class LidarStareProcessor : public LidarBackscatterDopplerProcessor
+class LidarStareProcessor : public LidarScanningProcessor
 {
 public:
-	LidarStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, bool inCrossFolder) : LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, sU("Stare"), inCrossFolder, true) {}
+	LidarStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, bool inCrossFolder) : LidarScanningProcessor(instrumentInfo, calibrationInfo, sU("Stare"), inCrossFolder, true) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
+	/*virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
 	void getFormattedData(std::vector<sci::UtcTime> &times,
@@ -149,7 +155,7 @@ public:
 		std::vector<std::vector<uint8_t>> &backscatterFlags,
 		std::vector<std::vector<metreF>> &ranges,
 		secondF &averagingPeriod,
-		secondF &samplingInterval);
+		secondF &samplingInterval);*/
 };
 
 class LidarCopolarisedStareProcessor : public LidarStareProcessor
@@ -169,7 +175,7 @@ public:
 class LidarRhiProcessor : public LidarScanningProcessor
 {
 public:
-	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarScanningProcessor(instrumentInfo, calibrationInfo, sU("RHI")) {}
+	LidarRhiProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : LidarScanningProcessor(instrumentInfo, calibrationInfo, sU("RHI"), false, false) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("rhi") }; }
 };
@@ -179,7 +185,7 @@ public:
 class ConicalScanningProcessor : public LidarScanningProcessor
 {
 public:
-	ConicalScanningProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix, size_t  nSegmentsMin = 10) : LidarScanningProcessor(instrumentInfo, calibrationInfo, filePrefix), m_nSegmentsMin(nSegmentsMin) {}
+	ConicalScanningProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix, size_t  nSegmentsMin = 10) : LidarScanningProcessor(instrumentInfo, calibrationInfo, filePrefix, false, false), m_nSegmentsMin(nSegmentsMin) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 	void plotDataPlan(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 	void plotDataCone(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent);
@@ -209,7 +215,7 @@ private:
 class LidarUserProcessor : public LidarScanningProcessor
 {
 public:
-	LidarUserProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix) : LidarScanningProcessor(instrumentInfo, calibrationInfo, filePrefix) {}
+	LidarUserProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix) : LidarScanningProcessor(instrumentInfo, calibrationInfo, filePrefix, false, false) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
 private:
 	sci::string m_userNumber;
