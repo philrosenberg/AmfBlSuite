@@ -129,6 +129,28 @@ public:
 	LidarScanningProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, const sci::string &filePrefix, bool inCrossFolder, bool twoDigitTime)
 		:LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, filePrefix, inCrossFolder, twoDigitTime)
 	{}
+	void formatDataForOutput(ProgressReporter& progressReporter,
+		std::vector<std::vector<metreF>>& ranges,
+		std::vector<std::vector<degreeF>>& instrumentRelativeAzimuthAngles,
+		std::vector<std::vector<degreeF>>& attitudeCorrectedAzimuthAngles,
+		std::vector<std::vector<degreeF>>& instrumentRelativeElevationAngles,
+		std::vector<std::vector<degreeF>>& attitudeCorrectedElevationAngles,
+		std::vector<std::vector<std::vector<metrePerSecondF>>>& instrumentRelativeDopplerVelocities,
+		std::vector<std::vector<std::vector<metrePerSecondF>>>& motionCorrectedDopplerVelocities,
+		std::vector<std::vector<std::vector<perSteradianPerMetreF>>>& backscatters,
+		std::vector<std::vector<std::vector<unitlessF>>>& snrsPlusOne,
+		std::vector < std::vector<std::vector<uint8_t>>>& dopplerVelocityFlags,
+		std::vector < std::vector<std::vector<uint8_t>>>& backscatterFlags,
+		std::vector<sci::UtcTime>& scanStartTimes,
+		std::vector<sci::UtcTime>& scanEndTimes,
+		size_t& maxProfilesPerScan,
+		size_t& maxNGates,
+		size_t& pulsesPerRay,
+		size_t& raysPerPoint,
+		metreF& focus,
+		metrePerSecondF& dopplerResolution,
+		metreF& gateLength,
+		size_t& pointsPerGate);
 	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;

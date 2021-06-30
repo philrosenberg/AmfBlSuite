@@ -279,29 +279,36 @@ void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::
 	legend->addentry(sU(""), g_lidarColourscale, false, false, 0.05, 0.3, 15, sU(""), 0, 0.05, wxColour(0, 0, 0), 128, false, 150, false);
 }
 
-void LidarScanningProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
-	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
+void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressReporter,
+	std::vector<std::vector<metreF>> &ranges,
+	std::vector<std::vector<degreeF>> &instrumentRelativeAzimuthAngles,
+	std::vector<std::vector<degreeF>> &attitudeCorrectedAzimuthAngles,
+	std::vector<std::vector<degreeF>> &instrumentRelativeElevationAngles,
+	std::vector<std::vector<degreeF>> &attitudeCorrectedElevationAngles,
+	std::vector<std::vector<std::vector<metrePerSecondF>>> &instrumentRelativeDopplerVelocities,
+	std::vector<std::vector<std::vector<metrePerSecondF>>> &motionCorrectedDopplerVelocities,
+	std::vector<std::vector<std::vector<perSteradianPerMetreF>>> &backscatters,
+	std::vector<std::vector<std::vector<unitlessF>>> &snrsPlusOne,
+	std::vector < std::vector<std::vector<uint8_t>>> &dopplerVelocityFlags,
+	std::vector < std::vector<std::vector<uint8_t>>> &backscatterFlags,
+	std::vector<sci::UtcTime> &scanStartTimes,
+	std::vector<sci::UtcTime> &scanEndTimes,
+	size_t &maxProfilesPerScan,
+	size_t &maxNGates,
+	size_t &pulsesPerRay,
+	size_t &raysPerPoint,
+	metreF &focus,
+	metrePerSecondF &dopplerResolution,
+	metreF &gateLength,
+	size_t &pointsPerGate)
 {
-	DataInfo dataInfo;
-	dataInfo.continuous = true;
-	dataInfo.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later
-	dataInfo.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later
-	dataInfo.startTime = getTimesUtcTime()[0];
-	dataInfo.endTime = getTimesUtcTime().back();
-	dataInfo.featureType = FeatureType::timeSeriesProfile;
-	dataInfo.options = getProcessingOptions();
-	dataInfo.processingLevel = 1;
-	dataInfo.productName = sU("aerosol backscatter radial winds");
-	dataInfo.processingOptions = processingOptions;
-
 	//build up our data arrays. We must account for the fact that the user could change
 	//the number of profiles in a scan pattern or the range of the instruemnt during a day
 	//so we work through the profiles checking when the filename changes. At this point things could
 	//change. The number of gates in each profile can change within a file, but the distance per
 	//gate cannot, so we find the longest range per hile and use this
 	//work out how many lidar profiles there are per VAD and find the start time of each VAD and the ranges array for each vad
-	size_t maxProfilesPerScan = 1;
+	maxProfilesPerScan = 1;
 	size_t thisProfilesPerScan = 1;
 	std::vector<sci::UtcTime> allTimes = getTimesUtcTime();
 	std::vector<degreeF> allAttitudeCorrectedAzimuths = getAttitudeCorrectedAzimuths();
@@ -314,53 +321,42 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	std::vector<std::vector<unitlessF>> allSnrsPlusOne = getSignalToNoiseRatiosPlusOne();
 	std::vector<std::vector<uint8_t>> allDopplerVelocityFlags = getDopplerFlags();
 	std::vector<std::vector<uint8_t>> allBackscatterFlags = getBetaFlags();
-	std::vector<sci::UtcTime> scanStartTimes;
-	std::vector<sci::UtcTime> scanEndTimes;
 	scanStartTimes.reserve(allTimes.size() / 6);
 	scanEndTimes.reserve(allTimes.size() / 6);
 	//a 2d array for ranges (time,range)
-	std::vector<std::vector<metreF>> ranges;
 	ranges.reserve(allTimes.size() / 6);
 	//a 2d array for azimuth (time, profile within scan)
-	std::vector<std::vector<degreeF>> instrumentRelativeAzimuthAngles;
 	instrumentRelativeAzimuthAngles.reserve(allTimes.size() / 6);
-	std::vector<std::vector<degreeF>> attitudeCorrectedAzimuthAngles;
 	attitudeCorrectedAzimuthAngles.reserve(allTimes.size() / 6);
 	//a 2d array for elevation angle (time, profile within scan)
-	std::vector<std::vector<degreeF>> instrumentRelativeElevationAngles;
 	instrumentRelativeElevationAngles.reserve(allTimes.size() / 6);
-	std::vector<std::vector<degreeF>> attitudeCorrectedElevationAngles;
 	attitudeCorrectedElevationAngles.reserve(allTimes.size() / 6);
 	//a 3d array for doppler speeds (time, profile within a scan, elevation) - note this is not the order we need to output
 	//so immediately after this code we transpose the second two dimensions (time, elevation, profile within a scan)
-	std::vector<std::vector<std::vector<metrePerSecondF>>> instrumentRelativeDopplerVelocities;
 	instrumentRelativeDopplerVelocities.reserve(allTimes.size() / 6);
-	std::vector<std::vector<std::vector<metrePerSecondF>>> motionCorrectedDopplerVelocities;
 	motionCorrectedDopplerVelocities.reserve(allTimes.size() / 6);
 	//a 3d array for backscatters and snr+1 (time, profile within a scan, elevation) - note this is not the order we need to output
 	//so immediately after this code we transpose the second two dimensions (time, elevation, profile within a scan)
-	std::vector<std::vector<std::vector<perSteradianPerMetreF>>> backscatters;
 	backscatters.reserve(allTimes.size() / 6);
-	std::vector<std::vector<std::vector<unitlessF>>> snrsPlusOne;
 	snrsPlusOne.reserve(allTimes.size() / 6);
 	//As above, but for the flags
-	std::vector < std::vector<std::vector<uint8_t>>> dopplerVelocityFlags(backscatters.size());
-	std::vector < std::vector<std::vector<uint8_t>>> backscatterFlags(backscatters.size());
+	dopplerVelocityFlags.resize(backscatters.size());
+	backscatterFlags.resize(backscatters.size());
 	dopplerVelocityFlags.reserve(allTimes.size() / 6);
 	backscatterFlags.reserve(allTimes.size() / 6);
 
 	HplHeader previousHeader;
 	size_t maxNGatesThisScan;
-	size_t maxNGates=0;
+	maxNGates = 0;
 
 	//To Do: these parameters may change if the settings are adjusted during a day
 	//Need to deal with that properly
-	size_t pulsesPerRay = 0;
-	size_t raysPerPoint = 0;
-	metreF focus(0.0f);
-	metrePerSecondF dopplerResolution(0.0f);
-	metreF gateLength(0.0f);
-	size_t pointsPerGate = 0;
+	pulsesPerRay = 0;
+	raysPerPoint = 0;
+	focus = metreF(0.0f);
+	dopplerResolution = metrePerSecondF(0.0f);
+	gateLength = metreF(0.0f);
+	pointsPerGate = 0;
 
 	if (allTimes.size() > 0)
 	{
@@ -511,6 +507,71 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 			backscatterFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
 		}
 	}
+}
+
+void LidarScanningProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,
+	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
+{
+	DataInfo dataInfo;
+	dataInfo.continuous = true;
+	dataInfo.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();//set to fill value initially - calculate it later
+	dataInfo.startTime = getTimesUtcTime()[0];
+	dataInfo.endTime = getTimesUtcTime().back();
+	dataInfo.featureType = FeatureType::timeSeriesProfile;
+	dataInfo.options = getProcessingOptions();
+	dataInfo.processingLevel = 1;
+	dataInfo.productName = sU("aerosol backscatter radial winds");
+	dataInfo.processingOptions = processingOptions;
+
+	std::vector<std::vector<metreF>> ranges;
+	std::vector<std::vector<degreeF>> instrumentRelativeAzimuthAngles;
+	std::vector<std::vector<degreeF>> attitudeCorrectedAzimuthAngles;
+	std::vector<std::vector<degreeF>> instrumentRelativeElevationAngles;
+	std::vector<std::vector<degreeF>> attitudeCorrectedElevationAngles;
+	std::vector<std::vector<std::vector<metrePerSecondF>>> instrumentRelativeDopplerVelocities;
+	std::vector<std::vector<std::vector<metrePerSecondF>>> motionCorrectedDopplerVelocities;
+	std::vector<std::vector<std::vector<perSteradianPerMetreF>>> backscatters;
+	std::vector<std::vector<std::vector<unitlessF>>> snrsPlusOne;
+	std::vector < std::vector<std::vector<uint8_t>>> dopplerVelocityFlags(backscatters.size());
+	std::vector < std::vector<std::vector<uint8_t>>> backscatterFlags(backscatters.size());
+	std::vector<sci::UtcTime> scanStartTimes;
+	std::vector<sci::UtcTime> scanEndTimes;
+
+	size_t maxProfilesPerScan;
+	size_t maxNGates;
+	size_t pulsesPerRay;
+	size_t raysPerPoint;
+	metreF focus;
+	metrePerSecondF dopplerResolution;
+	metreF gateLength;
+	size_t pointsPerGate;
+
+	LidarScanningProcessor::formatDataForOutput(progressReporter,
+		ranges,
+		instrumentRelativeAzimuthAngles,
+		attitudeCorrectedAzimuthAngles,
+		instrumentRelativeElevationAngles,
+		attitudeCorrectedElevationAngles,
+		instrumentRelativeDopplerVelocities,
+		motionCorrectedDopplerVelocities,
+		backscatters,
+		snrsPlusOne,
+		dopplerVelocityFlags,
+		backscatterFlags,
+		scanStartTimes,
+		scanEndTimes,
+		maxProfilesPerScan,
+		maxNGates,
+		pulsesPerRay,
+		raysPerPoint,
+		focus,
+		dopplerResolution,
+		gateLength,
+		pointsPerGate);
+
+
 
 	//work out the averaging time - this is the difference between the scan start and end times.
 	//use the median as the value for the file
