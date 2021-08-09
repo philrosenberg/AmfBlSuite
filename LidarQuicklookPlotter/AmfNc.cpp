@@ -311,7 +311,7 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	if (dataInfo.continuous)
 		baseFilename = baseFilename + sU("_") + getFormattedDateOnly(dataInfo.startTime, sU(""));
 	else
-		baseFilename = baseFilename + sU("_") + getFormattedDateTime(dataInfo.startTime, sU(""), sU(""), sU("T"));
+		baseFilename = baseFilename + sU("_") + getFormattedDateTime(dataInfo.startTime, sU(""), sU(""), sU("-"));
 	//add the data product name
 	baseFilename = baseFilename + sU("_") + dataInfo.productName;
 	//add any options
