@@ -659,54 +659,27 @@ void Bufr::read(std::ifstream &fin)
 
 
 
-const uint8_t sondeMotionUnusedFlag = 0;
-const uint8_t sondeMotionGoodDataFlag = 1;
-const uint8_t sondeMotionFirstPointNoAscentRateFlag = 2;
-const uint8_t sondeMotionZeroAscentRateFlag = 3;
-const uint8_t sondeMotionZeroWindSpeedFlag = 4;
-const uint8_t sondeMotionRepeatedTimeFlag = 5;
-const uint8_t sondeMotionNoWindFlag = 6;
-const uint8_t sondeMotionNoPositionFlag = 7;
-const uint8_t sondeMotionNoWindOrPositionFlag = 8;
+const uint8_t sondeUnusedFlag = 0;
+const uint8_t sondeGoodDataFlag = 1;
+const uint8_t sondeFirstPointNoAscentRateFlag = 2;
+const uint8_t sondeZeroAscentRateFlag = 3;
+const uint8_t sondeZeroWindSpeedFlag = 4;
+const uint8_t sondeRepeatedTimeFlag = 5;
+const uint8_t sondeNoWindFlag = 6;
+const uint8_t sondeNoPositionFlag = 7;
+const uint8_t sondeNoWindOrPositionFlag = 8;
 
-const std::vector<std::pair<uint8_t, sci::string>> sondeMotionFlags
+const std::vector<std::pair<uint8_t, sci::string>> sondeFlags
 {
-{sondeMotionUnusedFlag, sU("not_used") },
-{sondeMotionGoodDataFlag, sU("good_data")},
-{sondeMotionFirstPointNoAscentRateFlag, sU("first point - cannot calculate ascent rate") },
-{sondeMotionZeroAscentRateFlag, sU("suspect data - ascent rate of zero")},
-{sondeMotionZeroWindSpeedFlag, sU("suspect data - zero wind speed") },
-{sondeMotionRepeatedTimeFlag, sU("time interval less than time resolution - the time change was not captured by the 1s time resolution. Ascent rate cannot be caltulated") },
-{sondeMotionNoWindFlag, sU("wind data missing")},
-{sondeMotionNoPositionFlag, sU("position data missing")},
-{sondeMotionNoWindOrPositionFlag, sU("wind and position data missing")}
-};
-
-const uint8_t sondeTemperatureUnusedFlag = 0;
-const uint8_t sondeTemperatureGoodDataFlag = 1;
-
-const std::vector<std::pair<uint8_t, sci::string>> sondeTemperatureFlags
-{
-{sondeTemperatureUnusedFlag, sU("not_used") },
-{sondeTemperatureGoodDataFlag, sU("good_data")}
-};
-
-const uint8_t sondeHumidityUnusedFlag = 0;
-const uint8_t sondeHumidityGoodDataFlag = 1;
-
-const std::vector<std::pair<uint8_t, sci::string>> sondeHumidityFlags
-{
-{sondeHumidityUnusedFlag, sU("not_used") },
-{sondeHumidityGoodDataFlag, sU("good_data")}
-};
-
-const uint8_t sondePressureUnusedFlag = 0;
-const uint8_t sondePressureGoodDataFlag = 1;
-
-const std::vector<std::pair<uint8_t, sci::string>> sondePressureFlags
-{
-{sondePressureUnusedFlag, sU("not_used") },
-{sondePressureGoodDataFlag, sU("good_data")}
+{sondeUnusedFlag, sU("not_used") },
+{sondeGoodDataFlag, sU("good_data")},
+{sondeFirstPointNoAscentRateFlag, sU("first point - cannot calculate ascent rate") },
+{sondeZeroAscentRateFlag, sU("suspect data - ascent rate of zero")},
+{sondeZeroWindSpeedFlag, sU("suspect data - zero wind speed") },
+{sondeRepeatedTimeFlag, sU("time interval less than time resolution - the time change was not captured by the 1s time resolution. Ascent rate cannot be caltulated") },
+{sondeNoWindFlag, sU("wind data missing")},
+{sondeNoPositionFlag, sU("position data missing")},
+{sondeNoWindOrPositionFlag, sU("wind and position data missing")}
 };
 
 SondeProcessor::SondeProcessor(const InstrumentInfo &instrumentInfo, const CalibrationInfo &calibrationInfo)
@@ -740,10 +713,7 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	m_balloonUpwardVelocity.clear();
 	m_elapsedTime.clear();
 	m_time.clear();
-	m_motionFlags.clear();
-	m_temperatureFlags.clear();
-	m_humidityFlags.clear();
-	m_pressureFlags.clear();
+	m_flags.clear();
 
 	std::ifstream fin;
 	fin.open(sci::nativeUnicode(inputFilename), std::ios::in | std::ios::binary);
@@ -854,14 +824,11 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 	sci::assertThrow(m_instrumentInfo.operatingSoftwareVersion.substr(0, operatingSoftwareVersion.length()) == operatingSoftwareVersion, sci::err(sci::SERR_USER, 0, sU("Found inconsistent software version in sonde file and setup file. The software version in the setup file must begin ") + operatingSoftwareVersion));
 
 	//generate the flag variable.
-	m_motionFlags.assign(m_time.size(), sondeMotionGoodDataFlag);
-	m_temperatureFlags.assign(m_time.size(), sondeTemperatureGoodDataFlag);
-	m_humidityFlags.assign(m_time.size(), sondeHumidityGoodDataFlag);
-	m_pressureFlags.assign(m_time.size(), sondePressureGoodDataFlag);
-	sci::assign(m_motionFlags, sci::isEq(m_windSpeed, metrePerSecondF(0)), sondeMotionZeroWindSpeedFlag);
-	sci::assign(m_motionFlags, sci::isEq(m_balloonUpwardVelocity, metrePerSecondF(0)), sondeMotionZeroAscentRateFlag);
-	if (m_motionFlags.size() > 0)
-		m_motionFlags[0] = sondeMotionFirstPointNoAscentRateFlag;
+	m_flags.assign(m_time.size(), sondeGoodDataFlag);
+	sci::assign(m_flags, sci::isEq(m_windSpeed, metrePerSecondF(0)), sondeZeroWindSpeedFlag);
+	sci::assign(m_flags, sci::isEq(m_balloonUpwardVelocity, metrePerSecondF(0)), sondeZeroAscentRateFlag);
+	if (m_flags.size() > 0)
+		m_flags[0] = sondeFirstPointNoAscentRateFlag;
 
 	//because the time is only 1 second resolution we can get repeat times - not ideal
 	//also means that at these times the ascent rate is calculated as infinity
@@ -870,7 +837,7 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 		if (m_time[i] == m_time[i - 1])
 		{
 			m_balloonUpwardVelocity[i] = std::numeric_limits<metrePerSecondF>::quiet_NaN();
-			m_motionFlags[i] = sondeMotionRepeatedTimeFlag;
+			m_flags[i] = sondeRepeatedTimeFlag;
 		}
 	}
 
@@ -886,19 +853,19 @@ void SondeProcessor::readData(const sci::string &inputFilename, const Platform &
 			m_windSpeed[i] = std::numeric_limits<metrePerSecondF>::quiet_NaN();
 			m_latitude[i] = std::numeric_limits<degreeF>::quiet_NaN();
 			m_longitude[i] = std::numeric_limits<degreeF>::quiet_NaN();
-			m_motionFlags[i] = sondeMotionNoWindOrPositionFlag;
+			m_flags[i] = sondeNoWindOrPositionFlag;
 		}
 		else if (m_windFromDirection[i] > degreeF(360))
 		{
 			m_windFromDirection[i] = std::numeric_limits<degreeF>::quiet_NaN();
 			m_windSpeed[i] = std::numeric_limits<metrePerSecondF>::quiet_NaN();
-			m_motionFlags[i] = sondeMotionNoWindFlag;
+			m_flags[i] = sondeNoWindFlag;
 		}
 		else if (m_latitude[i] > degreeF(90.0))
 		{
 			m_latitude[i] = std::numeric_limits<degreeF>::quiet_NaN();
 			m_longitude[i] = std::numeric_limits<degreeF>::quiet_NaN();
-			m_motionFlags[i] = sondeMotionNoPositionFlag;
+			m_flags[i] = sondeNoPositionFlag;
 		}
 	}
 
@@ -988,11 +955,8 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	AmfNcVariable<degreeF, std::vector<degreeF>> windDirectionVariable(sU("wind_from_direction"), file, file.getTimeDimension(), sU("Wind From Direction"), sU("wind_from_direction"), m_windFromDirection, true, coordinates, cellMethods);
 	AmfNcVariable<metrePerSecondF, std::vector<metrePerSecondF>> upwardBalloonVelocityVariable(sU("upward_balloon_velocity"), file, file.getTimeDimension(), sU("Balloon Ascent Rate"), sU(""), m_balloonUpwardVelocity, true, coordinates, cellMethods);
 	AmfNcVariable<second, std::vector<second>> elapsedTimeVariable(sU("elapsed_time"), file, file.getTimeDimension(), sU("Elapsed Time"), sU(""), m_elapsedTime, true, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}});
-	AmfNcFlagVariable motionFlagVariable(sU("qc_flag_motion"), sondeMotionFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
-	AmfNcFlagVariable temperatureFlagVariable(sU("qc_flag_temperature"), sondeTemperatureFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
-	AmfNcFlagVariable humidityFlagVariable(sU("qc_flag_humidity"), sondeHumidityFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
-	AmfNcFlagVariable pressureFlagVariable(sU("qc_flag_pressure"), sondePressureFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
-
+	AmfNcFlagVariable flagVariable(sU("qc_flag"), sondeFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension() });
+	
 	file.writeTimeAndLocationData(platform);
 
 	file.write(altitudesVariable);
@@ -1003,8 +967,5 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	file.write(windDirectionVariable);
 	file.write(upwardBalloonVelocityVariable);
 	file.write(elapsedTimeVariable);
-	file.write(motionFlagVariable, m_motionFlags);
-	file.write(temperatureFlagVariable, m_temperatureFlags);
-	file.write(humidityFlagVariable, m_humidityFlags);
-	file.write(pressureFlagVariable, m_pressureFlags);
+	file.write(flagVariable, m_flags);
 }

@@ -550,13 +550,13 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	//for trajectories, the lat/lon depend on the time dimension, not the lat/lon dimensions (which aren't created)
 	if (dataInfo.featureType == FeatureType::trajectory)
 	{
-		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, m_timeDimension, m_longitudes, dataInfo.featureType));
-		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, m_timeDimension, m_latitudes, dataInfo.featureType));
+		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, m_timeDimension, m_longitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
+		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, m_timeDimension, m_latitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
 	}
 	else
 	{
-		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, m_longitudes, dataInfo.featureType));
-		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, m_latitudes, dataInfo.featureType));
+		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, m_longitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
+		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, m_latitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
 	}
 
 	if (platform.getPlatformInfo().platformType == PlatformType::moving && !overriddenPlatformPosition)
@@ -672,6 +672,20 @@ void OutputAmfNcFile::writeTimeAndLocationData(const Platform &platform)
 	}
 
 
+}
+
+std::vector<std::pair<sci::string, CellMethod>> getLatLonCellMethod(FeatureType featureType, DeploymentMode deploymentMode)
+{
+	if (featureType == FeatureType::trajectory)
+		return std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}};
+	if (deploymentMode == DeploymentMode::sea)
+		return std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::mean}};
+	if (deploymentMode == DeploymentMode::air)
+		return std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}};
+
+	//land has no cell method
+	return
+		std::vector<std::pair<sci::string, CellMethod>>(0);
 }
 
 /*OutputAmfSeaNcFile::OutputAmfSeaNcFile(const sci::string &directory,

@@ -300,18 +300,15 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 
 	//generate the flag variable. Basically the only option here is that data could be missing
 	//due to negative reflectivities from subtraction of the noise floor. This is marked by NaNs
-	std::vector<unsigned char> flags1dQuality(m_profiles.size(), microRainRadarGoodDataFlag);
-	std::vector<std::vector<unsigned char>> flags1dReflectivity(m_profiles.size());
-	std::vector<std::vector<unsigned char>> flags1dFallVelocity(m_profiles.size());
+	std::vector<std::vector<unsigned char>> flags(m_profiles.size());
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
+		flags[i].resize(radarReflectivity[i].size(), microRainRadarGoodDataFlag);
 		if (m_profiles[i].getValidFraction() < percentF(50))
-			flags1dQuality[i] = microRainRadarQualityBelowFiftyPercentFlag;
+			flags[i].assign(flags[i].size(), microRainRadarQualityBelowFiftyPercentFlag);
 		else if (m_profiles[i].getValidFraction() < percentF(100))
-			flags1dQuality[i] = microRainRadarQualityBelowOnehundredPercentFlag;
+			flags[i].assign(flags[i].size(), microRainRadarQualityBelowOnehundredPercentFlag);
 
-		flags1dReflectivity[i].resize(radarReflectivity[i].size(), microRainRadarGoodDataFlag);
-		flags1dFallVelocity[i].resize(radarReflectivity[i].size(), microRainRadarGoodDataFlag);
 		std::vector<SBOOL> missing(rainfallRates[i].size());
 		for (size_t j = 0; j < missing.size(); ++j)
 		{
@@ -324,8 +321,8 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 
 
 		}
-		sci::assign(flags1dReflectivity[i], missing, microRainRadarBelowNoiseFloorFlag);
-		sci::assign(flags1dFallVelocity[i], rainfallVelocity[i] < metrePerSecondF(0.0) || rainfallVelocity[i] > metrePerSecondF(20.0), microRainRadarSpeedsOutsideExpectedLimitsFlag);
+		sci::assign(flags[i], rainfallVelocity[i] < metrePerSecondF(0.0) || rainfallVelocity[i] > metrePerSecondF(20.0), microRainRadarSpeedsOutsideExpectedLimitsFlag);
+		sci::assign(flags[i], missing, microRainRadarBelowNoiseFloorFlag);
 	}
 
 	//Output the one D parameters
@@ -353,9 +350,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	AmfNcVariable<Decibel<reflectivityF>, std::vector<std::vector<reflectivityF>>> radarReflectivityVariable(sU("radar_reflectivity"), file1d, dimensions1d, sU("Radar Reflectivity (Z)"), sU(""), radarReflectivity, true, coordinates1d, cellMethods1d, true, false);
 	AmfNcVariable<Decibel<reflectivityF>, std::vector<std::vector<reflectivityF>>> radarReflectivityAttenuatedVariable(sU("attenuated_radar_reflectivity"), file1d, dimensions1d, sU("Attenuated Radar Reflectivity (z)"), sU(""), radarReflectivityAttenuated, true, coordinates1d, cellMethods1d, true, false);
 	AmfNcVariable<Decibel<unitlessF>, std::vector<std::vector<unitlessF>>> pathIntegratedAttenuationVariable(sU("path_integrated_attenuation"), file1d, dimensions1d, sU("Path Integrated Attenuation"), sU(""), pathIntegratedAttenuation, true, coordinates1d, cellMethods1d, false, false);
-	AmfNcFlagVariable flagVariable1dQuality(sU("qc_flag_quality"), microRainRadarFlags, file1d, file1d.getTimeDimension());
-	AmfNcFlagVariable flagVariable1dReflectivity(sU("qc_flag_reflectivity"), microRainRadarFlags, file1d, dimensions1d);
-	AmfNcFlagVariable flagVariable1dFallVelocity(sU("qc_flag_rainfall_velocity"), microRainRadarFlags, file1d, dimensions1d);
+	AmfNcFlagVariable flagVariable(sU("qc_flag"), microRainRadarFlags, file1d, dimensions1d);
 	
 	if (amfVersion == AmfVersion::v1_1_0)
 	{
@@ -378,9 +373,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	file1d.write(radarReflectivityVariable);
 	file1d.write(radarReflectivityAttenuatedVariable);
 	file1d.write(pathIntegratedAttenuationVariable);
-	file1d.write(flagVariable1dQuality, flags1dQuality);
-	file1d.write(flagVariable1dReflectivity, flags1dReflectivity);
-	file1d.write(flagVariable1dFallVelocity, flags1dFallVelocity);
+	file1d.write(flagVariable, flags);
 
 	//pull out the 2 d variables. We must transpose them so that the range dimension is first
 
@@ -397,19 +390,20 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 
 
 	//generate the flag variables.
-	std::vector < unsigned char> spectralFlagsQuality=flags1dQuality;
-	std::vector<std::vector<unsigned char>> spectralFlagsReflectivity=flags1dReflectivity;
-	std::vector<std::vector<unsigned char>> spectralFlagsDiameter(m_profiles.size());
+	std::vector<std::vector<std::vector<unsigned char>>> spectralFlags(m_profiles.size());
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
-		spectralFlagsDiameter[i].resize(dropDiameters[i].size());
+		spectralFlags[i].resize(dropDiameters[i].size());
 		for (size_t j = 0; j < dropDiameters[i].size(); ++j)
 		{
-			if (sci::anyTrue(dropDiameters[i][j] < millimetreF(0.0)))
-				spectralFlagsDiameter[i][j] = microRainRadarNegativeDiametersFlag;
-			for (size_t k = 0; k < dropDiameters[i][j].size(); ++k)
+			spectralFlags[i][j].resize(dropDiameters[i][j].size(), flags[i][j]);
+			for (size_t k = 0; k < dropDiameters.size(); ++k)
+			{
+				if (dropDiameters[i][j][k] < millimetreF(0.0))
+					spectralFlags[i][j][k] = microRainRadarNegativeDiametersFlag;
 				if (dropDiameters[i][j][k] != dropDiameters[i][j][k])
-					spectralFlagsDiameter[i][j] = microRainRadarDiameterNotDerivedFlag;
+					spectralFlags[i][j][k] = microRainRadarDiameterNotDerivedFlag;
+			}
 		}
 	}
 
@@ -439,10 +433,8 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	AmfNcVariable<Decibel<perMetreF>, std::vector<std::vector<std::vector<perMetreF>>>> spectralReflectivityVariable(sU("spectral_reflectivity"), file2d, dimensions2d, sU("Spectral Reflectivity"), sU(""), spectralReflectivity, true, coordinates2d, cellMethods2d, false, false);
 	AmfNcVariable<millimetreF, std::vector<std::vector<std::vector<millimetreF>>>> dropDiameterVariable(sU("rain_drop_diameter"), file2d, dimensions2d, sU("Rain Drop Diameter"), sU(""), dropDiameters, true, coordinates2d, cellMethods2d);
 	AmfNcVariable<perMetreCubedPerMillimetreF, std::vector<std::vector<std::vector<perMetreCubedPerMillimetreF>>>> numberDistributionVariable(sU("drop_size_distribution"), file2d, dimensions2d, sU("Rain Size Distribution"), sU(""), sizeDistributions, true, coordinates2d, cellMethods2d);
-	AmfNcFlagVariable spectralFlagVariable2dQuality(sU("qc_flag_quality"), microRainRadarFlags, file2d, file1d.getTimeDimension());
-	AmfNcFlagVariable spectralFlagVariable2dReflectivity(sU("qc_flag_reflectivity"), microRainRadarFlags, file2d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), nonTimeDimensions2d[0] });
-	AmfNcFlagVariable spectralFlagVariable2dDiameter(sU("qc_flag_diameter"), microRainRadarFlags, file2d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), nonTimeDimensions2d[0] });
-
+	AmfNcFlagVariable spectralFlagVariable(sU("qc_flag"), microRainRadarFlags, file2d, file1d.getTimeDimension());
+	
 	if (amfVersion == AmfVersion::v1_1_0)
 	{
 		std::vector<sci::NcDimension*> altitudeDimensions2d{ &file1d.getTimeDimension(), nonTimeDimensions2d[0] };
@@ -462,9 +454,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	file2d.write(spectralReflectivityVariable, spectralReflectivity);
 	file2d.write(dropDiameterVariable, dropDiameters);
 	file2d.write(numberDistributionVariable, sizeDistributions);
-	file2d.write(spectralFlagVariable2dQuality, spectralFlagsQuality);
-	file2d.write(spectralFlagVariable2dReflectivity, spectralFlagsReflectivity);
-	file2d.write(spectralFlagVariable2dDiameter, spectralFlagsDiameter);
+	file2d.write(spectralFlagVariable, spectralFlags);
 }
 
 std::vector<std::vector<sci::string>> MicroRainRadarProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const

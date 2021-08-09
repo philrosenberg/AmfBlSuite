@@ -1298,27 +1298,33 @@ public:
 private:
 	void initialise(const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile)
 	{
-		std::vector<uint8_t>  flagValues(flagDefinitions.size());
-		std::vector<sci::string>  flagDescriptions(flagDefinitions.size());
+		sci::stringstream  flagValues;
+		sci::stringstream flagDescriptions;
 		for (size_t i = 0; i < flagDefinitions.size(); ++i)
 		{
-			flagValues[i] = flagDefinitions[i].first;
-			flagDescriptions[i] = flagDefinitions[i].second;
-			//Swap spaces for hyphens and make lower case
-			std::locale locale;
-			for (size_t j = 0; j < flagDescriptions[i].length(); ++j)
+			if (i != 0)
 			{
-				if (flagDescriptions[i][j] == sU(' '))
-					flagDescriptions[i][j] = sU('_');
-				else
-					flagDescriptions[i][j] = std::tolower(flagDescriptions[i][j], locale);
+				flagValues << sU(",");
+				flagDescriptions << sU("\n");
 			}
+			flagValues << (int)flagDefinitions[i].first << sU("b");
+			flagDescriptions << flagDefinitions[i].second;
+		}
+		sci::string flagDescriptionsString = flagDescriptions.str();
+		//Swap spaces for underscores and make lower case
+		std::locale locale;
+		for (size_t i = 0; i < flagDescriptionsString.length(); ++i)
+		{
+			if (flagDescriptionsString[i] == sU(' '))
+				flagDescriptionsString[i] = sU('_');
+			else
+				flagDescriptionsString[i] = std::tolower(flagDescriptionsString[i], locale);
 		}
 		addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag")), ncFile);
-		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues), ncFile);
-		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptions, sci::string(sU("\n"))), ncFile);
+		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues.str()), ncFile);
+		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptionsString), ncFile);
 		//addAttribute(sci::NcAttribute(sU("type"), OutputAmfNcFile::getTypeName<uint8_t>()), ncFile);
-		addAttribute(sci::NcAttribute(sU("unit"), sU("1")), ncFile);
+		addAttribute(sci::NcAttribute(sU("units"), sU("1")), ncFile);
 	}
 };
 
@@ -1543,10 +1549,13 @@ public:
 		return secondsAfterEpoch;
 	}
 };
+
+std::vector<std::pair<sci::string, CellMethod>> getLatLonCellMethod(FeatureType featureType, DeploymentMode deploymentMode);
+
 class AmfNcLongitudeVariable : public AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>
 {
 public:
-	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degreeF> &longitudes, FeatureType featureType)
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degreeF> &longitudes, FeatureType featureType, DeploymentMode deploymentMode)
 		:AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>(
 			sU("longitude"),
 			ncFile, 
@@ -1557,7 +1566,8 @@ public:
 			sci::physicalsToValues<degreeF>(longitudes),
 			true,
 			std::vector<sci::string>(0),
-			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{{sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
+			getLatLonCellMethod(featureType, deploymentMode))
+			
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
@@ -1565,7 +1575,7 @@ public:
 class AmfNcLatitudeVariable : public AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>
 {
 public:
-	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degreeF> &latitudes, FeatureType featureType)
+	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degreeF> &latitudes, FeatureType featureType, DeploymentMode deploymentMode)
 		:AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>(
 			sU("latitude"),
 			ncFile,
@@ -1576,7 +1586,7 @@ public:
 			sci::physicalsToValues<degreeF>(latitudes),
 			true,
 			std::vector<sci::string>(0),
-			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
+			getLatLonCellMethod(featureType, deploymentMode))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
