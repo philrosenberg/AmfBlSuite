@@ -367,7 +367,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	if (dataInfo.processingOptions.comment.length() > 0)
 		dataInfo.processingOptions.comment = dataInfo.processingOptions.comment + sU("\n");
 	dataInfo.processingOptions.comment = dataInfo.processingOptions.comment + averagingComment.str();
-	dataInfo.processingOptions.comment = dataInfo.processingOptions.comment + sU("Range gates may overlap - hence range may not grow in increments of gate_length.");
+	dataInfo.processingOptions.comment = dataInfo.processingOptions.comment + sU("\nRange gates may overlap - hence range may not grow in increments of gate_length.");
 	dataInfo.processingOptions.comment = dataInfo.processingOptions.comment + sU("\nsensor_azimuth_angle is relative to the instrument with 0 degrees being to the \"front\" of the instruments.");
 	dataInfo.processingOptions.comment = dataInfo.processingOptions.comment + sU("\nsensor_view_angle is relative to the instruments with 0 degrees being \"horizontal\", positive being upwards, negative being downwards.");
 	dataInfo.processingOptions.comment = dataInfo.processingOptions.comment + sU("\nsensor_azimuth_angle_earth_frame is relative to the geoid with 0 degrees being north.");
