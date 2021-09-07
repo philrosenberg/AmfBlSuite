@@ -153,7 +153,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			//was turned off for a time and it is very slow to add lots of data one
 			//element at a time, part way through a data set
 			size_t nToInsert = 0;
-			if (i == startTimesCross.size())
+			if (i == startTimesCross.size()-1)
 				nToInsert = startTimesCo.size() - startTimesCross.size();
 			else
 			{
