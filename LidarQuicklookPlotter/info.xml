@@ -14,12 +14,23 @@
     <orcidUrl>https://orcid.org/0000-0002-5051-1322</orcidUrl>
     <institution>University of Leeds</institution>
   </person>
+  <person id="3">
+    <name>Hugo Ricketts</name>
+    <email>h.ricketts@manchester.ac.uk</email>
+    <orcidUrl>Add Orcid ID to info.xml please</orcidUrl>
+    <institution>National Centre for Atmospheric Science (NCAS)</institution>
+  </person>
   
   <!--Projects-->
   <project id="1">
     <name>Microbiology-Ocean-Cloud-Coupling in the High Arctic (MOCCHA)</name>
     <!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
     <principalInvestigator type="amfEntity/person" id="2"></principalInvestigator>
+  </project>
+  <project id="2">
+    <name>AQUABLE</name>
+    <!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
+    <principalInvestigator type="amfEntity/person" id="3"></principalInvestigator>
   </project>
   
   <!--Platforms-->
@@ -94,8 +105,44 @@
     <locationKeyword>Arctic</locationKeyword>
     <locationKeyword>Sweden</locationKeyword>
     <locationKeyword>Norway</locationKeyword>
-    <locationFile>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\MocchaLidarMotion.nc</locationFile>
+    <locationFile>C:\Users\earpros\OneDrive - University of Leeds\Documents\AMOF Projects\MOCCHA\MocchaLidarMotion.nc</locationFile>
     <platformRelative>false</platformRelative>
+  </platform>
+  
+  <platform id="5">
+    <name>FIRS aerosol container roof MRR mount point</name>
+    <type>stationary</type>
+    <deploymentMode>land</deploymentMode>
+    <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->
+    <latitudeDegree>53.4442</latitudeDegree>
+    <longitudeDegree>-2.2145</longitudeDegree>
+    <altitudeMetres>57</altitudeMetres>
+    <elevationDegree>0</elevationDegree>
+    <azimuthDegree>0</azimuthDegree>
+    <rollDegree> 0</rollDegree>
+    <locationKeyword>Manchester</locationKeyword>
+    <locationKeyword>University Of Manchester</locationKeyword>
+    <locationKeyword>United Kingdom</locationKeyword>
+    <locationKeyword>UK</locationKeyword>
+    <locationKeyword>FIRS Botanical Garden</locationKeyword>
+  </platform>
+
+  <platform id="6">
+    <name>FIRS lawn</name>
+    <type>stationary</type>
+    <deploymentMode>land</deploymentMode>
+    <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->
+    <latitudeDegree>53.4440</latitudeDegree>
+    <longitudeDegree>-2.2137</longitudeDegree>
+    <altitudeMetres>45</altitudeMetres>
+    <elevationDegree>0</elevationDegree>
+    <azimuthDegree>-0.5</azimuthDegree>
+    <rollDegree> 0</rollDegree>
+    <locationKeyword>Manchester</locationKeyword>
+    <locationKeyword>University Of Manchester</locationKeyword>
+    <locationKeyword>United Kingdom</locationKeyword>
+    <locationKeyword>UK</locationKeyword>
+    <locationKeyword>FIRS Botanical Garden</locationKeyword>
   </platform>
   
   <!--Instruments-->
@@ -112,11 +159,11 @@
   <instrument id="2">
     <name>ncas ceilometer 1</name>
     <description>NCAS Lidar Ceilometer unit 1</description>
-    <manufacturer>Campbel</manufacturer>
+    <manufacturer>Campbell Scientific</manufacturer>
     <model>CS135</model>
-    <serial>To Check</serial>
-    <operatingSoftware>To Check</operatingSoftware>
-    <operatingSoftwareVersion>To Check</operatingSoftwareVersion>
+    <serial>E1002</serial>
+    <operatingSoftware>CS135 OS</operatingSoftware>
+    <operatingSoftwareVersion>0</operatingSoftwareVersion> <!--will be rplaced by the value in the data file, but must not be empty-->
   </instrument>
   
   <instrument id="3">
@@ -133,8 +180,8 @@
     <name>ncas radiosonde 2</name>
     <description>NCAS Vaisala Sounding Station unit 2</description>
     <manufacturer>Vaisala</manufacturer>
-    <model>MW41</model>
-    <serial>k3410032</serial>
+    <model>MW41 with RS41 sondes</model>
+    <serial>M4113855</serial>
     <operatingSoftware>MW41 sounding software</operatingSoftware>
     <operatingSoftwareVersion>v2.2.0-8</operatingSoftwareVersion>
   </instrument>
