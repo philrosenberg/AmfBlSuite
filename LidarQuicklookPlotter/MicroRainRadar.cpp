@@ -397,7 +397,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		for (size_t j = 0; j < dropDiameters[i].size(); ++j)
 		{
 			spectralFlags[i][j].resize(dropDiameters[i][j].size(), flags[i][j]);
-			for (size_t k = 0; k < dropDiameters.size(); ++k)
+			for (size_t k = 0; k < dropDiameters[i][j].size(); ++k)
 			{
 				if (dropDiameters[i][j][k] < millimetreF(0.0))
 					spectralFlags[i][j][k] = microRainRadarNegativeDiametersFlag;
@@ -433,7 +433,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	AmfNcVariable<Decibel<perMetreF>, std::vector<std::vector<std::vector<perMetreF>>>> spectralReflectivityVariable(sU("spectral_reflectivity"), file2d, dimensions2d, sU("Spectral Reflectivity"), sU(""), spectralReflectivity, true, coordinates2d, cellMethods2d, false, false);
 	AmfNcVariable<millimetreF, std::vector<std::vector<std::vector<millimetreF>>>> dropDiameterVariable(sU("rain_drop_diameter"), file2d, dimensions2d, sU("Rain Drop Diameter"), sU(""), dropDiameters, true, coordinates2d, cellMethods2d);
 	AmfNcVariable<perMetreCubedPerMillimetreF, std::vector<std::vector<std::vector<perMetreCubedPerMillimetreF>>>> numberDistributionVariable(sU("drop_size_distribution"), file2d, dimensions2d, sU("Rain Size Distribution"), sU(""), sizeDistributions, true, coordinates2d, cellMethods2d);
-	AmfNcFlagVariable spectralFlagVariable(sU("qc_flag"), microRainRadarFlags, file2d, file1d.getTimeDimension());
+	AmfNcFlagVariable spectralFlagVariable(sU("qc_flag"), microRainRadarFlags, file2d, dimensions2d);
 	
 	if (amfVersion == AmfVersion::v1_1_0)
 	{
