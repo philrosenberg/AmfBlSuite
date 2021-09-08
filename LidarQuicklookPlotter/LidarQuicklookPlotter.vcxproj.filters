@@ -78,6 +78,9 @@
     <ClCompile Include="LidarDepolProcessor.cpp">
       <Filter>Source Files\Lidar</Filter>
     </ClCompile>
+    <ClCompile Include="MicrowaveRadiometer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h">
@@ -132,6 +135,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MetConversions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MicrowaveRadiometer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
