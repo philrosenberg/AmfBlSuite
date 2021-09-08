@@ -318,7 +318,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		AmfNcVariable<percentF, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<kelvinF, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<degreeF, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<degreeF, std::vector<degreeF>> azimuthAngleVariable(sU("sensor_azimuth_angle"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sensor Azimuth Angle (clockwise from true North)"), sU("sensor_azimuth_angle"), std::vector<degreeF>(tiltAngles.size(), std::numeric_limits<degreeF>::quiet_NaN()), true, coordinates, cellMethodsTimeMean);
+		//AmfNcVariable<degreeF, std::vector<degreeF>> azimuthAngleVariable(sU("sensor_azimuth_angle"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sensor Azimuth Angle (clockwise from true North)"), sU("sensor_azimuth_angle"), std::vector<degreeF>(tiltAngles.size(), std::numeric_limits<degreeF>::quiet_NaN()), true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<unitlessF, decltype(pulseQuantities)> pulseQuantitiesVariable(sU("profile_pulses"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Number of pulses in each profile"), sU(""), pulseQuantities, true, coordinates, cellMethodsTimeSum);
 		AmfNcVariable<percentF, decltype(scales)> scalesVariable(sU("profile_scaling"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Scaling of range profile (default=100%)"), sU(""), scales, true, coordinates, cellMethodsTimePoint);
 		AmfNcVariable<percentF, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
@@ -348,7 +348,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		ceilometerBackscatterFile.write(laserEnergiesVariable);
 		ceilometerBackscatterFile.write(laserTemperaturesVariable);
 		ceilometerBackscatterFile.write(tiltAngleVariable);
-		ceilometerBackscatterFile.write(azimuthAngleVariable);
+		//ceilometerBackscatterFile.write(azimuthAngleVariable);
 		ceilometerBackscatterFile.write(pulseQuantitiesVariable);
 		ceilometerBackscatterFile.write(scalesVariable);
 		ceilometerBackscatterFile.write(windowTransmissionsVariable);
@@ -383,7 +383,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		AmfNcVariable<percentF, decltype(laserEnergies)> laserEnergiesVariable(sU("laser_pulse_energy"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Laser Pulse Energy (% of maximum)"), sU(""), laserEnergies, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<kelvinF, decltype(laserTemperatures)> laserTemperaturesVariable(sU("laser_temperature"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Laser Temperature"), sU(""), laserTemperatures, true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<degreeF, decltype(tiltAngles)> tiltAngleVariable(sU("sensor_zenith_angle"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Sensor Zenith Angle (from vertical)"), sU("sensor_zenith_angle"), tiltAngles, true, coordinates, cellMethodsTimeMean);
-		AmfNcVariable<degreeF, std::vector<degreeF>> azimuthAngleVariable(sU("sensor_azimuth_angle"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Sensor Azimuth Angle (clockwise from true North)"), sU("sensor_azimuth_angle"), std::vector<degreeF>(tiltAngles.size(), std::numeric_limits<degreeF>::quiet_NaN()), true, coordinates, cellMethodsTimeMean);
+		//AmfNcVariable<degreeF, std::vector<degreeF>> azimuthAngleVariable(sU("sensor_azimuth_angle"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Sensor Azimuth Angle (clockwise from true North)"), sU("sensor_azimuth_angle"), std::vector<degreeF>(tiltAngles.size(), std::numeric_limits<degreeF>::quiet_NaN()), true, coordinates, cellMethodsTimeMean);
 		AmfNcVariable<unitlessF, decltype(pulseQuantities)> pulseQuantitiesVariable(sU("profile_pulses"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Number of pulses in each profile"), sU(""), pulseQuantities, true, coordinates, cellMethodsTimeSum);
 		AmfNcVariable<percentF, decltype(scales)> scalesVariable(sU("profile_scaling"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Scaling of range profile (default=100%)"), sU(""), scales, true, coordinates, cellMethodsTimePoint);
 		AmfNcVariable<percentF, decltype(windowTransmissions)> windowTransmissionsVariable(sU("window_transmittance"), ceilometerCloudBaseFile, ceilometerCloudBaseFile.getTimeDimension(), sU("Window Transmittance, % of nominal value"), sU(""), windowTransmissions, true, coordinates, cellMethodsTimeMean);
@@ -397,7 +397,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		ceilometerCloudBaseFile.write(laserEnergiesVariable);
 		ceilometerCloudBaseFile.write(laserTemperaturesVariable);
 		ceilometerCloudBaseFile.write(tiltAngleVariable);
-		ceilometerCloudBaseFile.write(azimuthAngleVariable);
+		//ceilometerCloudBaseFile.write(azimuthAngleVariable);
 		ceilometerCloudBaseFile.write(pulseQuantitiesVariable);
 		ceilometerCloudBaseFile.write(scalesVariable);
 		ceilometerCloudBaseFile.write(windowTransmissionsVariable);

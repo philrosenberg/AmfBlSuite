@@ -380,15 +380,15 @@ void CampbellMessage2::read(std::istream &istream, const CampbellHeader &header)
 	m_scale = percentF((percentF::valueType)std::atof(scale));
 	m_resolution = metreF((metreF::valueType)std::atof(res));
 	m_laserPulseEnergy = percentF((percentF::valueType)std::atof(energy));
-	m_laserTemperature = kelvinF((kelvinF::valueType)std::atof(laserTemperature) + (kelvinF::valueType)273.15);
+	m_laserTemperature = kelvinF((kelvinF::valueType)std::atof(laserTemperature) + (kelvinF::valueType)273.15f);
 	m_tiltAngle = degreeF((degreeF::valueType)std::atof(tiltAngle));
 	m_background = millivoltF((millivoltF::valueType)std::atof(background));
 	int intPulseQuantity = std::atoi(pulseQuantity);
 	sci::assertThrow(intPulseQuantity >= 0, sci::err(sci::SERR_USER, 0, "Found a negative pulse quantity while reading a Campbell file"));
-	sci::assertThrow(intPulseQuantity <= std::numeric_limits<size_t>::max()/1000, sci::err(sci::SERR_USER, 0, "Found a negative pulse quantity while reading a Campbell file"));
+	sci::assertThrow(intPulseQuantity <= std::numeric_limits<size_t>::max()/1000, sci::err(sci::SERR_USER, 0, "Found a pulse quantity too large to represent while reading a Campbell file"));
 	m_pulseQuantity = size_t(intPulseQuantity) * 1000;
 	m_sampleRate = megahertzF((megahertzF::valueType)std::atof(sampleRate));
-	m_sum = perSteradianF((perSteradianF::valueType)std::atof(sum));
+	m_sum = perSteradianF((perSteradianF::valueType)std::atof(sum)/1e4f)/m_scale;
 
 
 
