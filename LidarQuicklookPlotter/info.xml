@@ -144,6 +144,24 @@
     <locationKeyword>UK</locationKeyword>
     <locationKeyword>FIRS Botanical Garden</locationKeyword>
   </platform>
+
+  <!--Oden ceilometer location-->
+  <platform id="7">
+    <name>oden</name>
+    <type>moving</type>
+    <deploymentMode>sea</deploymentMode>
+    <!--AltitudeMetres is the altitude relative to the sea line of the ship-->
+    <altitudeMetres>6.4</altitudeMetres>
+    <!--The attitude variables are of the instrument relative to the ship-->
+    <elevationDegree>0</elevationDegree>
+    <azimuthDegree>0</azimuthDegree>
+    <rollDegree>6</rollDegree>
+    <locationKeyword>Arctic</locationKeyword>
+    <locationKeyword>Sweden</locationKeyword>
+    <locationKeyword>Norway</locationKeyword>
+    <locationFile>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\MocchaLidarMotion.nc</locationFile>
+    <platformRelative>false</platformRelative>
+  </platform>
   
   <!--Instruments-->
   <instrument id="1">
@@ -161,7 +179,7 @@
     <description>NCAS Lidar Ceilometer unit 1</description>
     <manufacturer>Campbell Scientific</manufacturer>
     <model>CS135</model>
-    <serial>E1002</serial>
+    <serial>E1037</serial>
     <operatingSoftware>CS135 OS</operatingSoftware>
     <operatingSoftwareVersion>0</operatingSoftwareVersion> <!--will be rplaced by the value in the data file, but must not be empty-->
   </instrument>
