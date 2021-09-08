@@ -10,6 +10,9 @@ const uint8_t microRainRadarBelowNoiseFloorFlag = 4;
 const uint8_t microRainRadarSpeedsOutsideExpectedLimitsFlag = 5;
 const uint8_t microRainRadarDiameterNotDerivedFlag = 6;
 const uint8_t microRainRadarNegativeDiametersFlag = 7;
+const uint8_t microRainRadarNegativeConcentrationFlag = 8;
+const uint8_t microRainRadarUnrealisticConcentrationFlag = 9;
+const uint8_t microRainRadarNegativeRainfallRateFlag = 10;
 
 const std::vector<std::pair<uint8_t, sci::string>> microRainRadarFlags
 {
@@ -20,7 +23,10 @@ const std::vector<std::pair<uint8_t, sci::string>> microRainRadarFlags
 {microRainRadarBelowNoiseFloorFlag, sU("Signal Below Noise Floor - logarithmic units invalid") },
 {microRainRadarSpeedsOutsideExpectedLimitsFlag, sU("Droplet speed outside expected limits (0-20 m s-1)") },
 {microRainRadarDiameterNotDerivedFlag, sU("Diameter not derived by data processing software")},
-{microRainRadarNegativeDiametersFlag, sU("Negative diameters derived by retrieval")}
+{microRainRadarNegativeDiametersFlag, sU("Negative diameters derived by retrieval")},
+{microRainRadarNegativeConcentrationFlag, sU("Negative concentration derived by retrieval")},
+{microRainRadarUnrealisticConcentrationFlag, sU("Unrealistic concentration derived by retrieval (>1e6 m-3 mm-1)")},
+{microRainRadarNegativeRainfallRateFlag, sU("Negative rainfall rate derived by retrieval")}
 };
 
 MicroRainRadarProcessor::MicroRainRadarProcessor(const InstrumentInfo &instrumentInfo, const CalibrationInfo &calibrationInfo)
@@ -298,8 +304,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 		pathIntegratedAttenuation[i] = m_profiles[i].getPathIntegratedAttenuation();
 
-	//generate the flag variable. Basically the only option here is that data could be missing
-	//due to negative reflectivities from subtraction of the noise floor. This is marked by NaNs
+	//generate the flag variable.
 	std::vector<std::vector<unsigned char>> flags(m_profiles.size());
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
@@ -323,6 +328,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 		}
 		sci::assign(flags[i], rainfallVelocity[i] < metrePerSecondF(0.0) || rainfallVelocity[i] > metrePerSecondF(20.0), microRainRadarSpeedsOutsideExpectedLimitsFlag);
 		sci::assign(flags[i], missing, microRainRadarBelowNoiseFloorFlag);
+		sci::assign(flags[i], rainfallRates[i] < millimetrePerHourF(0.0), microRainRadarNegativeRainfallRateFlag);
 	}
 
 	//Output the one D parameters
@@ -403,6 +409,10 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 					spectralFlags[i][j][k] = microRainRadarNegativeDiametersFlag;
 				if (dropDiameters[i][j][k] != dropDiameters[i][j][k])
 					spectralFlags[i][j][k] = microRainRadarDiameterNotDerivedFlag;
+				if (sizeDistributions[i][j][k] < perMetreCubedPerMillimetreF(0.0f))
+					spectralFlags[i][j][k] = microRainRadarNegativeConcentrationFlag;
+				if (sizeDistributions[i][j][k] > perMetreCubedPerMillimetreF(1.0e6f))
+					spectralFlags[i][j][k] = microRainRadarUnrealisticConcentrationFlag;
 			}
 		}
 	}
