@@ -350,7 +350,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")),file);
 		AmfNcVariable<metrePerSecondF, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Mean Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods, windFlags);
 		AmfNcVariable<degreeF, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind From Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods, windFlags);
-		AmfNcFlagVariable windFlagVariable(sU("qc_flag_wind"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
+		AmfNcFlagVariable windFlagVariable(sU("qc_flag"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
 		file.writeTimeAndLocationData(platform);
 
