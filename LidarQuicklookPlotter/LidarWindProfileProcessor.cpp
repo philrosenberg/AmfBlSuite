@@ -346,10 +346,10 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 		//std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), cm_mean}, { sU("altitude"), cm_mean } };
 		std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
 		std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
-		AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0));
+		AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates, std::vector<std::pair<sci::string, CellMethod>>(0), 1);
 		altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")),file);
-		AmfNcVariable<metrePerSecondF, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Mean Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods);
-		AmfNcVariable<degreeF, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind From Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods);
+		AmfNcVariable<metrePerSecondF, decltype(windSpeeds)> windSpeedVariable(sU("wind_speed"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Mean Wind Speed"), sU("wind_speed"), windSpeeds, true, coordinates, cellMethods, windFlags);
+		AmfNcVariable<degreeF, decltype(windDirections)> windDirectionVariable(sU("wind_from_direction"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension }, sU("Wind From Direction"), sU("wind_from_direction"), windDirections, true, coordinates, cellMethods, windFlags);
 		AmfNcFlagVariable windFlagVariable(sU("qc_flag_wind"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &indexDimension });
 
 		file.writeTimeAndLocationData(platform);

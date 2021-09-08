@@ -1066,43 +1066,69 @@ typename std::enable_if<std::is_integral<T>::value, T>::type getDefault()
 }*/
 
 template<class T>
-bool constexpr isValid(const T &value)
+bool constexpr isValid(const T &value, uint8_t flag)
 {
+	if (flag != 1)
+		return false;
 	if (std::numeric_limits<T>::has_quiet_NaN)
 		return value == value;
 	else
 		return value != getDefault<T>();
 }
 
-template<class T>
-void getMinMax(const std::vector<T> &data, T &min, T &max)
+template<class T, class FLAG_TYPE>
+void getMinMax(const std::vector<T> &data, const FLAG_TYPE &flags, T &min, T &max)
 {
 	min = getDefault<T>();
 	max = getDefault<T>();
 	//find the first non fill value
 	auto iter = data.begin();
-	for (; iter != data.end(); ++iter)
+	if constexpr (std::is_integral<FLAG_TYPE> ::value)
 	{
-		if (isValid(*iter))
+		for (; iter != data.end(); ++iter)
 		{
-			min = *iter;
-			max = *iter;
-			break;
+			if (isValid(*iter, flags))
+			{
+				min = *iter;
+				max = *iter;
+				break;
+			}
+		}
+		//now go through the remaining data and find the min/max
+		for (; iter != data.end(); ++iter)
+		{
+			if (isValid(*iter, flags))
+			{
+				min = std::min(min, *iter);
+				max = std::max(max, *iter);
+			}
 		}
 	}
-	//now go through the remaining data and find the min/max
-	for (; iter != data.end(); ++iter)
+	else
 	{
-		if (isValid(*iter))
+		for (; iter != data.end(); ++iter)
 		{
-			min = std::min(min, *iter);
-			max = std::max(max, *iter);
+			if (isValid(*iter, flags[iter-data.begin()]))
+			{
+				min = *iter;
+				max = *iter;
+				break;
+			}
+		}
+		//now go through the remaining data and find the min/max
+		for (; iter != data.end(); ++iter)
+		{
+			if (isValid(*iter, flags[iter - data.begin()]))
+			{
+				min = std::min(min, *iter);
+				max = std::max(max, *iter);
+			}
 		}
 	}
 }
 
-template<class T, class U>
-void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
+template<class T, class U, class FLAG_TYPE>
+void getMinMax(const std::vector<std::vector<T>> &data, const FLAG_TYPE &flags, U &min, U &max)
 {
 	min = getDefault<U>();
 	max = getDefault<U>();
@@ -1112,8 +1138,11 @@ void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
 	{
 		U thisMin;
 		U thisMax;
-		getMinMax(*iter, thisMin, thisMax);
-		if (isValid(thisMin))
+		if constexpr (std::is_integral<FLAG_TYPE>::value)
+			getMinMax(*iter, flags, thisMin, thisMax);
+		else
+			getMinMax(*iter, flags[iter - data.begin()], thisMin, thisMax);
+		if (isValid(thisMin, 1))
 		{
 			min = thisMin;
 			max = thisMax;
@@ -1125,8 +1154,11 @@ void getMinMax(const std::vector<std::vector<T>> &data, U &min, U &max)
 	{
 		U thisMin;
 		U thisMax;
-		getMinMax(*iter, thisMin, thisMax);
-		if (isValid(thisMin))
+		if constexpr (std::is_integral<FLAG_TYPE>::value)
+			getMinMax(*iter, flags, thisMin, thisMax);
+		else
+			getMinMax(*iter, flags[iter-data.begin()], thisMin, thisMax);
+		if (isValid(thisMin, 1))
 		{
 			min = std::min(min, thisMin);
 			max = std::max(max, thisMax);
@@ -1225,7 +1257,8 @@ template <class T, class U, bool SWAP>
 class AmfNcVariable : public sci::NcVariable<T>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
+	template<class FLAG_TYPE>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAG_TYPE &flags)
 		:NcVariable<T>(name, ncFile, dimension)
 	{
 		if constexpr (SWAP)
@@ -1234,10 +1267,11 @@ public:
 			m_data = data;
 		T validMin;
 		T validMax;
-		getMinMax(m_data, validMin, validMax);
+		getMinMax(m_data, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
+	template<class FLAG_TYPE>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAG_TYPE& flags)
 		:NcVariable<T>(name, ncFile, dimensions)
 	{
 		if constexpr (SWAP)
@@ -1246,7 +1280,7 @@ public:
 			m_data = data;
 		T validMin;
 		T validMax;
-		getMinMax(m_data, validMin, validMax);
+		getMinMax(m_data, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods);
 	}
 	const U& getData() const
@@ -1333,7 +1367,8 @@ template <class T, class VALUE_TYPE, class U, bool SWAP>
 class AmfNcVariable<sci::Physical<T, VALUE_TYPE>, U, SWAP> : public sci::NcVariable<sci::Physical<T, VALUE_TYPE>>
 {
 public:
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
+	template<class FLAG_TYPE>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAG_TYPE &flags, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T, VALUE_TYPE>>(name, ncFile, dimension)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T, VALUE_TYPE>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
@@ -1343,10 +1378,11 @@ public:
 			m_data = data;
 		sci::Physical<T, VALUE_TYPE> validMin;
 		sci::Physical<T, VALUE_TYPE> validMax;
-		getMinMax(m_data, validMin, validMax);
+		getMinMax(m_data, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment = sU(""))
+	template<class FLAG_TYPE>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAG_TYPE& flags, const sci::string &comment = sU(""))
 		:NcVariable<sci::Physical<T, VALUE_TYPE>>(name, ncFile, dimensions)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T, VALUE_TYPE>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
@@ -1356,7 +1392,7 @@ public:
 			m_data = data;
 		sci::Physical<T, VALUE_TYPE> validMin;
 		sci::Physical<T, VALUE_TYPE> validMax;
-		getMinMax(m_data, validMin, validMax);
+		getMinMax(m_data, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	const U& getData() const
@@ -1461,7 +1497,8 @@ public:
 	//typedef typename Decibel<REFERENCE_UNIT>::referencePhysical::valueType valueType;
 	typedef typename Decibel<REFERENCE_UNIT>::referencePhysical referencePhysical;
 	//Data must be passed in in linear units, not decibels!!!
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, const sci::string &comment = sU(""))
+	template<class FLAG_TYPE>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, const FLAG_TYPE &flags, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimension)
 	{
 		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<typename REFERENCE_UNIT::unit>>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
@@ -1470,10 +1507,11 @@ public:
 		m_outputReferenceUnit = outputReferenceUnit;
 		referencePhysical validMin;
 		referencePhysical validMax;
-		getMinMax(m_dataLinear, validMin, validMax);
+		getMinMax(m_dataLinear, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, const sci::string &comment = sU(""))
+	template<class FLAG_TYPE>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, const FLAG_TYPE &flags, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
 	{
 		//static_assert(std::is_same<sci::VectorTraits<U>::baseType, referencePhysical>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
@@ -1482,7 +1520,7 @@ public:
 		m_outputReferenceUnit = outputReferenceUnit;
 		sci::VectorTraits<U>::baseType validMin;
 		sci::VectorTraits<U>::baseType validMax;
-		getMinMax(m_dataLinear, validMin, validMax);
+		getMinMax(m_dataLinear, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	const U& getData() const
@@ -1535,7 +1573,7 @@ class AmfNcTimeVariable : public AmfNcVariable<typename second::valueType, std::
 {
 public:
 	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<sci::UtcTime> &times)
-		:AmfNcVariable<typename second::valueType, std::vector<typename second::valueType >> (sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second::unit>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)), false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0))
+		:AmfNcVariable<typename second::valueType, std::vector<typename second::valueType >> (sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second::unit>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)), false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), 1)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
 		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);
@@ -1566,7 +1604,8 @@ public:
 			sci::physicalsToValues<degreeF>(longitudes),
 			true,
 			std::vector<sci::string>(0),
-			getLatLonCellMethod(featureType, deploymentMode))
+			getLatLonCellMethod(featureType, deploymentMode),
+			1)
 			
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
@@ -1586,7 +1625,8 @@ public:
 			sci::physicalsToValues<degreeF>(latitudes),
 			true,
 			std::vector<sci::string>(0),
-			getLatLonCellMethod(featureType, deploymentMode))
+			getLatLonCellMethod(featureType, deploymentMode),
+			1)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
@@ -1606,7 +1646,8 @@ public:
 			sci::physicalsToValues<metreF>(altitudes),
 			true,
 			std::vector<sci::string>(0),
-			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0))
+			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0)
+			, 1)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ncFile);
 	}

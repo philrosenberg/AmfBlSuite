@@ -344,24 +344,24 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 
 	//AmfNcVariable<metre, std::vector<std::vector<metre>>> altitudesVariable(sU("altitude"), file1d, std::vector<sci::NcDimension*>{ &file1d.getTimeDimension(), & altitudeDimension1d }, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates1d, std::vector<std::pair<sci::string, CellMethod>>(0));
 	//altitudesVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), file1d);
-	AmfNcVariable<millimetrePerHourF, std::vector<std::vector<millimetrePerHourF>>> rainfallRatesVariable(sU("rainfall_rate"), file1d, dimensions1d, sU("Rainfall Rate"), sU("rainfall_rate"), rainfallRates, true, coordinates1d, cellMethods1d);
-	AmfNcVariable<gramPerMetreCubedF, std::vector<std::vector<gramPerMetreCubedF>>> rainLiquidWaterContentVariable(sU("rain_liquid_water_content"), file1d, dimensions1d, sU("Rain Liquid Water Content"), sU(""), rainLiquidWaterContent, true, coordinates1d, cellMethods1d);
-	AmfNcVariable<metrePerSecondF, std::vector<std::vector<metrePerSecondF>>> rainfallVelocityVariable(sU("rainfall_velocity"), file1d, dimensions1d, sU("Rainfall Velocity"), sU(""), rainfallVelocity, true, coordinates1d, cellMethods1d);
-	AmfNcVariable<Decibel<reflectivityF>, std::vector<std::vector<reflectivityF>>> radarReflectivityVariable(sU("radar_reflectivity"), file1d, dimensions1d, sU("Radar Reflectivity (Z)"), sU(""), radarReflectivity, true, coordinates1d, cellMethods1d, true, false);
-	AmfNcVariable<Decibel<reflectivityF>, std::vector<std::vector<reflectivityF>>> radarReflectivityAttenuatedVariable(sU("attenuated_radar_reflectivity"), file1d, dimensions1d, sU("Attenuated Radar Reflectivity (z)"), sU(""), radarReflectivityAttenuated, true, coordinates1d, cellMethods1d, true, false);
-	AmfNcVariable<Decibel<unitlessF>, std::vector<std::vector<unitlessF>>> pathIntegratedAttenuationVariable(sU("path_integrated_attenuation"), file1d, dimensions1d, sU("Path Integrated Attenuation"), sU(""), pathIntegratedAttenuation, true, coordinates1d, cellMethods1d, false, false);
+	AmfNcVariable<millimetrePerHourF, std::vector<std::vector<millimetrePerHourF>>> rainfallRatesVariable(sU("rainfall_rate"), file1d, dimensions1d, sU("Rainfall Rate"), sU("rainfall_rate"), rainfallRates, true, coordinates1d, cellMethods1d, flags);
+	AmfNcVariable<gramPerMetreCubedF, std::vector<std::vector<gramPerMetreCubedF>>> rainLiquidWaterContentVariable(sU("rain_liquid_water_content"), file1d, dimensions1d, sU("Rain Liquid Water Content"), sU(""), rainLiquidWaterContent, true, coordinates1d, cellMethods1d, flags);
+	AmfNcVariable<metrePerSecondF, std::vector<std::vector<metrePerSecondF>>> rainfallVelocityVariable(sU("rainfall_velocity"), file1d, dimensions1d, sU("Rainfall Velocity"), sU(""), rainfallVelocity, true, coordinates1d, cellMethods1d, flags);
+	AmfNcVariable<Decibel<reflectivityF>, std::vector<std::vector<reflectivityF>>> radarReflectivityVariable(sU("radar_reflectivity"), file1d, dimensions1d, sU("Radar Reflectivity (Z)"), sU(""), radarReflectivity, true, coordinates1d, cellMethods1d, true, false, flags);
+	AmfNcVariable<Decibel<reflectivityF>, std::vector<std::vector<reflectivityF>>> radarReflectivityAttenuatedVariable(sU("attenuated_radar_reflectivity"), file1d, dimensions1d, sU("Attenuated Radar Reflectivity (z)"), sU(""), radarReflectivityAttenuated, true, coordinates1d, cellMethods1d, true, false, flags);
+	AmfNcVariable<Decibel<unitlessF>, std::vector<std::vector<unitlessF>>> pathIntegratedAttenuationVariable(sU("path_integrated_attenuation"), file1d, dimensions1d, sU("Path Integrated Attenuation"), sU(""), pathIntegratedAttenuation, true, coordinates1d, cellMethods1d, false, false, flags);
 	AmfNcFlagVariable flagVariable(sU("qc_flag"), microRainRadarFlags, file1d, dimensions1d);
 	
 	if (amfVersion == AmfVersion::v1_1_0)
 	{
-		AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), file1d, dimensions1d, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates1d, std::vector<std::pair<sci::string, CellMethod>>(0));
+		AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), file1d, dimensions1d, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates1d, std::vector<std::pair<sci::string, CellMethod>>(0),1);
 		altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), file1d);
 		file1d.writeTimeAndLocationData(platform);
 		file1d.write(altitudeVariable);
 	}
 	else
 	{
-		AmfNcVariable<metreF, std::vector<metreF>> altitudeVariable(sU("altitude"), file1d, file1d.getTimeDimension(), sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes[0], true, coordinates1d, std::vector<std::pair<sci::string, CellMethod>>(0));
+		AmfNcVariable<metreF, std::vector<metreF>> altitudeVariable(sU("altitude"), file1d, file1d.getTimeDimension(), sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes[0], true, coordinates1d, std::vector<std::pair<sci::string, CellMethod>>(0),1);
 		altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), file1d);
 		file1d.writeTimeAndLocationData(platform);
 		file1d.write(altitudeVariable);
@@ -430,22 +430,22 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	std::vector<sci::string> coordinates2d{ sU("latitude"), sU("longitude") };
 	std::vector<sci::NcDimension*> dimensions2d{ &file1d.getTimeDimension(), nonTimeDimensions2d[0], nonTimeDimensions2d[1] };
 
-	AmfNcVariable<Decibel<perMetreF>, std::vector<std::vector<std::vector<perMetreF>>>> spectralReflectivityVariable(sU("spectral_reflectivity"), file2d, dimensions2d, sU("Spectral Reflectivity"), sU(""), spectralReflectivity, true, coordinates2d, cellMethods2d, false, false);
-	AmfNcVariable<millimetreF, std::vector<std::vector<std::vector<millimetreF>>>> dropDiameterVariable(sU("rain_drop_diameter"), file2d, dimensions2d, sU("Rain Drop Diameter"), sU(""), dropDiameters, true, coordinates2d, cellMethods2d);
-	AmfNcVariable<perMetreCubedPerMillimetreF, std::vector<std::vector<std::vector<perMetreCubedPerMillimetreF>>>> numberDistributionVariable(sU("drop_size_distribution"), file2d, dimensions2d, sU("Rain Size Distribution"), sU(""), sizeDistributions, true, coordinates2d, cellMethods2d);
+	AmfNcVariable<Decibel<perMetreF>, std::vector<std::vector<std::vector<perMetreF>>>> spectralReflectivityVariable(sU("spectral_reflectivity"), file2d, dimensions2d, sU("Spectral Reflectivity"), sU(""), spectralReflectivity, true, coordinates2d, cellMethods2d, false, false, spectralFlags);
+	AmfNcVariable<millimetreF, std::vector<std::vector<std::vector<millimetreF>>>> dropDiameterVariable(sU("rain_drop_diameter"), file2d, dimensions2d, sU("Rain Drop Diameter"), sU(""), dropDiameters, true, coordinates2d, cellMethods2d, spectralFlags);
+	AmfNcVariable<perMetreCubedPerMillimetreF, std::vector<std::vector<std::vector<perMetreCubedPerMillimetreF>>>> numberDistributionVariable(sU("drop_size_distribution"), file2d, dimensions2d, sU("Rain Size Distribution"), sU(""), sizeDistributions, true, coordinates2d, cellMethods2d, spectralFlags);
 	AmfNcFlagVariable spectralFlagVariable(sU("qc_flag"), microRainRadarFlags, file2d, dimensions2d);
 	
 	if (amfVersion == AmfVersion::v1_1_0)
 	{
 		std::vector<sci::NcDimension*> altitudeDimensions2d{ &file1d.getTimeDimension(), nonTimeDimensions2d[0] };
-		AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), file2d, altitudeDimensions2d, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates2d, std::vector<std::pair<sci::string, CellMethod>>(0));
+		AmfNcVariable<metreF, decltype(altitudes)> altitudeVariable(sU("altitude"), file2d, altitudeDimensions2d, sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes, true, coordinates2d, std::vector<std::pair<sci::string, CellMethod>>(0),1);
 		altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), file2d);
 		file2d.writeTimeAndLocationData(platform);
 		file2d.write(altitudeVariable);
 	}
 	else
 	{
-		AmfNcVariable<metreF, std::vector<metreF>> altitudeVariable(sU("altitude"), file2d, file2d.getTimeDimension(), sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes[0], true, coordinates2d, std::vector<std::pair<sci::string, CellMethod>>(0));
+		AmfNcVariable<metreF, std::vector<metreF>> altitudeVariable(sU("altitude"), file2d, file2d.getTimeDimension(), sU("Geometric height above geoid (WGS84)"), sU("altitude"), altitudes[0], true, coordinates2d, std::vector<std::pair<sci::string, CellMethod>>(0),1);
 		altitudeVariable.addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), file2d);
 		file2d.writeTimeAndLocationData(platform);
 		file2d.write(altitudeVariable);
