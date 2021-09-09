@@ -280,7 +280,7 @@ void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::
 }
 
 void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressReporter,
-	std::vector<std::vector<metreF>> &ranges,
+	std::vector<std::vector<std::vector<metreF>>> &ranges,
 	std::vector<std::vector<degreeF>> &instrumentRelativeAzimuthAngles,
 	std::vector<std::vector<degreeF>> &attitudeCorrectedAzimuthAngles,
 	std::vector<std::vector<degreeF>> &instrumentRelativeElevationAngles,
@@ -373,7 +373,6 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 		dopplerResolution = getDopplerResolution(0);
 		gateLength = getGateLength(0);
 		pointsPerGate = getNPointsPerGate(0);
-		ranges.push_back(getGateCentres(0));
 		instrumentRelativeAzimuthAngles.resize(1);
 		instrumentRelativeAzimuthAngles.back().reserve(6);
 		instrumentRelativeAzimuthAngles.back().push_back(allInstrumentRelativeAzimuths[0]);
@@ -392,6 +391,9 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 		motionCorrectedDopplerVelocities.resize(1);
 		motionCorrectedDopplerVelocities.back().reserve(6);
 		motionCorrectedDopplerVelocities.back().push_back(allMotionCorrectedDopplerVelocities[0]);
+		ranges.resize(1);
+		ranges.back().reserve(6);
+		ranges.back().push_back(getGateCentres(0));
 		backscatters.resize(1);
 		backscatters.back().reserve(6);
 		backscatters.back().push_back(allBackscatters[0]);
@@ -423,7 +425,6 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 				{
 					maxNGatesThisScan = getNGates(i);
 					maxNGates = std::max(maxNGates, maxNGatesThisScan);
-					ranges.back() = getGateCentres(i);
 				}
 			}
 			else
@@ -434,7 +435,6 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 				scanStartTimes.push_back(allTimes[i]);
 				scanEndTimes.push_back(allTimes[i - 1] + (unitlessF((unitlessF::valueType)(getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays)) / sci::Physical<sci::Hertz<1, 3>, typename unitlessF::valueType>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile
 				maxNGatesThisScan = getNGates(i);
-				ranges.push_back(getGateCentres(i));
 				instrumentRelativeAzimuthAngles.resize(instrumentRelativeAzimuthAngles.size() + 1);
 				instrumentRelativeAzimuthAngles.back().reserve(maxProfilesPerScan);
 				attitudeCorrectedAzimuthAngles.resize(attitudeCorrectedAzimuthAngles.size() + 1);
@@ -447,6 +447,8 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 				instrumentRelativeDopplerVelocities.back().reserve(maxProfilesPerScan);
 				motionCorrectedDopplerVelocities.resize(motionCorrectedDopplerVelocities.size() + 1);
 				motionCorrectedDopplerVelocities.back().reserve(maxProfilesPerScan);
+				ranges.resize(ranges.size() + 1);
+				ranges.back().reserve(maxProfilesPerScan);
 				backscatters.resize(backscatters.size() + 1);
 				backscatters.back().reserve(maxProfilesPerScan);
 				snrsPlusOne.resize(snrsPlusOne.size() + 1);
@@ -466,6 +468,7 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 			snrsPlusOne.back().push_back(allSnrsPlusOne[i]);
 			dopplerVelocityFlags.back().push_back(allDopplerVelocityFlags[i]);
 			backscatterFlags.back().push_back(allBackscatterFlags[i]);
+			ranges.back().push_back(getGateCentres(i));
 		}
 		//Some final items that need doing regaring the last scan/profile.
 		scanEndTimes.push_back(allTimes.back() + (unitlessF((unitlessF::valueType)(getHeaderForProfile(allTimes.size() - 1).pulsesPerRay * getHeaderForProfile(allTimes.size() - 1).nRays)) / sci::Physical<sci::Hertz<1, 3>, typename unitlessF::valueType>(15.0))); //this is the time of the last profile in the scan plus the duration of this profile);
@@ -482,13 +485,13 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 		snrsPlusOne[i] = sci::transpose(snrsPlusOne[i]);
 		dopplerVelocityFlags[i] = sci::transpose(dopplerVelocityFlags[i]);
 		backscatterFlags[i] = sci::transpose(backscatterFlags[i]);
+		ranges[i] = sci::transpose(ranges[i]);
 	}
 
 
 	//expand the arrays, padding with fill value as needed
 	for (size_t i = 0; i < ranges.size(); ++i)
 	{
-		ranges[i].resize(maxNGates, std::numeric_limits<metreF>::quiet_NaN());
 		instrumentRelativeAzimuthAngles[i].resize(maxProfilesPerScan, std::numeric_limits<degreeF>::quiet_NaN());
 		attitudeCorrectedAzimuthAngles[i].resize(maxProfilesPerScan, std::numeric_limits<degreeF>::quiet_NaN());
 		instrumentRelativeElevationAngles[i].resize(maxProfilesPerScan, std::numeric_limits<degreeF>::quiet_NaN());
@@ -497,6 +500,7 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 		motionCorrectedDopplerVelocities[i].resize(maxNGates);
 		backscatters[i].resize(maxNGates);
 		snrsPlusOne[i].resize(maxNGates);
+		ranges[i].resize(maxNGates);
 		for (size_t j = 0; j < maxNGates; ++j)
 		{
 			instrumentRelativeDopplerVelocities[i][j].resize(maxProfilesPerScan, std::numeric_limits<metrePerSecondF>::quiet_NaN());
@@ -505,6 +509,7 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 			snrsPlusOne[i][j].resize(maxProfilesPerScan, std::numeric_limits<unitlessF>::quiet_NaN());
 			dopplerVelocityFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
 			backscatterFlags[i][j].resize(maxProfilesPerScan, lidarUserChangedGatesFlag);
+			ranges[i][j].resize(maxProfilesPerScan, std::numeric_limits<metreF>::quiet_NaN());
 		}
 	}
 }
@@ -525,7 +530,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	dataInfo.productName = sU("aerosol backscatter radial winds");
 	dataInfo.processingOptions = processingOptions;
 
-	std::vector<std::vector<metreF>> ranges;
+	std::vector<std::vector<std::vector<metreF>>> ranges;
 	std::vector<std::vector<degreeF>> instrumentRelativeAzimuthAngles;
 	std::vector<std::vector<degreeF>> attitudeCorrectedAzimuthAngles;
 	std::vector<std::vector<degreeF>> instrumentRelativeElevationAngles;
@@ -659,7 +664,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 
 
 	//create the variables - note we set swap to true for these variables which swaps the data into the varaibles rather than copying it. This saved memory
-	AmfNcVariable<metreF, decltype(ranges), true> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), ranges, true, coordinates, cellMethodsRange, 1);
+	AmfNcVariable<metreF, decltype(ranges), true> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension, & angleIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), ranges, true, coordinates, cellMethodsRange, 1);
 	AmfNcVariable<degreeF, decltype(instrumentRelativeAzimuthAngles), true> azimuthVariable(sU("sensor_azimuth_angle_instrument_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning Head Azimuth Angle"), sU("sensor_azimuth_angle"), instrumentRelativeAzimuthAngles, true, coordinates, cellMethodsAngles, 1);
 	AmfNcVariable<degreeF, decltype(instrumentRelativeElevationAngles), true> elevationVariable(sU("sensor_view_angle_instrument_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning Head Elevation Angle"), sU("sensor_view_angle"), instrumentRelativeElevationAngles, true, coordinates, cellMethodsAngles, 1);
 	AmfNcVariable<degreeF, decltype(attitudeCorrectedAzimuthAngles), true> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &angleIndexDimension }, sU("Scanning Head Azimuth Angle Earth Frame"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinates, cellMethodsAnglesEarthFrame, 1);

@@ -130,7 +130,7 @@ public:
 		:LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, filePrefix, inCrossFolder, twoDigitTime)
 	{}
 	void formatDataForOutput(ProgressReporter& progressReporter,
-		std::vector<std::vector<metreF>>& ranges,
+		std::vector<std::vector<std::vector<metreF>>>& ranges,
 		std::vector<std::vector<degreeF>>& instrumentRelativeAzimuthAngles,
 		std::vector<std::vector<degreeF>>& attitudeCorrectedAzimuthAngles,
 		std::vector<std::vector<degreeF>>& instrumentRelativeElevationAngles,

@@ -101,7 +101,8 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	metrePerSecondF dopplerResolutionCross;
 	metreF gateLengthCross;
 	size_t pointsPerGateCross;
-
+	/*
+	need to came back to this as range is now 3d in this function
 	m_copolarisedProcessor.formatDataForOutput(progressReporter, rangesCo, instrumentRelativeAzimuthAnglesCo, attitudeCorrectedAzimuthAnglesCo, instrumentRelativeElevationAnglesCo,
 		attitudeCorrectedElevationAnglesCo, instrumentRelativeDopplerVelocitiesCo, motionCorrectedDopplerVelocitiesCo, backscattersCo, snrPlusOneCo, dopplerVelocityFlagsCo,
 		backscatterFlagsCo, startTimesCo, endTimesCo, maxProfilesPerScanCo, maxNGatesCo, pulsesPerRayCo, raysPerPointCo, focusCo, dopplerResolutionCo, gateLengthCo, pointsPerGateCo);
@@ -109,7 +110,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	m_crosspolarisedProcessor.formatDataForOutput(progressReporter, rangesCross, instrumentRelativeAzimuthAnglesCross, attitudeCorrectedAzimuthAnglesCross, instrumentRelativeElevationAnglesCross,
 		attitudeCorrectedElevationAnglesCross, instrumentRelativeDopplerVelocitiesCross, motionCorrectedDopplerVelocitiesCross, backscattersCross, snrPlusOneCross, dopplerVelocityFlagsCross,
 		backscatterFlagsCross, startTimesCross, endTimesCross, maxProfilesPerScanCross, maxNGatesCross, pulsesPerRayCross, raysPerPointCross, focusCross, dopplerResolutionCross, gateLengthCross, pointsPerGateCross);
-
+		*/
 	//We are going to fix this at 10.0 s for now
 	dataInfo.averagingPeriod = secondF(10.0);
 	dataInfo.samplingInterval = secondF(samplingIntervalCo + samplingIntervalCross) / unitlessF(2);
