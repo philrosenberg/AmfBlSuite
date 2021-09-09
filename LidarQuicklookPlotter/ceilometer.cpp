@@ -116,6 +116,8 @@ void CeilometerProcessor::formatDataForOutput(const HplHeader& header,
 		else
 			profileFlags[i] = cloudBaseFlags[i] = ceilometerGoodFlag;
 		gateFlags[i] = profiles[i].getGateFlags();
+		if (profileFlags[i] != ceilometerGoodFlag)
+			sci::assign(gateFlags[i], sci::notEq(gateFlags[i], ceilometerGoodFlag), profileFlags[i]);
 
 		//assign the housekeeping data
 		pulseQuantities[i] = unitlessF((unitlessF::valueType)profiles[i].getPulseQuantity());
@@ -325,8 +327,8 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		AmfNcVariable<millivoltF, decltype(windowContaminations)> windowContaminationsVariable(sU("window_contamination"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Window Contamination (mV as measured by ADC: 0 - 2500)"), sU(""), windowContaminations, true, coordinates, cellMethodsTimeMean, profileFlags);
 		AmfNcVariable<millivoltF, decltype(backgrounds)> backgroundsVariable(sU("background_light"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Background Light (mV as measured by ADC: 0 - 2500)"), sU(""), backgrounds, true, coordinates, cellMethodsTimeMean, profileFlags);
 		AmfNcVariable<perSteradianF, decltype(sums)> sumsVariable(sU("backscatter_sum"), ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension(), sU("Sum of detected and normalized backscatter"), sU(""), sums, true, coordinates, cellMethodsTimeMean, profileFlags);
-		AmfNcFlagVariable profileFlagsVariable(sU("qc_flag_profiles"), ceilometerFlags, ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension() );
-		AmfNcFlagVariable gateFlagsVariable(sU("qc_flag_gate"), ceilometerFlags, ceilometerBackscatterFile, backscatterDimensions);
+		//AmfNcFlagVariable profileFlagsVariable(sU("qc_flag_profiles"), ceilometerFlags, ceilometerBackscatterFile, ceilometerBackscatterFile.getTimeDimension() );
+		AmfNcFlagVariable gateFlagsVariable(sU("qc_flag"), ceilometerFlags, ceilometerBackscatterFile, backscatterDimensions);
 
 		if (amfVersion == AmfVersion::v1_1_0)
 		{
@@ -357,7 +359,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		ceilometerBackscatterFile.write(sumsVariable);
 
 		//flags
-		ceilometerBackscatterFile.write(profileFlagsVariable, profileFlags);
+		//ceilometerBackscatterFile.write(profileFlagsVariable, profileFlags);
 		ceilometerBackscatterFile.write(gateFlagsVariable, gateFlags);
 	}
 	{
