@@ -497,7 +497,10 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	for (size_t i = 1; i < platform.getPlatformInfo().locationKeywords.size(); ++i)
 		locationKeywords << ", " << platform.getPlatformInfo().locationKeywords[i];
 	write(sci::NcAttribute(sU("location_keywords"), locationKeywords.str()));
-	write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/releases/tag/v"))+ amfVersionString));
+	if(amfVersionString == sU("1.1.0"))
+		write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/barbarabrooks/NCAS-GENERAL-v1.1.0"))));
+	else
+		write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/releases/tag/v")) + amfVersionString));
 	write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science.") : sU(""))));
 	
 	for (size_t i = 0; i < globalAttributes.size(); ++i)
