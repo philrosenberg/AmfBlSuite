@@ -593,9 +593,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	if (scanStartTimes.size() > 1)
 	{
 		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(scanStartTimes.begin() + 1, scanStartTimes.end()) - std::vector<sci::UtcTime>(scanStartTimes.begin(), scanStartTimes.end() - 1);
-		std::vector < sci::TimeInterval> sortedSamplingIntervals = samplingIntervals;
-		std::sort(sortedSamplingIntervals.begin(), sortedSamplingIntervals.end());
-		dataInfo.samplingInterval = secondF(sortedSamplingIntervals[sortedSamplingIntervals.size() / 2]);
+		dataInfo.samplingInterval = sci::median(samplingIntervals);
 	}
 
 	sci::NcDimension rangeIndexDimension(sU("index_of_range"), maxNGates);
