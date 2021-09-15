@@ -15,7 +15,7 @@ public:
 	template<>
 	sci::UtcTime getTime<sci::UtcTime>() const { return m_time; }
 	template<>
-	second getTime<second>() const { return second(m_time.getUnixTime()); }
+	second getTime<second>() const { return second(m_time - sci::UtcTime(1970, 1, 1, 0, 0, 0)); }
 	void setTime(const sci::UtcTime &time) { m_time = time; }
 	degreeF getAzimuth() const { return m_azimuth; }
 	degreeF getElevation() const { return m_elevation; }

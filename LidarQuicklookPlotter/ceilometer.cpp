@@ -703,10 +703,10 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 			sci::assertThrow(gates[j] == j, sci::err(sci::SERR_USER, 0, sU("The plotting code currently assumes gates go 0, 1, 2, 3, ... but it found a profile where this was not the case.")));
 	}
 
-	xs[0] = second(profiles[0].getTime().getUnixTime());
+	xs[0] = second(profiles[0].getTime() - sci::UtcTime(1970, 1, 1, 0, 0, 0));
 	for (size_t i = 1; i < xs.size() - 1; ++i)
-		xs[i] = second((profiles[i*timeAveragePeriod].getTime().getUnixTime() + profiles[i*timeAveragePeriod - 1].getTime().getUnixTime()) / unitlessF(2.0));
-	xs.back() = second(profiles.back().getTime().getUnixTime());
+		xs[i] = second((profiles[i*timeAveragePeriod].getTime() - sci::UtcTime(1970, 1, 1, 0, 0, 0) + profiles[i*timeAveragePeriod - 1].getTime() - sci::UtcTime(1970, 1, 1, 0, 0, 0)) / unitlessF(2.0));
+	xs.back() = second(profiles.back().getTime() - sci::UtcTime(1970, 1, 1, 0, 0, 0));
 
 	for (size_t i = 0; i < ys.size(); ++i)
 		ys[i] = unitlessF(unitlessF::valueType(i * heightAveragePeriod)) * header.rangeGateLength;
