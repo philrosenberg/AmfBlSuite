@@ -2,18 +2,28 @@
   <!--This file contains the settings for a run of the processing software-->
   <author type ="amfEntity/person" id="1"></author>
   <project type="amfEntity/project" id="1"></project>
-  <platform type="amfEntity/platform" id="4"></platform>
+  <platform type="amfEntity/platform" id="1"></platform>
+  <!--<processor>
+    <name>MicrowaveRadiometerProcessor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>-->
   <processor>
+    <name>LidarDepolarisationProcessor</name>
+    <instrument type="amfEntity/instrument" id="1"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
+  </processor>
+  <!--<processor>
     <name>SondeProcessor</name>
     <instrument type ="amfEntity/instrument" id="4"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="4">></calibrationInfo>
-  </processor>
-  <processor>
+  </processor>-->
+ <!--<processor>
     <name>MicroRainRadarProcessor</name>
     <instrument type="amfEntity/instrument" id="3"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="3">></calibrationInfo>
-  </processor>
-  <processor>
+  </processor>-->
+  <!--<processor>
     <name>LidarCopolarisedStareProcessor</name>
     <instrument type="amfEntity/instrument" id="1"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
@@ -67,18 +77,18 @@
     <name>LidarUser5Processor</name>
     <instrument type="amfEntity/instrument" id="1"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
-  </processor>
-  <processor>
+  </processor>-->
+  <!--<processor>
     <name>CeilometerProcessor</name>
     <instrument type="amfEntity/instrument" id="2"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="2">></calibrationInfo>
-  </processor>
+  </processor>-->
 
   <comment>This is a test file</comment>
- <!-- <inputDirectory>Z:\a96\MOCCHA\raw\</inputDirectory>-->
-  <!--<inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTest</inputDirectory>-->
-  <inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\ncas-ceil-1\</inputDirectory>
-  <outputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\DayTestOutput\</outputDirectory>
+  <!-- <inputDirectory>Z:\a96\MOCCHA\raw\</inputDirectory>-->
+  <inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\AMOF Projects\MOCCHA\ComplianceTestData\</inputDirectory>
+  <!--<inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\ncas-ceil-1\</inputDirectory>-->
+  <outputDirectory>C:\Temp</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>
   <!--<startTime>
@@ -100,16 +110,16 @@
   <startTime>
     <year>2018</year>
     <month>8</month>
-    <day>3</day>
+    <day>1</day>
     <hour>0</hour>
     <minute>0</minute>
     <second>0</second>
   </startTime>
   <endTime>
     <year>2018</year>
-    <month>8</month>
-    <day>5</day>
-    <hour>23</hour>
+    <month>9</month>
+    <day>1</day>
+    <hour>1</hour>
     <minute>59</minute>
     <second>59.99</second>
   </endTime>

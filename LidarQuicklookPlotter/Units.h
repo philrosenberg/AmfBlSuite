@@ -18,6 +18,8 @@ typedef sci::Physical<sci::DividedUnit<sci::Steradian<>, sci::Metre<>>, float> s
 typedef sci::Physical<sci::DividedUnit<sci::Steradian<>, sci::Metre<1, 3>>, float> steradianPerKilometreF;
 typedef sci::Physical<sci::DividedUnit<sci::Steradian<-1>, sci::Metre<1, 3>>, float> perSteradianPerKilometreF;
 typedef sci::Physical<sci::MultipliedUnit<sci::Steradian<-1>, sci::Metre<-1>>, float> perSteradianPerMetreF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Steradian<-1>, sci::Metre<-3>>, float> perSteradianRerMetreCubedF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Steradian<-2>, sci::Metre<-6>>, float> perSteradianSquaredPerMetreSixF;
 typedef sci::Physical<sci::Steradian<-1>, float> perSteradianF;
 typedef sci::Physical<sci::DividedUnit<sci::Metre<>, sci::Second<>>, float> metrePerSecondF;
 typedef sci::Physical<sci::DividedUnit<sci::Degree<>, sci::Second<>>, float> degreePerSecondF;

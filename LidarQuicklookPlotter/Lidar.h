@@ -349,6 +349,7 @@ const uint8_t lidarUserChangedGatesFlag = 6;
 const uint8_t lidarClippedWindProfileFlag = 7;
 const uint8_t lidarPaddedBackscatter = 8;
 const uint8_t lidarNonMatchingRanges = 9;
+const uint8_t lidarCoAndCrossMisaligned = 10;
 
 const std::vector<std::pair<uint8_t, sci::string>> lidarDopplerFlags
 {
@@ -361,5 +362,6 @@ const std::vector<std::pair<uint8_t, sci::string>> lidarDopplerFlags
 {lidarUserChangedGatesFlag, sU("user changed number of gates during the day so padding with fill value")},
 {lidarClippedWindProfileFlag, sU("wind profiles are clipped by manufacturer software so padding wih fill value")},
 {lidarPaddedBackscatter, sU("padded crosspolarised or copolarised data to match the other in dimension size")},
-{lidarNonMatchingRanges, sU("crosspolarised and copolarised data do not have matching ranges or directions")}
+{lidarNonMatchingRanges, sU("crosspolarised and copolarised data do not have matching ranges or directions")},
+{lidarCoAndCrossMisaligned, sU("copolarised and crosspolarised beams are misaligned")}
 };

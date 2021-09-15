@@ -56,7 +56,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	dataInfo.startTime = m_copolarisedProcessor.getTimesUtcTime()[0];
 	dataInfo.endTime = m_copolarisedProcessor.getTimesUtcTime().back();
 	dataInfo.featureType = FeatureType::timeSeriesProfile;
-	dataInfo.processingLevel = 1;
+	dataInfo.processingLevel = 3;
 	dataInfo.options = {};
 	dataInfo.productName = sU("depolarisation ratio");
 	dataInfo.processingOptions = processingOptions;
@@ -118,28 +118,48 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 		backscatterFlagsCross, startTimesCross, endTimesCross, maxProfilesPerScanCross, maxNGatesCross, pulsesPerRayCross, raysPerPointCross, focusCross, dopplerResolutionCross, gateLengthCross, pointsPerGateCross);
 		
 
-	if (startTimesCo.size() == 0)
+	if (startTimesCo.size() < 1)
 	{
 		progressReporter << sU("The co-polarisation file contains no data - no output file will be created.");
 		return;
 	}
-	if (startTimesCross.size() == 0)
+	if (startTimesCross.size() < 1)
 	{
 		progressReporter << sU("The cross-polarisation file contains no data - no output file will be created.");
 		return;
 	}
 
-	//We are going to fix the averaging period at 10.0 s for now
-	dataInfo.averagingPeriod = secondF(10.0);
+
+	secondF samplingInterval = sci::median(std::vector<sci::UtcTime>(startTimesCo.begin() + 1, startTimesCo.end()) - std::vector<sci::UtcTime>(startTimesCo.begin(), startTimesCo.end() - 1));
+
+	
+
+	//The averaging period will be the multiple of ten larger than the original sampling interval
+	dataInfo.averagingPeriod = secondF(10.0) *sci::ceil<unitlessF>(samplingInterval/secondF(10.0f));
 
 	//work out the sampling interval
-	{
+	/*{
 		std::vector<sci::TimeInterval> samplingIntervals = std::vector<sci::UtcTime>(startTimesCo.begin() + 1, startTimesCo.end()) - std::vector<sci::UtcTime>(startTimesCo.begin(), startTimesCo.end() - 1);
 		samplingIntervalCo = sci::median(samplingIntervals);
 		samplingIntervals = std::vector<sci::UtcTime>(startTimesCross.begin() + 1, startTimesCross.end()) - std::vector<sci::UtcTime>(startTimesCross.begin(), startTimesCross.end() - 1);
 		samplingIntervalCross = sci::median(samplingIntervals);
 		dataInfo.samplingInterval = (samplingIntervalCo + samplingIntervalCross) / unitlessF(2);
-	}
+	}*/
+	//Barbara just wants the sampling interval to be the same as the averagig period
+	dataInfo.samplingInterval = dataInfo.averagingPeriod;
+
+
+	//remove any low snr flags - the snr will be increased by the averaging
+	for (size_t i = 0; i < backscatterFlagsCo.size(); ++i)
+		for (size_t j = 0; j < backscatterFlagsCo[i].size(); ++j)
+			for (size_t k = 0; k < backscatterFlagsCo[i][j].size(); ++k)
+				if (backscatterFlagsCo[i][j][k] == lidarSnrBelow1Flag || backscatterFlagsCo[i][j][k] == lidarSnrBelow2Flag || backscatterFlagsCo[i][j][k] == lidarSnrBelow3Flag)
+					backscatterFlagsCo[i][j][k] = lidarGoodDataFlag;
+	for (size_t i = 0; i < backscatterFlagsCross.size(); ++i)
+		for (size_t j = 0; j < backscatterFlagsCross[i].size(); ++j)
+			for (size_t k = 0; k < backscatterFlagsCross[i][j].size(); ++k)
+				if (backscatterFlagsCross[i][j][k] == lidarSnrBelow1Flag || backscatterFlagsCross[i][j][k] == lidarSnrBelow2Flag || backscatterFlagsCross[i][j][k] == lidarSnrBelow3Flag)
+					backscatterFlagsCross[i][j][k] = lidarGoodDataFlag;
 
 	//We should have one co for each cross and the co should be jsut before the cross.
 	//go through the data and check this is the case. removing any unpaired data.
@@ -241,7 +261,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 		}
 	}
 	//Check that the values of the ranges and the angles are the same for cross and co data
-	for (size_t i = 0; i < rangesCo.size(); ++i)
+	/*for (size_t i = 0; i < rangesCo.size(); ++i)
 	{
 		bool goodProfile = true;
 		for (size_t j = 0; j < instrumentRelativeAzimuthAnglesCo[i].size(); ++j)
@@ -256,18 +276,27 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 		}
 		if (!goodProfile)
 		{
+			//ensure all data have the same size
 			size_t nGates = rangesCo[i].size();
+			rangesCross[i]= rangesCross[i];
+			backscattersCross[i].resize(nGates);
+			snrPlusOneCross.resize(nGates);
+			backscatterFlagsCross.resize(nGates);
+			backscattersCo[i].resize(nGates);
+			snrPlusOneCo.resize(nGates);
+			backscatterFlagsCo.resize(nGates);
 			for (size_t j = 0; j < backscattersCross[i].size(); ++j)
 			{
-				backscattersCross[i][j].assign(nGates, std::numeric_limits<perSteradianPerMetreF>::quiet_NaN());
-				snrPlusOneCross[i][j].assign(nGates, std::numeric_limits<unitlessF>::quiet_NaN());
-				backscatterFlagsCross[i][j].assign(nGates, lidarNonMatchingRanges);
-				backscattersCo[i][j].assign(nGates, std::numeric_limits<perSteradianPerMetreF>::quiet_NaN());
-				snrPlusOneCo[i][j].assign(nGates, std::numeric_limits<unitlessF>::quiet_NaN());
-				backscatterFlagsCo[i][j].assign(nGates, lidarNonMatchingRanges);
+				size_t nAngles = rangesCo[i][j].size();
+				backscattersCross[i][j].assign(nAngles, std::numeric_limits<perSteradianPerMetreF>::quiet_NaN());
+				snrPlusOneCross[i][j].assign(nAngles, std::numeric_limits<unitlessF>::quiet_NaN());
+				backscatterFlagsCross[i][j].assign(nAngles, lidarNonMatchingRanges);
+				backscattersCo[i][j].assign(nAngles, std::numeric_limits<perSteradianPerMetreF>::quiet_NaN());
+				snrPlusOneCo[i][j].assign(nAngles, std::numeric_limits<unitlessF>::quiet_NaN());
+				backscatterFlagsCo[i][j].assign(nAngles, lidarNonMatchingRanges);
 			}
 		}
-	}
+	}*/
 
 	//average over an appropriate time period. For now we're going with 10s
 	std::vector<sci::UtcTime> averagedTime;
@@ -275,6 +304,8 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	std::vector<std::vector< std::vector<perSteradianPerMetreF>>> averagedBackscatterCross;
 	std::vector<std::vector< std::vector<perSteradianPerMetreF>>> averagedBackscatterCo;
 	std::vector<std::vector<std::vector<unitlessF>>> depolarisation;
+	std::vector<std::vector< std::vector<unitlessF>>> averagedSnrPlusOneCross;
+	std::vector<std::vector< std::vector<unitlessF>>> averagedSnrPlusOneCo;
 	std::vector<std::vector<std::vector<uint8_t>>> averagedFlagsCross;
 	std::vector<std::vector<std::vector<uint8_t>>> averagedFlagsCo;
 	std::vector<std::vector<std::vector<uint8_t>>> depolarisationFlags;
@@ -283,20 +314,23 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	std::vector<std::vector<degreeF>> attitudeCorrectedAzimuthAngles;
 	std::vector<std::vector<degreeF>> attitudeCorrectedElevationAngles;
 	std::vector<second> integrationTimes;
+	std::vector<uint8_t> missmatchedProfileFlags;
 
 	averagedTime.reserve(backscattersCross.size());
 	averagedRanges.reserve(backscattersCross.size());
 	averagedBackscatterCross.reserve(backscattersCross.size());
 	averagedBackscatterCo.reserve(backscattersCross.size());
+	averagedSnrPlusOneCross.reserve(backscattersCross.size());
+	averagedSnrPlusOneCo.reserve(backscattersCross.size());
 	depolarisation.reserve(backscattersCross.size());
 	averagedFlagsCross.reserve(backscattersCross.size());
 	averagedFlagsCo.reserve(backscattersCross.size());
-	depolarisationFlags.reserve(backscattersCross.size());
 	instrumentRelativeAzimuthAngles.reserve(attitudeCorrectedAzimuthAnglesCo.size());
 	instrumentRelativeElevationAngles.reserve(attitudeCorrectedAzimuthAnglesCo.size());
 	attitudeCorrectedAzimuthAngles.reserve(attitudeCorrectedAzimuthAnglesCo.size());
 	attitudeCorrectedElevationAngles.reserve(attitudeCorrectedElevationAnglesCo.size());
 	integrationTimes.reserve(backscattersCross.size());
+	missmatchedProfileFlags.reserve(backscattersCross.size());
 
 	{
 		//put this inside its own scope to hide the i variable from the rest of the code
@@ -318,10 +352,19 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			//set the size up correctly and set all values to 0.0 sr-1 m-1
 			std::vector<std::vector<perSteradianPerMetreF>> crossSum(backscattersCross[i].size());
 			std::vector<std::vector<perSteradianPerMetreF>> coSum(backscattersCross[i].size());
+
+			std::vector<std::vector<perSteradianRerMetreCubedF>> crossSumRaw(backscattersCross[i].size());
+			std::vector<std::vector<perSteradianRerMetreCubedF>> coSumRaw(backscattersCross[i].size());
+			std::vector<std::vector<perSteradianSquaredPerMetreSixF>> crossNoiseSumSquared(backscattersCross[i].size());
+			std::vector<std::vector<perSteradianSquaredPerMetreSixF>> coNoiseSumSquared(backscattersCross[i].size());
 			for (size_t j = 0; j < backscattersCross[i].size(); ++j)
 			{
 				crossSum[j].assign(backscattersCross[i][j].size(), perSteradianPerMetreF(0.0));
 				coSum[j].assign(backscattersCross[i][j].size(), perSteradianPerMetreF(0.0));
+				crossSumRaw[j].assign(backscattersCross[i][j].size(), perSteradianRerMetreCubedF(0.0));
+				coSumRaw[j].assign(backscattersCross[i][j].size(), perSteradianRerMetreCubedF(0.0));
+				crossNoiseSumSquared[j].assign(backscattersCross[i][j].size(), perSteradianSquaredPerMetreSixF(0.0));
+				coNoiseSumSquared[j].assign(backscattersCross[i][j].size(), perSteradianSquaredPerMetreSixF(0.0));
 			}
 			//keep track of the flags while averaging - same dimension as crossSum and coSum
 			std::vector<std::vector<uint8_t>> worstFlagCo(backscattersCross[i].size());
@@ -350,6 +393,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 				if (count > 0)
 				{
 					//compare this profile against the first profile in the average period to see if it is compatible
+					//and if not, flag the profile
 					if (backscattersCross[i].size() != backscattersCross[i - count].size() //check for a change in number of range gates
 						|| sci::abs(rangesCo[i][0][0] - rangesCo[i - count][0][0]) > metreF(0.1f) //check for change in range resolution
 						|| sci::abs(rangesCross[i][0][0]-rangesCross[i-count][0][0]) > metreF(0.1f) //check for change in range resolution
@@ -358,13 +402,16 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 						|| (count >0 && startTimesCo[i+1]- startTimesCo[i] > dataInfo.samplingInterval*unitlessF(3.0f))) //check for large gaps
 					{
 						goodAverage = false;
-						break;
 					}
 				}
 				integrationTime += (startTimesCross[i] -startTimesCo[i]) * unitlessF(2.0); //calculate the integration time this way because we know co and cross match, but there could be a gap co to co
 				//add the current backscatters to the sums
 				crossSum += backscattersCross[i];
-				coSum += backscattersCross[i];
+				coSum += backscattersCo[i];
+				crossSumRaw += backscattersCross[i] / rangesCross[i] / rangesCross[i];
+				coSumRaw += backscattersCo[i] / rangesCo[i] /rangesCo[i];
+				crossNoiseSumSquared += sci::pow<2>((backscattersCross[i] / rangesCross[i] / rangesCross[i]) / (snrPlusOneCross[i] - unitlessF(1.0f)));
+				coNoiseSumSquared += sci::pow<2>((backscattersCo[i] / rangesCo[i] / rangesCo[i]) / (snrPlusOneCo[i] - unitlessF(1.0f)));
 				//track the worst flag over the averaging period
 				for (size_t j = 0; j < worstFlagCo.size(); ++j)
 					for (size_t k = 0; k < worstFlagCo[j].size(); ++k)
@@ -379,7 +426,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 				attitudeCorrectedAverageAzimuth += (attitudeCorrectedAzimuthAnglesCo[i] + attitudeCorrectedAzimuthAnglesCross[i]) / unitlessF(2);
 				attitudeCorrectedAverageElevation += (attitudeCorrectedElevationAnglesCo[i] + attitudeCorrectedElevationAnglesCross[i]) / unitlessF(2);
 
-				//increment the count for the average and the cueent time index
+				//increment the count for the average and the curent time index
 				++count;
 				++i;
 			}
@@ -387,56 +434,61 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			//When we get to here we have summed over a chunk of data and either flagged it as
 			//a good or bad chunk
 
-			if (goodAverage)
+
+
+			//add the averages to the appropriate variables
+			averagedTime.push_back(startTime);
+			averagedRanges.push_back(startRanges);
+			averagedFlagsCo.push_back(worstFlagCo);
+			averagedFlagsCross.push_back(worstFlagCr);
+			attitudeCorrectedAzimuthAngles.push_back(attitudeCorrectedAverageAzimuth);
+			attitudeCorrectedElevationAngles.push_back(attitudeCorrectedAverageElevation);
+			integrationTimes.push_back(integrationTime);
+			missmatchedProfileFlags.push_back(goodAverage ? lidarGoodDataFlag : lidarCoAndCrossMisaligned);
+
+			//we have to do things a little more convolutedly for multi-d arrays
+			//we append an empty multi-d array element and use convert to put the data into this element
+			//this is because although the result of the divide has equivalent units to the destination array
+			//the units are not equal (e.g. sr-1 m-1 sr m vs unitless). Assignment with vectors would require
+			//them to be equal 
+			depolarisation.push_back(std::vector<std::vector<unitlessF>>(0));
+			averagedBackscatterCo.push_back(std::vector<std::vector<perSteradianPerMetreF>>(0));
+			averagedBackscatterCross.push_back(std::vector<std::vector<perSteradianPerMetreF>>(0));
+			averagedSnrPlusOneCo.push_back(std::vector<std::vector<unitlessF>>(0));
+			averagedSnrPlusOneCross.push_back(std::vector<std::vector<unitlessF>>(0));
+			instrumentRelativeAzimuthAngles.push_back(std::vector<degreeF>(0));
+			instrumentRelativeElevationAngles.push_back(std::vector<degreeF>(0));
+			sci::convert(depolarisation.back(), crossSum / (crossSum + coSum));
+			sci::convert(averagedBackscatterCo.back(), coSum / unitlessF((unitlessF::valueType)count));
+			sci::convert(averagedBackscatterCross.back(), crossSum / unitlessF((unitlessF::valueType)count));
+			sci::convert(instrumentRelativeAzimuthAngles.back(), startInstrumentRelativeAzimuthAngles / unitlessF((unitlessF::valueType)count));
+			sci::convert(instrumentRelativeElevationAngles.back(), startInstrumentRelativeElevationAngles / unitlessF((unitlessF::valueType)count));
+			sci::convert(averagedSnrPlusOneCo.back(), coSumRaw / sci::root<2>(coNoiseSumSquared) + unitlessF(1.0f));
+			sci::convert(averagedSnrPlusOneCross.back(), crossSumRaw / sci::root<2>(crossNoiseSumSquared) + unitlessF(1.0f));
+
+				
+			
+
+			//it's worth reserving some space for the arrays early on to save multiple memory allocations and reassignments
+			if (averagedTime.size() == 5)
 			{
-				//we have a good average
+				size_t expectedAverages = startTimesCo.size() / (i / 5);
+				expectedAverages += expectedAverages / 5; //add 20% for good measure
 
-				//add the averages to the appropriate variables
-				averagedTime.push_back(startTime);
-				averagedRanges.push_back(startRanges);
-				depolarisationFlags.push_back(worstFlagDepol);
-				averagedFlagsCo.push_back(worstFlagCo);
-				averagedFlagsCross.push_back(worstFlagCr);
-				attitudeCorrectedAzimuthAngles.push_back(attitudeCorrectedAverageAzimuth);
-				attitudeCorrectedElevationAngles.push_back(attitudeCorrectedAverageElevation);
-				integrationTimes.push_back(integrationTime);
-
-				//we have to do things a little more convolutedly for multi-d arrays
-				//we append an empty multi-d array element and use convert to put the data into this element
-				//this is because although the result of the divide has equivalent units to the destination array
-				//the units are not equal (e.g. sr-1 m-1 sr m vs unitless). Assignment with vectors would require
-				//them to be equal 
-				depolarisation.push_back(std::vector<std::vector<unitlessF>>(0));
-				averagedBackscatterCo.push_back(std::vector<std::vector<perSteradianPerMetreF>>(0));
-				averagedBackscatterCross.push_back(std::vector<std::vector<perSteradianPerMetreF>>(0));
-				instrumentRelativeAzimuthAngles.push_back(std::vector<degreeF>(0));
-				instrumentRelativeElevationAngles.push_back(std::vector<degreeF>(0));
-				sci::convert(depolarisation.back(), crossSum / (crossSum + coSum));
-				sci::convert(averagedBackscatterCo.back(), coSum / unitlessF((unitlessF::valueType)count));
-				sci::convert(averagedBackscatterCross.back(), crossSum / unitlessF((unitlessF::valueType)count));
-				sci::convert(instrumentRelativeAzimuthAngles.back(), startInstrumentRelativeAzimuthAngles / unitlessF((unitlessF::valueType)count));
-				sci::convert(instrumentRelativeElevationAngles.back(), startInstrumentRelativeElevationAngles / unitlessF((unitlessF::valueType)count));
-
-				//it's worth reserving some space for the arrays early on to save multiple memory allocations and reassignments
-				if (averagedTime.size() == 5)
-				{
-					size_t expectedAverages = startTimesCo.size() / (i / 5);
-					expectedAverages += expectedAverages / 5; //add 20% for good measure
-
-					averagedTime.reserve(expectedAverages);
-					averagedRanges.reserve(expectedAverages);
-					depolarisationFlags.reserve(expectedAverages);
-					averagedFlagsCo.reserve(expectedAverages);
-					averagedFlagsCross.reserve(expectedAverages);
-					attitudeCorrectedAzimuthAngles.reserve(expectedAverages);
-					attitudeCorrectedElevationAngles.reserve(expectedAverages);
-					integrationTimes.reserve(expectedAverages);
-					depolarisation.reserve(expectedAverages);
-					averagedBackscatterCo.reserve(expectedAverages);
-					averagedBackscatterCross.reserve(expectedAverages);
-					instrumentRelativeAzimuthAngles.reserve(expectedAverages);
-					instrumentRelativeElevationAngles.reserve(expectedAverages);
-				}
+				averagedTime.reserve(expectedAverages);
+				averagedRanges.reserve(expectedAverages);
+				averagedFlagsCo.reserve(expectedAverages);
+				averagedFlagsCross.reserve(expectedAverages);
+				attitudeCorrectedAzimuthAngles.reserve(expectedAverages);
+				attitudeCorrectedElevationAngles.reserve(expectedAverages);
+				integrationTimes.reserve(expectedAverages);
+				depolarisation.reserve(expectedAverages);
+				averagedBackscatterCo.reserve(expectedAverages);
+				averagedBackscatterCross.reserve(expectedAverages);
+				instrumentRelativeAzimuthAngles.reserve(expectedAverages);
+				instrumentRelativeElevationAngles.reserve(expectedAverages);
+				averagedSnrPlusOneCo.reserve(expectedAverages);
+				averagedSnrPlusOneCross.reserve(expectedAverages);
 			}
 		}
 	}
@@ -447,9 +499,53 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 		return;
 	}
 
+	for (size_t i = 0; i < averagedBackscatterCo.size(); ++i)
+	{
+		for (size_t j = 0; j < averagedBackscatterCo[i].size(); ++j)
+		{
+			for (size_t k = 0; k < averagedBackscatterCo[i][j].size(); ++k)
+			{
+				if (averagedSnrPlusOneCo[i][j][k] < unitlessF(2.0) && averagedFlagsCo[i][j][k] == lidarGoodDataFlag)
+					averagedFlagsCo[i][j][k] = lidarSnrBelow1Flag;
+				if (averagedSnrPlusOneCo[i][j][k] < unitlessF(3.0) && averagedFlagsCo[i][j][k] == lidarGoodDataFlag)
+					averagedFlagsCo[i][j][k] = lidarSnrBelow3Flag;
+				if (averagedSnrPlusOneCo[i][j][k] < unitlessF(4.0) && averagedFlagsCo[i][j][k] == lidarGoodDataFlag)
+					averagedFlagsCo[i][j][k] = lidarSnrBelow1Flag;
+			}
+		}
+	}
+
+	for (size_t i = 0; i < averagedBackscatterCross.size(); ++i)
+	{
+		for (size_t j = 0; j < averagedBackscatterCross[i].size(); ++j)
+		{
+			for (size_t k = 0; k < averagedBackscatterCross[i][j].size(); ++k)
+			{
+				if (averagedSnrPlusOneCross[i][j][k] < unitlessF(2.0) && averagedFlagsCross[i][j][k] == lidarGoodDataFlag)
+					averagedFlagsCross[i][j][k] = lidarSnrBelow1Flag;
+				if (averagedSnrPlusOneCross[i][j][k] < unitlessF(3.0) && averagedFlagsCross[i][j][k] == lidarGoodDataFlag)
+					averagedFlagsCross[i][j][k] = lidarSnrBelow3Flag;
+				if (averagedSnrPlusOneCross[i][j][k] < unitlessF(4.0) && averagedFlagsCross[i][j][k] == lidarGoodDataFlag)
+					averagedFlagsCross[i][j][k] = lidarSnrBelow1Flag;
+			}
+		}
+	}
+
+	depolarisationFlags = averagedFlagsCo;
+	for (size_t i = 0; i < averagedBackscatterCross.size(); ++i)
+	{
+		for (size_t j = 0; j < averagedBackscatterCross[i].size(); ++j)
+		{
+			for (size_t k = 0; k < averagedBackscatterCross[i][j].size(); ++k)
+			{
+				depolarisationFlags[i][j][k] = std::max(std::max(averagedFlagsCo[i][j][k], averagedFlagsCross[i][j][k]), missmatchedProfileFlags[i]);
+			}
+		}
+	}
+
 	//check the median integration time
-	std::vector<second> sortedIntegrationTimes = sci::sort(integrationTimes);
-	dataInfo.averagingPeriod = secondF(sortedIntegrationTimes[sortedIntegrationTimes.size() / 2]);
+	//std::vector<second> sortedIntegrationTimes = sci::sort(integrationTimes);
+	//dataInfo.averagingPeriod = secondF(sortedIntegrationTimes[sortedIntegrationTimes.size() / 2]);
 
 	std::vector<sci::NcDimension*> nonTimeDimensions;
 	sci::NcDimension rangeIndexDimension(sU("index_of_range"), rangesCo.size() > 0 ? rangesCo[0].size() : 0);
@@ -526,11 +622,11 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	AmfNcVariable<degreeF, decltype(reshape(instrumentRelativeElevationAnglesCo, newShapeAngle)), true> elevationVariable(sU("sensor_view_angle_instrument_frame"), file, file.getTimeDimension(), sU("Scanning head elevation angle in the instrument frame of reference"), sU(""), reshape(instrumentRelativeElevationAngles, newShapeAngle), true, coordinatesData, cellMethodsAngles, 1);
 	AmfNcVariable<degreeF, decltype(attitudeCorrectedAzimuthAnglesCo), true> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & angleIndexDimension}, sU("Scanning head azimuth angle in the Earth frame of reference"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinatesData, cellMethodsAnglesEarthFrame, 1);
 	AmfNcVariable<degreeF, decltype(attitudeCorrectedElevationAnglesCo), true> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & angleIndexDimension}, sU("Scanning head elevation angle in the Earth frame of reference"), sU(""), attitudeCorrectedElevationAngles, true, coordinatesData, cellMethodsAnglesEarthFrame, 1);
-	AmfNcVariable<perSteradianPerMetreF, decltype(reshape(averagedBackscatterCo, newShape)), true> backscatterCoVariable(sU("attenuated_aerosol_backscatter_coefficient_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Planar Polarised)"), sU(""), reshape(averagedBackscatterCo, newShape), true, coordinatesData, cellMethodsData, 1);
-	//AmfNcVariable<unitlessF, decltype(reshape(snrPlusOneCo, newShape)), true> snrPlusOneCoVariable(sU("signal_to_noise_ratio_plus_1_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Planar Polarised)"), sU(""), reshape(snrPlusOneCo, newShape), true, coordinatesData, cellMethodsData, reshape(backscatterFlagsCo, newShape));
-	AmfNcVariable<perSteradianPerMetreF, decltype(reshape(averagedBackscatterCross, newShape)), true> backscatterCrossVariable(sU("attenuated_aerosol_backscatter_coefficient_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Cross Polarised)"), sU(""), reshape(averagedBackscatterCross, newShape), true, coordinatesData, cellMethodsData, 1);
-	//AmfNcVariable<unitlessF, decltype(reshape(snrPlusOneCross, newShape)), true> snrPlusOneCrossVariable(sU("signal_to_noise_ratio_plus_1_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Cross Polarised)"), sU(""), reshape(snrPlusOneCross, newShape), true, coordinatesData, cellMethodsData, reshape(backscatterFlagsCross, newShape));
-	AmfNcVariable<unitlessF, decltype(reshape(depolarisation, newShape)), true> depolarisationVariable(sU("depolarisation_ratio"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Volume Linear Depolarization Ratio"), sU(""), reshape(depolarisation, newShape), true, coordinatesData, cellMethodsData, 1);
+	AmfNcVariable<perSteradianPerMetreF, decltype(reshape(averagedBackscatterCo, newShape)), true> backscatterCoVariable(sU("attenuated_aerosol_backscatter_coefficient_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Planar Polarised)"), sU(""), reshape(averagedBackscatterCo, newShape), true, coordinatesData, cellMethodsData, reshape(averagedFlagsCo, newShape));
+	AmfNcVariable<unitlessF, decltype(reshape(snrPlusOneCo, newShape)), true> snrPlusOneCoVariable(sU("signal_to_noise_ratio_plus_1_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Planar Polarised)"), sU(""), reshape(averagedSnrPlusOneCo, newShape), true, coordinatesData, cellMethodsData, reshape(averagedFlagsCo, newShape));
+	AmfNcVariable<perSteradianPerMetreF, decltype(reshape(averagedBackscatterCross, newShape)), true> backscatterCrossVariable(sU("attenuated_aerosol_backscatter_coefficient_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Cross Polarised)"), sU(""), reshape(averagedBackscatterCross, newShape), true, coordinatesData, cellMethodsData, reshape(averagedFlagsCross, newShape));
+	AmfNcVariable<unitlessF, decltype(reshape(snrPlusOneCross, newShape)), true> snrPlusOneCrossVariable(sU("signal_to_noise_ratio_plus_1_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Cross Polarised)"), sU(""), reshape(averagedSnrPlusOneCross, newShape), true, coordinatesData, cellMethodsData, reshape(averagedFlagsCross, newShape));
+	AmfNcVariable<unitlessF, decltype(reshape(depolarisation, newShape)), true> depolarisationVariable(sU("depolarisation_ratio"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Volume Linear Depolarization Ratio"), sU(""), reshape(depolarisation, newShape), true, coordinatesData, cellMethodsData, reshape(depolarisationFlags, newShape));
 	AmfNcFlagVariable backscatterFlagCoVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient_co"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable backscatterFlagCrossVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient_cr"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable depolarisationFlagVariable(sU("qc_flag_depolarisation_ratio"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
@@ -543,9 +639,9 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	file.write(elevationVariable);
 	file.write(elevationVariableEarthFrame);
 	file.write(backscatterCoVariable);
-	//file.write(snrPlusOneCoVariable);
+	file.write(snrPlusOneCoVariable);
 	file.write(backscatterCrossVariable);
-	//file.write(snrPlusOneCrossVariable);
+	file.write(snrPlusOneCrossVariable);
 	file.write(depolarisationVariable);
 	file.write(backscatterFlagCoVariable, reshape(averagedFlagsCo, newShape));
 	file.write(backscatterFlagCrossVariable, reshape(averagedFlagsCross, newShape));
