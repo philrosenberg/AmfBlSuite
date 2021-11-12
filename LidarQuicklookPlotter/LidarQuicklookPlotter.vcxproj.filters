@@ -140,5 +140,8 @@
     <ClInclude Include="MicrowaveRadiometer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CellMethods.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -84,7 +84,7 @@ public:
 	}
 	void setstream(STREAM* stream)
 	{
-		m_stream = stream
+		m_stream = stream;
 	}
 	void disconnectStream()
 	{

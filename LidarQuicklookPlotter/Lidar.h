@@ -76,23 +76,23 @@ public:
 	void readData(const sci::string &inputFilename, const Platform &platform, ProgressReporter &progressReporter, bool clear);
 	virtual bool hasData() const override { return m_hasData; }
 	virtual std::vector<sci::string> getProcessingOptions() const = 0;
-	std::vector<second> getTimesSeconds() const;
-	std::vector<sci::UtcTime> getTimesUtcTime() const;
-	std::vector<std::vector<perSteradianPerMetreF>> getBetas() const;
-	std::vector<std::vector<metrePerSecondF>> getInstrumentRelativeDopplerVelocities() const;
-	std::vector<std::vector<metrePerSecondF>> getMotionCorrectedDopplerVelocities() const { return m_correctedDopplerVelocities; }
-	std::vector<std::vector<unitlessF>> getSignalToNoiseRatios() const;
-	std::vector<std::vector<unitlessF>> getSignalToNoiseRatiosPlusOne() const;
-	std::vector<std::vector<uint8_t>> getDopplerFlags() const { return m_dopplerFlags; }
-	std::vector<std::vector<uint8_t>> getBetaFlags() const { return m_betaFlags; }
-	std::vector<metreF> getGateBoundariesForPlotting(size_t profileIndex) const;
-	std::vector<metreF> getGateLowerBoundaries(size_t profileIndex) const;
-	std::vector<metreF> getGateUpperBoundaries(size_t profileIndex) const;
-	std::vector<metreF> getGateCentres(size_t profileIndex) const;
-	std::vector<degreeF> getAttitudeCorrectedAzimuths() const { return m_correctedAzimuths; }
-	std::vector<degreeF> getInstrumentRelativeElevations() const;
-	std::vector<degreeF> getInstrumentRelativeAzimuths() const;
-	std::vector<degreeF> getAttitudeCorrectedElevations() const { return m_correctedElevations; }
+	sci::GridData<second, 1> getTimesSeconds() const;
+	sci::GridData<sci::UtcTime, 1> getTimesUtcTime() const;
+	sci::GridData<perSteradianPerMetreF, 2> getBetas() const;
+	sci::GridData<metrePerSecondF, 2> getInstrumentRelativeDopplerVelocities() const;
+	sci::GridData<metrePerSecondF, 2> getMotionCorrectedDopplerVelocities() const { return m_correctedDopplerVelocities; }
+	sci::GridData<unitlessF, 2> getSignalToNoiseRatios() const;
+	sci::GridData<unitlessF, 2> getSignalToNoiseRatiosPlusOne() const;
+	sci::GridData<uint8_t, 2> getDopplerFlags() const { return m_dopplerFlags; }
+	sci::GridData<uint8_t, 2> getBetaFlags() const { return m_betaFlags; }
+	sci::GridData<metreF, 1> getGateBoundariesForPlotting(size_t profileIndex) const;
+	sci::GridData<metreF, 1> getGateLowerBoundaries(size_t profileIndex) const;
+	sci::GridData<metreF, 1> getGateUpperBoundaries(size_t profileIndex) const;
+	sci::GridData<metreF, 1> getGateCentres(size_t profileIndex) const;
+	sci::GridData<degreeF, 1> getAttitudeCorrectedAzimuths() const { return m_correctedAzimuths; }
+	sci::GridData<degreeF, 1> getInstrumentRelativeElevations() const;
+	sci::GridData<degreeF, 1> getInstrumentRelativeAzimuths() const;
+	sci::GridData<degreeF, 1> getAttitudeCorrectedElevations() const { return m_correctedElevations; }
 	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }
 	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
 	void setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent)
@@ -101,26 +101,57 @@ public:
 		PlotableLidar::setupCanvas(window, plot, extraDescriptor, parent, m_hplHeaders[0]);
 	}
 	const HplHeader &getHeaderForProfile(size_t profileIndex) { return m_hplHeaders[m_headerIndex[profileIndex]]; }
-	size_t getNGates(size_t profile) { return m_profiles[profile].nGates(); }
-	size_t getNFilesRead() { return m_hplHeaders.size(); }
-	size_t getPulsesPerRay(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].pulsesPerRay; }
-	size_t getNRays(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].nRays; }
-	metreF getFocus(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].focusRange; }
-	metrePerSecondF getDopplerResolution(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].dopplerResolution; }
-	metreF getGateLength(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].rangeGateLength; }
-	size_t getNPointsPerGate(size_t profile) { return m_hplHeaders[m_headerIndex[profile]].pointsPerGate; }
+	size_t getNGates(size_t profile) const { return m_profiles[profile].nGates(); }
+	size_t getMaxGates() const
+	{
+		size_t nGates = 0;
+		for (size_t i = 0; i < m_profiles.size(); ++i)
+			nGates = std::max(nGates, getNGates(i));
+		return nGates;
+	}
+	sci::GridData<size_t, 1> getProfilesPerFile() const
+	{
+		if (m_profiles.size() == 0)
+			return sci::GridData<size_t, 1>();
+		sci::GridData<size_t, 1> result;
+		result.reserve(m_profiles.size() / 6);
+		size_t currentProfilesPerFile = 1;
+		size_t currentHeaderIndex = m_headerIndex[0];
+		for (size_t i = 1; i < m_profiles.size(); ++i)
+		{
+			if (m_headerIndex[i] == currentHeaderIndex)
+				++currentProfilesPerFile;
+			else
+			{
+				result.push_back(currentProfilesPerFile);
+				currentProfilesPerFile = 1;
+			}
+		}
+		result.push_back(currentProfilesPerFile);
+		return result;
+	}
+	
+	size_t getNFilesRead() const { return m_hplHeaders.size(); }
+	size_t getNProfiles() const { return m_profiles.size(); }
+	size_t getPulsesPerRay(size_t profile) const { return m_hplHeaders[m_headerIndex[profile]].pulsesPerRay; }
+	size_t getNRays(size_t profile) const { return m_hplHeaders[m_headerIndex[profile]].nRays; }
+	metreF getFocus(size_t profile) const { return m_hplHeaders[m_headerIndex[profile]].focusRange; }
+	metrePerSecondF getDopplerResolution(size_t profile) const { return m_hplHeaders[m_headerIndex[profile]].dopplerResolution; }
+	metreF getGateLength(size_t profile) const { return m_hplHeaders[m_headerIndex[profile]].rangeGateLength; }
+	size_t getNPointsPerGate(size_t profile) const { return m_hplHeaders[m_headerIndex[profile]].pointsPerGate; }
+	virtual bool isStare() const { return false; }
 private:
 	bool m_hasData;
-	std::vector<HplHeader> m_hplHeaders;
-	std::vector<HplProfile> m_profiles;
-	std::vector<std::vector<uint8_t>> m_dopplerFlags;
-	std::vector<std::vector<uint8_t>> m_betaFlags;
+	std::vector<HplHeader> m_hplHeaders; //one per file
+	std::vector<HplProfile> m_profiles; //multiple per file
+	sci::GridData<uint8_t, 2> m_dopplerFlags; //same number as m_profiles
+	sci::GridData<uint8_t, 2> m_betaFlags; //same number as m_profiles
 	std::vector<size_t> m_headerIndex; //this links headers to profiles m_hplHeaders[m_headerIndex[i]] is the header for the ith profile
 	const InstrumentInfo m_instrumentInfo;
 	const CalibrationInfo m_calibrationInfo;
-	std::vector<degreeF> m_correctedAzimuths;
-	std::vector<degreeF> m_correctedElevations;
-	std::vector<std::vector<metrePerSecondF>> m_correctedDopplerVelocities;
+	sci::GridData<degreeF, 1> m_correctedAzimuths; //same number as m_profiles
+	sci::GridData<degreeF, 1> m_correctedElevations; //same number as m_profiles
+	sci::GridData<metrePerSecondF, 2> m_correctedDopplerVelocities;
 };
 
 class LidarScanningProcessor : public LidarBackscatterDopplerProcessor
@@ -130,19 +161,19 @@ public:
 		:LidarBackscatterDopplerProcessor(instrumentInfo, calibrationInfo, filePrefix, inCrossFolder, twoDigitTime)
 	{}
 	void formatDataForOutput(ProgressReporter& progressReporter,
-		std::vector<std::vector<std::vector<metreF>>>& ranges,
-		std::vector<std::vector<degreeF>>& instrumentRelativeAzimuthAngles,
-		std::vector<std::vector<degreeF>>& attitudeCorrectedAzimuthAngles,
-		std::vector<std::vector<degreeF>>& instrumentRelativeElevationAngles,
-		std::vector<std::vector<degreeF>>& attitudeCorrectedElevationAngles,
-		std::vector<std::vector<std::vector<metrePerSecondF>>>& instrumentRelativeDopplerVelocities,
-		std::vector<std::vector<std::vector<metrePerSecondF>>>& motionCorrectedDopplerVelocities,
-		std::vector<std::vector<std::vector<perSteradianPerMetreF>>>& backscatters,
-		std::vector<std::vector<std::vector<unitlessF>>>& snrsPlusOne,
-		std::vector < std::vector<std::vector<uint8_t>>>& dopplerVelocityFlags,
-		std::vector < std::vector<std::vector<uint8_t>>>& backscatterFlags,
-		std::vector<sci::UtcTime>& scanStartTimes,
-		std::vector<sci::UtcTime>& scanEndTimes,
+		sci::GridData<metreF, 3> & ranges,
+		sci::GridData<degreeF, 2>& instrumentRelativeAzimuthAngles,
+		sci::GridData<degreeF, 2>& attitudeCorrectedAzimuthAngles,
+		sci::GridData<degreeF, 2>& instrumentRelativeElevationAngles,
+		sci::GridData<degreeF, 2>& attitudeCorrectedElevationAngles,
+		sci::GridData<metrePerSecondF, 3>& instrumentRelativeDopplerVelocities,
+		sci::GridData<metrePerSecondF, 3>& motionCorrectedDopplerVelocities,
+		sci::GridData<perSteradianPerMetreF, 3>& backscatters,
+		sci::GridData<unitlessF, 3>& snrsPlusOne,
+		sci::GridData<uint8_t, 3>& dopplerVelocityFlags,
+		sci::GridData<uint8_t, 3>& backscatterFlags,
+		sci::GridData<sci::UtcTime, 1>& scanStartTimes,
+		sci::GridData<sci::UtcTime, 1>& scanEndTimes,
 		size_t& maxProfilesPerScan,
 		size_t& maxNGates,
 		size_t& pulsesPerRay,
@@ -161,6 +192,7 @@ class LidarStareProcessor : public LidarScanningProcessor
 public:
 	LidarStareProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo, bool inCrossFolder) : LidarScanningProcessor(instrumentInfo, calibrationInfo, sU("Stare"), inCrossFolder, true) {}
 	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual bool isStare() const override { return true; }
 	/*virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
 		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;

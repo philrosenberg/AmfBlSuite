@@ -8,6 +8,10 @@
 #include<svector/svector.h>
 #include<locale>
 #include<map>
+#include<svector/array.h>
+#include<ranges>
+#include"CellMethods.h"
+#include<svector/ArrayManipulation.h>
 
 struct HplHeader;
 class HplProfile;
@@ -15,6 +19,12 @@ class wxWindow;
 class ProgressReporter;
 class CampbellMessage2;
 class CampbellCeilometerProfile;
+
+template<class DEST_PHYSICAL>
+constexpr inline auto PhysicalToValueTransform(DEST_PHYSICAL source)
+{
+	return source.value<typename DEST_PHYSICAL::unit>();
+}
 
 
 struct InstrumentInfo
@@ -120,7 +130,7 @@ struct PlatformInfo
 	sci::string name;
 	PlatformType platformType;
 	DeploymentMode deploymentMode;
-	std::vector<sci::string> locationKeywords;
+	sci::GridData<sci::string, 1> locationKeywords;
 };
 #pragma warning(pop)
 
@@ -160,7 +170,7 @@ struct AttitudeAverage
 class Platform
 {
 public:
-	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, std::vector<sci::string> locationKeywords)
+	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, sci::GridData<sci::string, 1> locationKeywords)
 	{
 		m_platformInfo.name = name;
 		m_platformInfo.platformType = platformType;
@@ -226,7 +236,7 @@ private:
 class StationaryPlatform : public Platform
 {
 public:
-	StationaryPlatform(sci::string name, metreF altitude, degreeF latitude, degreeF longitude, std::vector<sci::string> locationKeywords, degreeF instrumentElevation, degreeF instrumentAzimuth, degreeF instrumentRoll)
+	StationaryPlatform(sci::string name, metreF altitude, degreeF latitude, degreeF longitude, sci::GridData<sci::string, 1> locationKeywords, degreeF instrumentElevation, degreeF instrumentAzimuth, degreeF instrumentRoll)
 		:Platform(name, PlatformType::stationary, DeploymentMode::land, locationKeywords)
 	{
 		m_latitude = latitude;
@@ -345,7 +355,7 @@ private:
 //the second element it adds or subtracts mutiples of 360 degrees
 //so that the absolute differnce between two elements is never
 //more than 180 degrees
-void makeContinuous(std::vector<degreeF> &angles);
+void makeContinuous(sci::GridData<degreeF, 1> &angles);
 
 
 //this function puts an angle into the -180 to +180 degree range
@@ -358,7 +368,7 @@ inline degreeF rangeLimitAngle(degreeF angle)
 class ShipPlatform : public Platform
 {
 public:
-	ShipPlatform(sci::string name, metreF altitude, const std::vector<sci::UtcTime> &times, const std::vector<degreeF> &latitudes, const std::vector<degreeF> &longitudes, const std::vector<sci::string> &locationKeywords, const std::vector<degreeF> &instrumentElevationsShipRelative, const std::vector<degreeF> &instrumentAzimuthsShipRelative, const std::vector<degreeF> &instrumentRollsShipRelative, const std::vector<degreeF> &shipCourses, const std::vector<metrePerSecondF> &shipSpeeds, const std::vector<degreeF> &shipElevations, const std::vector<degreeF> &shipAzimuths, const std::vector<degreeF> &shipRolls)
+	ShipPlatform(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, const sci::GridData<degreeF, 1> &instrumentElevationsShipRelative, const sci::GridData<degreeF, 1> &instrumentAzimuthsShipRelative, const sci::GridData<degreeF, 1> &instrumentRollsShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls)
 		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords)
 	{
 		m_previousLowerIndexEndTime = 0;
@@ -390,15 +400,15 @@ public:
 		makeContinuous(m_shipCoursesNoJumps);
 
 
-		m_instrumentElevationsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
-		m_instrumentAzimuthsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
-		m_instrumentRollsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
-		m_sinInstrumentElevationsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_sinInstrumentAzimuthsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_sinInstrumentRollsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_cosInstrumentElevationsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_cosInstrumentAzimuthsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_cosInstrumentRollsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_instrumentElevationsAbsolute = sci::GridData<degreeF, 1>(times.size(), degreeF(0.0));
+		m_instrumentAzimuthsAbsolute = sci::GridData<degreeF, 1>(times.size(), degreeF(0.0));
+		m_instrumentRollsAbsolute = sci::GridData<degreeF, 1>(times.size(), degreeF(0.0));
+		m_sinInstrumentElevationsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_sinInstrumentAzimuthsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_sinInstrumentRollsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_cosInstrumentElevationsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_cosInstrumentAzimuthsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_cosInstrumentRollsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
 
 		for (size_t i = 0; i < m_times.size(); ++i)
 		{
@@ -461,7 +471,7 @@ public:
 		m_instrumentAzimuthsAbsoluteNoJumps = shipAzimuths;
 		makeContinuous(m_instrumentAzimuthsAbsoluteNoJumps);
 	}
-	ShipPlatform(sci::string name, metreF altitude, const std::vector<sci::UtcTime> &times, const std::vector<degreeF> &latitudes, const std::vector<degreeF> &longitudes, const std::vector<sci::string> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const std::vector<degreeF> &shipCourses, const std::vector<metrePerSecondF> &shipSpeeds, const std::vector<degreeF> &shipElevations, const std::vector<degreeF> &shipAzimuths, const std::vector<degreeF> &shipRolls)
+	ShipPlatform(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls)
 		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords)
 	{
 		m_previousLowerIndexEndTime = 0;
@@ -498,15 +508,15 @@ public:
 		m_longitudesNoJumps = longitudes;
 		makeContinuous(m_longitudesNoJumps);
 
-		m_instrumentElevationsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
-		m_instrumentAzimuthsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
-		m_instrumentRollsAbsolute = std::vector<degreeF>(times.size(), degreeF(0.0));
-		m_sinInstrumentElevationsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_sinInstrumentAzimuthsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_sinInstrumentRollsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_cosInstrumentElevationsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_cosInstrumentAzimuthsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
-		m_cosInstrumentRollsAbsolute = std::vector<unitlessF>(times.size(), unitlessF(0.0));
+		m_instrumentElevationsAbsolute = sci::GridData<degreeF, 1>(times.size(), degreeF(0.0));
+		m_instrumentAzimuthsAbsolute = sci::GridData<degreeF, 1>(times.size(), degreeF(0.0));
+		m_instrumentRollsAbsolute = sci::GridData<degreeF, 1>(times.size(), degreeF(0.0));
+		m_sinInstrumentElevationsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_sinInstrumentAzimuthsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_sinInstrumentRollsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_cosInstrumentElevationsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_cosInstrumentAzimuthsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
+		m_cosInstrumentRollsAbsolute = sci::GridData<unitlessF, 1>(times.size(), unitlessF(0.0));
 
 		//We can save some calculations by doing these outside of the loop
 		unitlessF sinE = sci::sin(instrumentElevationShipRelative);
@@ -639,37 +649,37 @@ public:
 		return true;
 	}
 private:
-	std::vector<sci::UtcTime> m_times;
+	sci::GridData<sci::UtcTime, 1> m_times;
 	metreF m_altitude;
-	std::vector<degreeF> m_latitudes;
-	std::vector<degreeF> m_longitudes;
-	std::vector<degreeF> m_longitudesNoJumps;
-	std::vector<degreeF> m_instrumentElevationsAbsolute;
-	std::vector<degreeF> m_instrumentAzimuthsAbsolute;
-	std::vector<degreeF> m_instrumentAzimuthsAbsoluteNoJumps;
-	std::vector<degreeF> m_instrumentRollsAbsolute;
-	std::vector<degreeF> m_shipCourses;
-	std::vector<degreeF> m_shipElevations;
-	std::vector<degreeF> m_shipAzimuths;
-	std::vector<degreeF> m_shipRolls;
-	std::vector<degreeF> m_shipCoursesNoJumps;
-	std::vector<degreeF> m_shipAzimuthsNoJumps;
-	std::vector<metrePerSecondF> m_shipSpeeds;
-	std::vector<metrePerSecondF> m_u;
-	std::vector<metrePerSecondF> m_v;
+	sci::GridData<degreeF, 1> m_latitudes;
+	sci::GridData<degreeF, 1> m_longitudes;
+	sci::GridData<degreeF, 1> m_longitudesNoJumps;
+	sci::GridData<degreeF, 1> m_instrumentElevationsAbsolute;
+	sci::GridData<degreeF, 1> m_instrumentAzimuthsAbsolute;
+	sci::GridData<degreeF, 1> m_instrumentAzimuthsAbsoluteNoJumps;
+	sci::GridData<degreeF, 1> m_instrumentRollsAbsolute;
+	sci::GridData<degreeF, 1> m_shipCourses;
+	sci::GridData<degreeF, 1> m_shipElevations;
+	sci::GridData<degreeF, 1> m_shipAzimuths;
+	sci::GridData<degreeF, 1> m_shipRolls;
+	sci::GridData<degreeF, 1> m_shipCoursesNoJumps;
+	sci::GridData<degreeF, 1> m_shipAzimuthsNoJumps;
+	sci::GridData<metrePerSecondF, 1> m_shipSpeeds;
+	sci::GridData<metrePerSecondF, 1> m_u;
+	sci::GridData<metrePerSecondF, 1> m_v;
 
-	std::vector<unitlessF> m_sinInstrumentElevationsAbsolute;
-	std::vector<unitlessF> m_sinInstrumentAzimuthsAbsolute;
-	std::vector<unitlessF> m_sinInstrumentRollsAbsolute;
-	std::vector<unitlessF> m_cosInstrumentElevationsAbsolute;
-	std::vector<unitlessF> m_cosInstrumentAzimuthsAbsolute;
-	std::vector<unitlessF> m_cosInstrumentRollsAbsolute;
+	sci::GridData<unitlessF, 1> m_sinInstrumentElevationsAbsolute;
+	sci::GridData<unitlessF, 1> m_sinInstrumentAzimuthsAbsolute;
+	sci::GridData<unitlessF, 1> m_sinInstrumentRollsAbsolute;
+	sci::GridData<unitlessF, 1> m_cosInstrumentElevationsAbsolute;
+	sci::GridData<unitlessF, 1> m_cosInstrumentAzimuthsAbsolute;
+	sci::GridData<unitlessF, 1> m_cosInstrumentRollsAbsolute;
 
 	mutable size_t m_previousLowerIndexStartTime;
 	mutable size_t m_previousLowerIndexEndTime;
 
 	template<class T>
-	T findMean(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property) const
+	T findMean(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const sci::GridData<T, 1> &property) const
 	{
 		if (startTime < m_times[0] || endTime > m_times.back())
 			return std::numeric_limits<T>::quiet_NaN();
@@ -686,7 +696,7 @@ private:
 		return T(sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime));
 	}
 	template<class T>
-	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const std::vector<T> &property, T &mean, T &stdev, T &min, T &max, decltype(T(1) / sci::Physical<sci::Second<>, T::valueType>(1)) &rate) const
+	void findStatistics(const sci::UtcTime &startTime, const sci::UtcTime &endTime, const sci::GridData<T, 1> &property, T &mean, T &stdev, T &min, T &max, decltype(T(1) / sci::Physical<sci::Second<>, typename T::valueType>(1)) &rate) const
 	{
 		typedef std::remove_reference<decltype(rate)>::type rateType;
 		if (startTime < m_times[0] || endTime > m_times.back())
@@ -709,15 +719,15 @@ private:
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
 		size_t endUpperIndex = std::min(endLowerIndex + 1, m_times.size() - 1);
-		std::vector<sci::UtcTime> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex + 1);
-		std::vector<degreeF> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex + 1);
+		sci::GridData<sci::UtcTime, 1> subTimes(m_times.begin() + startLowerIndex, m_times.begin() + endUpperIndex + 1);
+		sci::GridData<degreeF, 1> subProperty(property.begin() + startLowerIndex, property.begin() + endUpperIndex + 1);
 		mean = T(sci::integrate(subTimes, subProperty, startTime, endTime) / (endTime - startTime));
-		min = sci::min<T>(subProperty);
-		max = sci::max<T>(subProperty);
+		min = sci::min(subProperty);
+		max = sci::max(subProperty);
 		size_t lowerIndexStart = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t lowerIndexEnd = std::min(findLowerIndex(endTime, false), m_times.size() - 1);
 		rate = rateType((sci::linearinterpolate(endTime, m_times[lowerIndexEnd], m_times[lowerIndexEnd + 1], property[lowerIndexEnd], property[lowerIndexEnd + 1]) - sci::linearinterpolate(startTime, m_times[lowerIndexStart], m_times[lowerIndexStart + 1], property[lowerIndexStart], property[lowerIndexStart + 1])) / (endTime - startTime));
-		std::vector<decltype(subProperty[0] * subProperty[0])>subPropertySquared(subProperty.size());
+		sci::GridData<decltype(subProperty[0] * subProperty[0]), 1>subPropertySquared(subProperty.size());
 		for (size_t i = 0; i < subProperty.size(); ++i)
 			subPropertySquared[i] = sci::pow<2>(subProperty[i] - mean);
 		auto variance = sci::integrate(subTimes, subPropertySquared, startTime, endTime) / (endTime - startTime);
@@ -748,7 +758,7 @@ private:
 class ShipPlatformShipRelativeCorrected : public ShipPlatform
 {
 public:
-	ShipPlatformShipRelativeCorrected(sci::string name, metreF altitude, const std::vector<sci::UtcTime> &times, const std::vector<degreeF> &latitudes, const std::vector<degreeF> &longitudes, const std::vector<sci::string> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const std::vector<degreeF> &shipCourses, const std::vector<metrePerSecondF> &shipSpeeds, const std::vector<degreeF> &shipElevations, const std::vector<degreeF> &shipAzimuths, const std::vector<degreeF> &shipRolls)
+	ShipPlatformShipRelativeCorrected(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls)
 		: ShipPlatform(name, altitude, times, latitudes, longitudes, locationKeywords, instrumentElevationShipRelative, instrumentAzimuthShipRelative, instrumentRollShipRelative, shipCourses, shipSpeeds, shipElevations, shipAzimuths, shipRolls)
 	{
 		m_sinInstrumentElevation = sci::sin(instrumentElevationShipRelative);
@@ -783,7 +793,7 @@ private:
 class AmfNcTimeVariable;
 class AmfNcLatitudeVariable;
 class AmfNcLongitudeVariable;
-template<class T, class U, bool SWAP=false>
+template<class T>
 class AmfNcVariable;
 
 enum class AmfVersion
@@ -792,11 +802,35 @@ enum class AmfVersion
 	v2_0_0
 };
 
+sci::string getFormattedDateTime(const sci::UtcTime& time, sci::string dateSeparator, sci::string timeSeparator, sci::string dateTimeSeparator);
+sci::string getFormattedDateOnly(const sci::UtcTime& time, sci::string separator);
+sci::string getFormattedTimeOnly(const sci::UtcTime& time, sci::string separator);
+
+//template<sci::IsGridDimsVt<1, degreeF> LAT_GRID, sci::IsGridDimsVt<1, degreeF> LON_GRID>
+template<class LAT_GRID, class LON_GRID>
+sci::string getBoundsString(const LAT_GRID& latitudes, const LON_GRID& longitudes)
+{
+	sci::stringstream result;
+	if (latitudes.size() == 1)
+	{
+		result << latitudes[0].value<degreeF>() << sU("N ") << longitudes[0].value<degreeF>() << sU("E");
+	}
+	else
+	{
+		result << sci::min(latitudes).value<degreeF>() << "N " << sci::min(longitudes).value<degreeF>() << "E, "
+			<< sci::max(latitudes).value<degreeF>() << "N " << sci::max(longitudes).value<degreeF>() << "E";
+	}
+
+	return result.str();
+}
+
 class OutputAmfNcFile : public sci::OutputNcFile
 {
 	//friend class AmfNcVariable;
 public:
 	//use this constructor to get the position info from the platform
+	template<class TIMES_GRID>
+	requires sci::IsGridDims<TIMES_GRID, 1>
 	OutputAmfNcFile(AmfVersion amfVersion,
 		const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
@@ -807,11 +841,21 @@ public:
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
 		const sci::string &title,
-		const std::vector<sci::UtcTime> &times,
+		const TIMES_GRID &times,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
 		const std::vector< sci::NcAttribute *> &globalAttributes = std::vector< sci::NcAttribute*>(0),
-		bool incrementMajorVersion = false);
+		bool incrementMajorVersion = false)
+		:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
+	{
+		initialise(amfVersion, directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
+			projectInfo, platform, title, times, sci::GridData<degreeF, 1>(), sci::GridData<degreeF, 1>(), nonTimeDimensions,
+			globalAttributes, incrementMajorVersion);
+	}
 	//use this constructor to provide instrument derived lats and lons, e.g. for sondes
+	template<class TIMES_GRID, class LAT_GRID, class LON_GRID>
+	requires (sci::IsGridDims<TIMES_GRID, 1> &&
+		sci::IsGridDims <LAT_GRID, 1> &&
+		sci::IsGridDims <LON_GRID, 1>)
 	OutputAmfNcFile(AmfVersion amfVersion,
 		const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
@@ -822,36 +866,40 @@ public:
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
 		const sci::string &title,
-		const std::vector<sci::UtcTime> &times,
-		const std::vector<degreeF> &latitudes,
-		const std::vector<degreeF> &longitudes,
+		const TIMES_GRID &times,
+		const LAT_GRID &latitudes,
+		const LON_GRID &longitudes,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
 		const std::vector< sci::NcAttribute*>& globalAttributes = std::vector< sci::NcAttribute*>(0),
-		bool incrementMajorVersion = false);
+		bool incrementMajorVersion = false)
+		:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
+	{
+		initialise(amfVersion, directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
+			projectInfo, platform, title, times, latitudes, longitudes, nonTimeDimensions, globalAttributes,
+			incrementMajorVersion);
+	}
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
 	void writeTimeAndLocationData(const Platform &platform);
-	template<class T>
-	void write(const T &variable)
+	/*template<class T>
+	void write(const T& variable)
 	{
 		auto data = variable.getData();
 		sci::replacenans(data, getFillValue<sci::VectorTraits<decltype(data)>::baseType>());
 		sci::OutputNcFile::write(variable, data);
-	}
-	template<>
-	void write<sci::NcAttribute>(const sci::NcAttribute & attribute)
+	}*/
+	void write(const sci::NcAttribute & attribute)
 	{
 		sci::OutputNcFile::write(attribute);
 	}
-	template<>
-	void write<sci::NcDimension>(const sci::NcDimension & dimension)
+	void write(const sci::NcDimension & dimension)
 	{
 		sci::OutputNcFile::write(dimension);
 	}
 	template<class T, class U>
 	void write(const T &variable, U data)
 	{
-		sci::replacenans(data, getFillValue<sci::VectorTraits<U>::baseType>());
-		sci::OutputNcFile::write(variable, data);
+		auto ncOutputView = sci::make_gridtransform_view(data, [](const U::value_type& val) { return T::transformForOutput(val); });
+		sci::OutputNcFile::write(variable, ncOutputView);
 	}
 	template<class T>
 	static T getFillValue()
@@ -864,6 +912,10 @@ public:
 		return TypeName<T>::name;
 	}
 private:
+	template<class TIMES_GRID, class LAT_GRID, class LON_GRID>
+	requires (sci::IsGridDims<TIMES_GRID, 1>&&
+		sci::IsGridDims <LAT_GRID, 1>&&
+		sci::IsGridDims <LON_GRID, 1>)
 	void initialise(AmfVersion amfVersion,
 		const sci::string &directory,
 		const InstrumentInfo &instrumentInfo,
@@ -874,12 +926,429 @@ private:
 		const ProjectInfo &projectInfo,
 		const Platform &platform,
 		sci::string title,
-		const std::vector<sci::UtcTime> &times,
-		const std::vector<degreeF> &latitudes,
-		const std::vector<degreeF> &longitudes,
+		TIMES_GRID times,
+		LAT_GRID latitudes,
+		LON_GRID longitudes,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions,
 		const std::vector< sci::NcAttribute*>& globalAttributes,
-		bool incrementMajorVersion);
+		bool incrementMajorVersion)
+	{
+		sci::assertThrow(latitudes.size() == longitudes.size(), sci::err(sci::SERR_USER, 0, sU("Cannot create a netcdf file with latitude data a different length to longitude data.")));
+		sci::assertThrow(latitudes.size() == 0 || latitudes.size() == times.size(), sci::err(sci::SERR_USER, 0, sU("Cannot create a netcdf with latitude and longitude data a different length to time data.")));
+		//construct the position and time variables;
+		m_years.reshape(m_times.shape());
+		m_months.reshape(m_times.shape());
+		m_dayOfMonths.reshape(m_times.shape());
+		m_dayOfYears.reshape(m_times.shape());
+		m_hours.reshape(m_times.shape());
+		m_minutes.reshape(m_times.shape());
+		m_seconds.reshape(m_times.shape());
+		for (size_t i = 0; i < times.size(); ++i)
+		{
+			m_years[i] = times[i].getYear();
+			m_months[i] = times[i].getMonth();
+			m_dayOfMonths[i] = times[i].getDayOfMonth();
+			m_dayOfYears[i] = (float)std::floor(((sci::UtcTime((int)m_years[i], (unsigned int)m_months[i], (unsigned int)m_dayOfMonths[i], 0, 0, 0) - sci::UtcTime((int)m_years[i], 1, 1, 0, 0, 0)) / secondF(60.0 * 60.0 * 24.0)).value<unitlessF>());
+			m_hours[i] = times[i].getHour();
+			m_minutes[i] = times[i].getMinute();
+			m_seconds[i] = (float)times[i].getSecond();
+		}
+		//sort out the position and attitude data
+		bool overriddenPlatformPosition = false;
+		if (latitudes.size() > 0)
+		{
+			//This means we are overriding the platform position data with instrument position data
+			//This would be the case for e.g. sondes
+			m_longitudes = longitudes;
+			m_latitudes = latitudes;
+			overriddenPlatformPosition = true;
+		}
+		else
+		{
+			//This means we didn't override the platform position
+			if (platform.getPlatformInfo().platformType == PlatformType::stationary)
+			{
+				degreeF longitude;
+				degreeF latitude;
+				metreF altitude;
+				platform.getLocation(times[times.size() / 2], times[times.size() / 2], latitude, longitude, altitude);
+				m_longitudes = { longitude };
+				m_latitudes = { latitude };
+			}
+			else
+			{
+				m_longitudes.reshape(m_times.shape(), degreeF(0));
+				m_latitudes.reshape(m_times.shape(), degreeF(0));
+				m_elevations.reshape(m_times.shape(), degreeF(0));
+				m_elevationStdevs.reshape(m_times.shape(), degreeF(0));
+				m_elevationMins.reshape(m_times.shape(), degreeF(0));
+				m_elevationMaxs.reshape(m_times.shape(), degreeF(0));
+				m_elevationRates.reshape(m_times.shape(), degreePerSecondF(0));
+				m_azimuths.reshape(m_times.shape(), degreeF(0));
+				m_azimuthStdevs.reshape(m_times.shape(), degreeF(0));
+				m_azimuthMins.reshape(m_times.shape(), degreeF(0));
+				m_azimuthMaxs.reshape(m_times.shape(), degreeF(0));
+				m_azimuthRates.reshape(m_times.shape(), degreePerSecondF(0));
+				m_rolls.reshape(m_times.shape(), degreeF(0));
+				m_rollStdevs.reshape(m_times.shape(), degreeF(0));
+				m_rollMins.reshape(m_times.shape(), degreeF(0));
+				m_rollMaxs.reshape(m_times.shape(), degreeF(0));
+				m_rollRates.reshape(m_times.shape(), degreePerSecondF(0));
+				m_courses.reshape(m_times.shape(), degreeF(0));
+				m_speeds.reshape(m_times.shape(), metrePerSecondF(0));
+				m_headings.reshape(m_times.shape(), degreeF(0));
+				metreF altitude;
+				AttitudeAverage elevation;
+				AttitudeAverage azimuth;
+				AttitudeAverage roll;
+				for (size_t i = 0; i < m_times.size(); ++i)
+				{
+					platform.getLocation(m_times[i], m_times[i] + dataInfo.averagingPeriod, m_latitudes[i], m_longitudes[i], altitude);
+					platform.getInstrumentAttitudes(m_times[i], m_times[i] + dataInfo.averagingPeriod, elevation, azimuth, roll);
+					m_elevations[i] = elevation.m_mean;
+					m_elevationStdevs[i] = elevation.m_stdev;
+					m_elevationMins[i] = elevation.m_min;
+					m_elevationMaxs[i] = elevation.m_max;
+					m_elevationRates[i] = elevation.m_rate;
+					m_azimuths[i] = azimuth.m_mean;
+					m_azimuthStdevs[i] = azimuth.m_stdev;
+					m_azimuthMins[i] = azimuth.m_min;
+					m_azimuthMaxs[i] = azimuth.m_max;
+					m_azimuthRates[i] = azimuth.m_rate;
+					m_rolls[i] = roll.m_mean;
+					m_rollStdevs[i] = roll.m_stdev;
+					m_rollMins[i] = roll.m_min;
+					m_rollMaxs[i] = roll.m_max;
+					m_rollRates[i] = roll.m_rate;
+					platform.getInstrumentVelocity(m_times[i], m_times[i] + dataInfo.averagingPeriod, m_speeds[i], m_courses[i]);
+					platform.getPlatformAttitudes(m_times[i], m_times[i] + dataInfo.averagingPeriod, elevation, azimuth, roll);
+					m_headings[i] = azimuth.m_mean;
+				}
+			}
+		}
+
+		//construct the file path, without the version number of suffix
+		sci::string baseFilename = directory;
+		//append a directory separator if needed
+		if (baseFilename.length() > 0 && baseFilename.back() != sU('\\') && baseFilename.back() != sU('/'))
+		{
+			baseFilename = baseFilename + sU('/');
+		}
+
+		//add the instument name
+		baseFilename = baseFilename + instrumentInfo.name;
+		//add the platform if there is one
+		if (platform.getPlatformInfo().name.length() > 0)
+			baseFilename = baseFilename + sU("_") + platform.getPlatformInfo().name;
+		//add either the date or date and time depending upon whether the data is
+		//continuous or a single measurement
+		if (dataInfo.continuous)
+			baseFilename = baseFilename + sU("_") + getFormattedDateOnly(dataInfo.startTime, sU(""));
+		else
+			baseFilename = baseFilename + sU("_") + getFormattedDateTime(dataInfo.startTime, sU(""), sU(""), sU("-"));
+		//add the data product name
+		baseFilename = baseFilename + sU("_") + dataInfo.productName;
+		//add any options
+		for (size_t i = 0; i < dataInfo.options.size(); ++i)
+			if (dataInfo.options[i].length() > 0)
+				baseFilename = baseFilename + sU("_") + dataInfo.options[i];
+
+		//Swap spaces for hyphens and make lower case
+		std::locale locale;
+		size_t replaceStart = baseFilename.find_last_of(sU("\\/"));
+		if (replaceStart == sci::string::npos)
+			replaceStart = 0;
+		else
+			++replaceStart;
+		for (size_t i = replaceStart; i < baseFilename.length(); ++i)
+		{
+			if (baseFilename[i] == sU(' '))
+				baseFilename[i] = sU('-');
+			else
+				baseFilename[i] = std::tolower(baseFilename[i], locale);
+		}
+
+		//construct the title for the dataset if one was not provided
+		if (title.length() == 0)
+		{
+			if (baseFilename.find_last_of(sU("\\/")) != sci::string::npos)
+				title = baseFilename.substr(baseFilename.find_last_of(sU("\\/")) + 1);
+			else
+				title = baseFilename;
+		}
+
+#ifdef _WIN32
+		//It is worth checking that the ansi version of the filename doesn't get corrupted
+		bool usedReplacement;
+		std::string ansiBaseFilename = sci::nativeCodepage(baseFilename, '?', usedReplacement);
+		sci::ostringstream message;
+		message << sU("The filename ") << baseFilename << sU(" contains Unicode characters that cannot be represented with an ANSI string. Please complain to NetCDF that their Windows library does not support Unicode filenames. The file cannot be created.");
+		sci::assertThrow(!usedReplacement, sci::err(sci::SERR_USER, 0, message.str()));
+#endif
+
+		//Check if there is an existing file and get its history
+		sci::string existingHistory;
+		size_t prevMajorVersion = 0;
+		size_t prevMinorVersion = 0;
+		std::vector<sci::string> existingFiles = sci::getAllFiles(directory, false, true);
+		for (size_t i = 0; i < existingFiles.size(); ++i)
+		{
+			if (existingFiles[i].substr(0, baseFilename.length()) == baseFilename)
+			{
+				try
+				{
+					sci::InputNcFile previous(existingFiles[i]);
+					sci::string thisExistingHistory = previous.getGlobalAttribute<sci::string>(sU("history"));
+					sci::string previousVersionString = previous.getGlobalAttribute<sci::string>(sU("product_version"));
+					sci::assertThrow(previousVersionString.length() > 1 && previousVersionString[0] == 'v', sci::err(sci::SERR_USER, 0, sU("Previous version of the file has an ill formatted product version.")));
+
+					int thisPrevMajorVersion;
+					int thisPrevMinorVersion;
+					//remove the v from the beginning of the version string
+					previousVersionString = previousVersionString.substr(1);
+					//replace the . with a space
+					if (previousVersionString.find_first_of(sU('.')) != sci::string::npos)
+					{
+						previousVersionString[previousVersionString.find_first_of(sU('.'))] = sU(' ');
+
+						//replace the b in beta (if it is there) with a space
+						if (previousVersionString.find_first_of(sU('b')) != sci::string::npos)
+						{
+							previousVersionString[previousVersionString.find_first_of(sU('b'))] = sU(' ');
+						}
+					}
+					else
+						previousVersionString = previousVersionString + sU(" 0"); //if the minor version isn't there, then add it
+
+					//put the string into a stream and read out the major and minor versions
+					sci::istringstream versionStream(previousVersionString);
+					versionStream >> thisPrevMajorVersion;
+					versionStream >> thisPrevMinorVersion;
+
+					if (thisPrevMajorVersion > prevMajorVersion || (thisPrevMajorVersion == prevMajorVersion && thisPrevMinorVersion > prevMinorVersion))
+					{
+						prevMajorVersion = thisPrevMajorVersion;
+						prevMinorVersion = thisPrevMinorVersion;
+						existingHistory = thisExistingHistory;
+					}
+				}
+				catch (...)
+				{
+					//we end up here if the file is not a valid netcdf or some other read problem
+					//This isn't an issue, just move on to the next file.
+				}
+			}
+		}
+
+		size_t majorVersion;
+		size_t minorVersion;
+		if (incrementMajorVersion || prevMajorVersion == 0)
+		{
+			majorVersion = prevMajorVersion + 1;
+			minorVersion = 0;
+		}
+		else
+		{
+			majorVersion = prevMajorVersion;
+			minorVersion = prevMinorVersion + 1;
+		}
+
+		sci::ostringstream versionString;
+		versionString << sU("v") << majorVersion << sU(".") << minorVersion << (dataInfo.processingOptions.beta ? sU("beta") : sU(""));
+
+		//Now construct the final filename
+		sci::ostringstream filenameStream;
+		filenameStream << baseFilename << sU("_") << versionString.str() << sU(".nc");
+		sci::string filename = filenameStream.str();
+
+		//create the new file
+		openWritable(filename, '_');
+		sci::string amfVersionString;
+		if (amfVersion == AmfVersion::v1_1_0)
+			amfVersionString = sU("1.1.0");
+		else if (amfVersion == AmfVersion::v2_0_0)
+			amfVersionString = sU("2.0.0");
+		else
+			throw(sci::err(sci::SERR_USER, 0, sU("Attempting to write a netcdf file with an unknown standard version.")));
+
+		write(sci::NcAttribute(sU("Conventions"), sci::string(sU("CF-1.6, NCAS-AMF-")) + amfVersionString));
+		write(sci::NcAttribute(sU("source"), instrumentInfo.description.length() > 0 ? instrumentInfo.description : sU("not available")));
+		write(sci::NcAttribute(sU("instrument_manufacturer"), instrumentInfo.manufacturer.length() > 0 ? instrumentInfo.manufacturer : sU("not available")));
+		write(sci::NcAttribute(sU("instrument_model"), instrumentInfo.model.length() > 0 ? instrumentInfo.model : sU("not available")));
+		write(sci::NcAttribute(sU("instrument_serial_number"), instrumentInfo.serial.length() > 0 ? instrumentInfo.serial : sU("not available")));
+		write(sci::NcAttribute(sU("instrument_software"), instrumentInfo.operatingSoftware.length() > 0 ? instrumentInfo.operatingSoftware : sU("not available")));
+		write(sci::NcAttribute(sU("instrument_software_version"), instrumentInfo.operatingSoftwareVersion.length() > 0 ? instrumentInfo.operatingSoftwareVersion : sU("not available")));
+		write(sci::NcAttribute(sU("creator_name"), author.name.length() > 0 ? author.name : sU("not available")));
+		write(sci::NcAttribute(sU("creator_email"), author.email.length() > 0 ? author.email : sU("not available")));
+		write(sci::NcAttribute(sU("creator_url"), author.orcidUrl.length() > 0 ? author.orcidUrl : sU("not available")));
+		write(sci::NcAttribute(sU("institution"), author.institution.length() > 0 ? author.institution : sU("not available")));
+		write(sci::NcAttribute(sU("processing_software_url"), processingsoftwareInfo.url.length() > 0 ? processingsoftwareInfo.url : sU("not available")));
+		write(sci::NcAttribute(sU("processing_software_version"), processingsoftwareInfo.version.length() > 0 ? processingsoftwareInfo.version : sU("not available")));
+		write(sci::NcAttribute(sU("calibration_sensitivity"), calibrationInfo.calibrationDescription.length() > 0 ? calibrationInfo.calibrationDescription : sU("not available")));
+		if (calibrationInfo.certificationDate == sci::UtcTime(0, 1, 1, 0, 0, 0))
+			write(sci::NcAttribute(sU("calibration_certification_date"), sU("not available")));
+		else
+			write(sci::NcAttribute(sU("calibration_certification_date"), getFormattedDateTime(calibrationInfo.certificationDate, sU("-"), sU(":"), sU("T"))));
+		write(sci::NcAttribute(sU("calibration_certification_url"), calibrationInfo.certificateUrl.length() > 0 ? calibrationInfo.certificateUrl : sU("not available")));
+		sci::stringstream samplingIntervalString;
+		samplingIntervalString << dataInfo.samplingInterval;
+		write(sci::NcAttribute(sU("sampling_interval"), samplingIntervalString.str()));
+		sci::stringstream averagingIntervalString;
+		averagingIntervalString << dataInfo.averagingPeriod;
+		write(sci::NcAttribute(sU("averaging_interval"), averagingIntervalString.str()));
+		write(sci::NcAttribute(sU("processing_level"), dataInfo.processingLevel));
+		write(sci::NcAttribute(sU("project"), projectInfo.name.length() > 0 ? projectInfo.name : sU("not available")));
+		write(sci::NcAttribute(sU("project_principal_investigator"), projectInfo.principalInvestigatorInfo.name.length() > 0 ? projectInfo.principalInvestigatorInfo.name : sU("not available")));
+		write(sci::NcAttribute(sU("project_principal_investigator_email"), projectInfo.principalInvestigatorInfo.email.length() > 0 ? projectInfo.principalInvestigatorInfo.email : sU("not available")));
+		write(sci::NcAttribute(sU("project_principal_investigator_url"), projectInfo.principalInvestigatorInfo.orcidUrl.length() > 0 ? projectInfo.principalInvestigatorInfo.orcidUrl : sU("not available")));
+		write(sci::NcAttribute(sU("licence"), sci::string(sU("Data usage licence - UK Government Open Licence agreement: http://www.nationalarchives.gov.uk/doc/open-government-licence"))));
+		write(sci::NcAttribute(sU("acknowledgement"), sci::string(sU("Acknowledgement of NCAS as the data provider is required whenever and wherever these data are used"))));
+		write(sci::NcAttribute(sU("platform"), platform.getPlatformInfo().name.length() > 0 ? platform.getPlatformInfo().name : sU("not available")));
+		write(sci::NcAttribute(sU("platform_type"), g_platformTypeStrings.find(platform.getPlatformInfo().platformType)->second));
+		write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings.find(platform.getPlatformInfo().deploymentMode)->second));
+		write(sci::NcAttribute(sU("title"), title));
+		write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings.find(dataInfo.featureType)->second));
+		write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
+		write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
+		write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(m_latitudes, m_longitudes)));
+		if (platform.getFixedAltitude())
+		{
+			degreeF latitude;
+			degreeF longitude;
+			metreF altitude;
+			platform.getLocation(m_times[m_times.size() / 2], m_times[m_times.size() / 2], latitude, longitude, altitude);
+			sci::stringstream altitudeString;
+			altitudeString << altitude;
+			write(sci::NcAttribute(sU("platform_altitude"), altitudeString.str()));
+		}
+		else
+		{
+			write(sci::NcAttribute(sU("platform_altitude"), sci::string(sU("Not Applicable"))));
+		}
+		sci::stringstream locationKeywords;
+		if (platform.getPlatformInfo().locationKeywords.size() > 0)
+			locationKeywords << platform.getPlatformInfo().locationKeywords[0];
+		for (size_t i = 1; i < platform.getPlatformInfo().locationKeywords.size(); ++i)
+			locationKeywords << ", " << platform.getPlatformInfo().locationKeywords[i];
+		write(sci::NcAttribute(sU("location_keywords"), locationKeywords.str()));
+		if (amfVersionString == sU("1.1.0"))
+			write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/barbarabrooks/NCAS-GENERAL-v1.1.0"))));
+		else
+			write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/releases/tag/v")) + amfVersionString));
+		write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science.") : sU(""))));
+
+		for (size_t i = 0; i < globalAttributes.size(); ++i)
+			write(*globalAttributes[i]);
+
+		sci::string processingReason = dataInfo.reasonForProcessing;
+		if (processingReason.length() == 0)
+			processingReason = sU("Processed.");
+
+		if (existingHistory.length() == 0)
+		{
+			existingHistory = getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T")) + sU(" - Data collected.");
+		}
+
+		sci::UtcTime now = sci::UtcTime::now();
+		sci::ostringstream history;
+		history << existingHistory + sU("\n") + getFormattedDateTime(now, sU("-"), sU(":"), sU("T")) + sU(" ") + versionString.str() << sU(" ") + processingReason;
+		write(sci::NcAttribute(sU("history"), history.str()));
+		write(sci::NcAttribute(sU("product_version"), versionString.str()));
+		write(sci::NcAttribute(sU("last_revised_date"), getFormattedDateTime(now, sU("-"), sU(":"), sU("T"))));
+
+		//Now add the time dimension
+		write(m_timeDimension);
+		//we also need to add a lat and lon dimension, although we don't actually use them
+		//this helps indexing. They have size 1 for stationary platforms or same as time
+		//for moving platforms.
+		//Note for trajectory data we do not include the lat and lon dimensions
+		sci::NcDimension longitudeDimension(sU("longitude"), m_longitudes.size());
+		sci::NcDimension latitudeDimension(sU("latitude"), m_latitudes.size());
+		if (dataInfo.featureType != FeatureType::trajectory)
+		{
+			write(longitudeDimension);
+			write(latitudeDimension);
+		}
+		//and any other dimensions
+		for (size_t i = 0; i < nonTimeDimensions.size(); ++i)
+			write(*nonTimeDimensions[i]);
+
+		//create the time variables, but do not write the data as we need to stay in define mode
+		//so the user can add other variables
+		m_timeVariable.reset(new AmfNcTimeVariable(*this, getTimeDimension(), m_times));
+		m_dayOfYearVariable.reset(new AmfNcVariable<float>(sU("day_of_year"), *this, getTimeDimension(), sU("Day of Year"), sU(""), sU("1"), m_dayOfYears, false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), sci::GridData<uint8_t, 0>(1)));
+		m_yearVariable.reset(new AmfNcVariable<int>(sU("year"), *this, getTimeDimension(), sU("Year"), sU(""), sU("1"), m_years, false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), sci::GridData<uint8_t, 0>(1)));
+		m_monthVariable.reset(new AmfNcVariable<int>(sU("month"), *this, getTimeDimension(), sU("Month"), sU(""), sU("1"), m_months, false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), sci::GridData<uint8_t, 0>(1)));
+		m_dayVariable.reset(new AmfNcVariable<int>(sU("day"), *this, getTimeDimension(), sU("Day"), sU(""), sU("1"), m_dayOfMonths, false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), sci::GridData<uint8_t, 0>(1)));
+		m_hourVariable.reset(new AmfNcVariable<int>(sU("hour"), *this, getTimeDimension(), sU("Hour"), sU(""), sU("1"), m_hours, false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), sci::GridData<uint8_t, 0>(1)));
+		m_minuteVariable.reset(new AmfNcVariable<int>(sU("minute"), *this, getTimeDimension(), sU("Minute"), sU(""), sU("1"), m_minutes, false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), sci::GridData<uint8_t, 0>(1)));
+		m_secondVariable.reset(new AmfNcVariable<float>(sU("second"), *this, getTimeDimension(), sU("Second"), sU(""), sU("1"), m_seconds, false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), sci::GridData<uint8_t, 0>(1)));
+
+		//for trajectories, the lat/lon depend on the time dimension, not the lat/lon dimensions (which aren't created)
+		if (dataInfo.featureType == FeatureType::trajectory)
+		{
+			m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, m_timeDimension, m_longitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
+			m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, m_timeDimension, m_latitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
+		}
+		else
+		{
+			m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, m_longitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
+			m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, m_latitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
+		}
+
+		if (platform.getPlatformInfo().platformType == PlatformType::moving && !overriddenPlatformPosition)
+		{
+			std::vector<std::pair<sci::string, CellMethod>> motionCellMethods{ {sU("time"), CellMethod::mean} };
+			std::vector<std::pair<sci::string, CellMethod>> motionStdevCellMethods{ {sU("time"), CellMethod::standardDeviation} };
+			std::vector<std::pair<sci::string, CellMethod>> motionMinCellMethods{ {sU("time"), CellMethod::min} };
+			std::vector<std::pair<sci::string, CellMethod>> motionMaxCellMethods{ {sU("time"), CellMethod::max} };
+			std::vector<sci::string> motionCoordinates{ sU("longitude"), sU("latitude") };
+
+
+			if (sci::anyTrue(m_courses == m_courses))
+				m_courseVariable.reset(new AmfNcVariable<degreeF>(sU("platform_course"), *this, getTimeDimension(), sU("Direction in which the platform is travelling"), sU("platform_course"), m_courses, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+			if (sci::anyTrue(m_speeds == m_speeds))
+				m_speedVariable.reset(new AmfNcVariable<metrePerSecondF>(sU("platform_speed_wrt_ground"), *this, getTimeDimension(), sU("Platform speed with respect to ground"), sU("platform_speed_wrt_ground"), m_speeds, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+			if (sci::anyTrue(m_headings == m_headings))
+				m_orientationVariable.reset(new AmfNcVariable<degreeF>(sU("platform_orientation"), *this, getTimeDimension(), sU("Direction in which \"front\" of platform is pointing"), sU("platform_orientation"), m_headings, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+
+			if (sci::anyTrue(m_elevations == m_elevations))
+			{
+				m_instrumentPitchVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_pitch_angle"), *this, getTimeDimension(), sU("Instrument Pitch Angle"), sU(""), m_elevations, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentPitchStdevVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_pitch_standard_deviation"), *this, getTimeDimension(), sU("Instrument Pitch Angle Standard Deviation"), sU(""), m_elevationStdevs, true, motionCoordinates, motionStdevCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentPitchMinVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_pitch_minimum"), *this, getTimeDimension(), sU("Instrument Pitch Angle Minimum"), sU(""), m_elevationMins, true, motionCoordinates, motionMinCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentPitchMaxVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_pitch_maximum"), *this, getTimeDimension(), sU("Instrument Pitch Angle Maximum"), sU(""), m_elevationMaxs, true, motionCoordinates, motionMaxCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentPitchRateVariable.reset(new AmfNcVariable<degreePerSecondF>(sU("instrument_pitch_rate"), *this, getTimeDimension(), sU("Instrument Pitch Angle Rate of Change"), sU(""), m_elevationRates, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+			}
+
+			if (sci::anyTrue(m_azimuths == m_azimuths))
+			{
+				m_instrumentYawVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_yaw_angle"), *this, getTimeDimension(), sU("Instrument Yaw Angle"), sU(""), m_azimuths, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentYawStdevVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_yaw_standard_deviation"), *this, getTimeDimension(), sU("Instrument Yaw Angle Standard Deviation"), sU(""), m_azimuthStdevs, true, motionCoordinates, motionStdevCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentYawMinVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_yaw_minimum"), *this, getTimeDimension(), sU("Instrument Yaw Angle Minimum"), sU(""), m_azimuthMins, true, motionCoordinates, motionMinCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentYawMaxVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_yaw_maximum"), *this, getTimeDimension(), sU("Instrument Yaw Angle Maximum"), sU(""), m_azimuthMaxs, true, motionCoordinates, motionMaxCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentYawRateVariable.reset(new AmfNcVariable<degreePerSecondF>(sU("instrument_yaw_rate"), *this, getTimeDimension(), sU("Instrument Yaw Angle Rate of Change"), sU(""), m_azimuthRates, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+			}
+
+			if (sci::anyTrue(m_rolls == m_rolls))
+			{
+				m_instrumentRollVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_roll_angle"), *this, getTimeDimension(), sU("Instrument Roll Angle"), sU(""), m_rolls, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentRollStdevVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_roll_standard_deviation"), *this, getTimeDimension(), sU("Instrument Roll Angle Standard Deviation"), sU(""), m_rollStdevs, true, motionCoordinates, motionStdevCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentRollMinVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_roll_minimum"), *this, getTimeDimension(), sU("Instrument Roll Angle Minimum"), sU(""), m_rollMins, true, motionCoordinates, motionMinCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentRollMaxVariable.reset(new AmfNcVariable<degreeF>(sU("instrument_roll_maximum"), *this, getTimeDimension(), sU("Instrument Roll Angle Maximum"), sU(""), m_rollMaxs, true, motionCoordinates, motionMaxCellMethods, sci::GridData<uint8_t, 0>(1)));
+				m_instrumentRollRateVariable.reset(new AmfNcVariable<degreePerSecondF>(sU("instrument_roll_rate"), *this, getTimeDimension(), sU("Instrument Roll Angle Rate of Change"), sU(""), m_rollRates, true, motionCoordinates, motionCellMethods, sci::GridData<uint8_t, 0>(1)));
+			}
+
+		}
+		//and the time variable
+		/*std::vector<double> secondsAfterEpoch(times.size());
+		sci::UtcTime epoch(1970, 1, 1, 0, 0, 0.0);
+		for (size_t i = 0; i < times.size(); ++i)
+			secondsAfterEpoch[i] = times[i] - epoch;
+		//this will end define mode!
+		write(AmfNcTimeVariable(*this, m_timeDimension), secondsAfterEpoch);*/
+
+	}
 	template<class T>
 	struct Fill
 	{
@@ -979,62 +1448,62 @@ private:
 	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
 	std::unique_ptr<AmfNcLatitudeVariable> m_latitudeVariable;
 	std::unique_ptr<AmfNcLongitudeVariable> m_longitudeVariable;
-	std::unique_ptr<AmfNcVariable<float, std::vector<float>>> m_dayOfYearVariable;
-	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_yearVariable;
-	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_monthVariable;
-	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_dayVariable;
-	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_hourVariable;
-	std::unique_ptr<AmfNcVariable<int32_t, std::vector<int32_t>>> m_minuteVariable;
-	std::unique_ptr<AmfNcVariable<float, std::vector<float>>> m_secondVariable;
+	std::unique_ptr<AmfNcVariable<float>> m_dayOfYearVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_yearVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_monthVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_dayVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_hourVariable;
+	std::unique_ptr<AmfNcVariable<int32_t>> m_minuteVariable;
+	std::unique_ptr<AmfNcVariable<float>> m_secondVariable;
 
 	//only used for moving platforms
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_courseVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_orientationVariable;
-	std::unique_ptr<AmfNcVariable<metrePerSecondF, std::vector<metrePerSecondF>>> m_speedVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentPitchVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentPitchStdevVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentPitchMinVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentPitchMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecondF, std::vector<degreePerSecondF>>> m_instrumentPitchRateVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentRollVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentRollStdevVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentRollMinVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentRollMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecondF, std::vector<degreePerSecondF>>> m_instrumentRollRateVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentYawVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentYawStdevVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentYawMinVariable;
-	std::unique_ptr<AmfNcVariable<degreeF, std::vector<degreeF>>> m_instrumentYawMaxVariable;
-	std::unique_ptr<AmfNcVariable<degreePerSecondF, std::vector<degreePerSecondF>>> m_instrumentYawRateVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_courseVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_orientationVariable;
+	std::unique_ptr<AmfNcVariable<metrePerSecondF>> m_speedVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentPitchVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentPitchStdevVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentPitchMinVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentPitchMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecondF>> m_instrumentPitchRateVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentRollVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentRollStdevVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentRollMinVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentRollMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecondF>> m_instrumentRollRateVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentYawVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentYawStdevVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentYawMinVariable;
+	std::unique_ptr<AmfNcVariable<degreeF>> m_instrumentYawMaxVariable;
+	std::unique_ptr<AmfNcVariable<degreePerSecondF>> m_instrumentYawRateVariable;
 
-	std::vector<sci::UtcTime> m_times;
-	std::vector<int> m_years;
-	std::vector<int> m_months;
-	std::vector<int> m_dayOfMonths;
-	std::vector<float> m_dayOfYears;
-	std::vector<int> m_hours;
-	std::vector<int> m_minutes;
-	std::vector<float> m_seconds;
-	std::vector<degreeF> m_latitudes;
-	std::vector<degreeF> m_longitudes;
-	std::vector<degreeF> m_elevations;
-	std::vector<degreeF> m_elevationStdevs;
-	std::vector<degreeF> m_elevationMins;
-	std::vector<degreeF> m_elevationMaxs;
-	std::vector<degreePerSecondF> m_elevationRates;
-	std::vector<degreeF> m_azimuths;
-	std::vector<degreeF> m_azimuthStdevs;
-	std::vector<degreeF> m_azimuthMins;
-	std::vector<degreeF> m_azimuthMaxs;
-	std::vector<degreePerSecondF> m_azimuthRates;
-	std::vector<degreeF> m_rolls;
-	std::vector<degreeF> m_rollStdevs;
-	std::vector<degreeF> m_rollMins;
-	std::vector<degreeF> m_rollMaxs;
-	std::vector<degreePerSecondF> m_rollRates;
-	std::vector<degreeF> m_courses;
-	std::vector<metrePerSecondF> m_speeds;
-	std::vector<degreeF> m_headings;
+	sci::GridData<sci::UtcTime, 1> m_times;
+	sci::GridData<int, 1> m_years;
+	sci::GridData<int, 1> m_months;
+	sci::GridData<int, 1> m_dayOfMonths;
+	sci::GridData<float, 1> m_dayOfYears;
+	sci::GridData<int, 1> m_hours;
+	sci::GridData<int, 1> m_minutes;
+	sci::GridData<float, 1> m_seconds;
+	sci::GridData<degreeF, 1> m_latitudes;
+	sci::GridData<degreeF, 1> m_longitudes;
+	sci::GridData<degreeF, 1> m_elevations;
+	sci::GridData<degreeF, 1> m_elevationStdevs;
+	sci::GridData<degreeF, 1> m_elevationMins;
+	sci::GridData<degreeF, 1> m_elevationMaxs;
+	sci::GridData<degreePerSecondF, 1> m_elevationRates;
+	sci::GridData<degreeF, 1> m_azimuths;
+	sci::GridData<degreeF, 1> m_azimuthStdevs;
+	sci::GridData<degreeF, 1> m_azimuthMins;
+	sci::GridData<degreeF, 1> m_azimuthMaxs;
+	sci::GridData<degreePerSecondF, 1> m_azimuthRates;
+	sci::GridData<degreeF, 1> m_rolls;
+	sci::GridData<degreeF, 1> m_rollStdevs;
+	sci::GridData<degreeF, 1> m_rollMins;
+	sci::GridData<degreeF, 1> m_rollMaxs;
+	sci::GridData<degreePerSecondF, 1> m_rollRates;
+	sci::GridData<degreeF, 1> m_courses;
+	sci::GridData<metrePerSecondF, 1> m_speeds;
+	sci::GridData<degreeF, 1> m_headings;
 };
 
 template<class T>
@@ -1065,227 +1534,111 @@ typename std::enable_if<std::is_integral<T>::value, T>::type getDefault()
 	return std::numeric_limits<T>::max();
 }*/
 
-template<class T>
-bool constexpr isValid(const T &value, uint8_t flag)
+template<sci::IsGrid DATA_GRID, sci::IsGrid FLAGS_GRID, class T>
+void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 {
-	if (flag != 1)
-		return false;
-	if (std::numeric_limits<T>::has_quiet_NaN)
-		return value == value;
-	else
-		return value != getDefault<T>();
-}
-
-template<class T, class FLAG_TYPE>
-void getMinMax(const std::vector<T> &data, const FLAG_TYPE &flags, T &min, T &max)
-{
+	static_assert(FLAGS_GRID::ndims <= DATA_GRID::ndims, "Cannot find the min/max of data when the flag has more dimensions than the data.");
 	min = getDefault<T>();
 	max = getDefault<T>();
-	//find the first non fill value
-	auto iter = data.begin();
-	if constexpr (std::is_integral<FLAG_TYPE> ::value)
+
+	if (data.size() == 0)
+		return;
+
+	if constexpr (FLAGS_GRID::ndims == 0)
 	{
-		for (; iter != data.end(); ++iter)
+		//flags is a scalar
+
+		//if flags is zero, we have essentially flagged everything out
+		if (flags[{}] !=1)
+			return;
+
+		min = std::numeric_limits<T>::max();
+		max = std::numeric_limits<T>::min();
+		for (auto const & d : data)
 		{
-			if (isValid(*iter, flags))
+			if (d == d)
 			{
-				min = *iter;
-				max = *iter;
-				break;
+				min = std::min(min, d);
+				max = std::max(max, d);
 			}
 		}
-		//now go through the remaining data and find the min/max
-		for (; iter != data.end(); ++iter)
+		if (min == std::numeric_limits<T>::max() || min != min)
+			min = getDefault<T>();
+		if (max == std::numeric_limits<T>::min() || max != max)
+			max = getDefault<T>();
+	}
+	else if constexpr (FLAGS_GRID::ndims == DATA_GRID::ndims)
+	{
+		//flags has the same number of dimensions as data, we can work through them both in sync
+
+		min = std::numeric_limits<T>::max();
+		max = std::numeric_limits<T>::min();
+		auto iterData = data.begin();
+		auto iterFlags = flags.begin();
+		for (; iterData != data.end(); ++iterData, ++iterFlags)
 		{
-			if (isValid(*iter, flags))
+			if (*iterFlags ==1 && *iterData == *iterData)
 			{
-				min = std::min(min, *iter);
-				max = std::max(max, *iter);
+				min = std::min(min, *iterData);
+				max = std::max(max, *iterData);
 			}
 		}
 	}
 	else
 	{
-		for (; iter != data.end(); ++iter)
+		//flags has fewer dimensions than data, we have to work through flags slower than data
+		const size_t dimsDiff = DATA_GRID::ndims - FLAGS_GRID::ndims;
+		const size_t dimToWatch = DATA_GRID::ndims - 1 - dimsDiff;
+		size_t stride = data.getStride()[dimToWatch];
+
+		min = std::numeric_limits<T>::max();
+		max = std::numeric_limits<T>::min();
+		auto iterData = data.begin();
+		auto iterFlags = flags.begin();
+		size_t index;
+		for (; iterData != data.end(); ++iterData, ++index)
 		{
-			if (isValid(*iter, flags[iter-data.begin()]))
+			if (*iterFlags ==1 && *iterData == *iterData)
 			{
-				min = *iter;
-				max = *iter;
-				break;
+				min = std::min(min, *iterData);
+				max = std::max(max, *iterData);
 			}
-		}
-		//now go through the remaining data and find the min/max
-		for (; iter != data.end(); ++iter)
-		{
-			if (isValid(*iter, flags[iter - data.begin()]))
-			{
-				min = std::min(min, *iter);
-				max = std::max(max, *iter);
-			}
+			if (index > 0 && index % stride == 0)
+				++iterFlags;
 		}
 	}
 }
 
-template<class T, class U, class FLAG_TYPE>
-void getMinMax(const std::vector<std::vector<T>> &data, const FLAG_TYPE &flags, U &min, U &max)
-{
-	min = getDefault<U>();
-	max = getDefault<U>();
-	//find the first element which has a min/max which are not fill values
-	auto iter = data.begin();
-	for (; iter != data.end(); ++iter)
-	{
-		U thisMin;
-		U thisMax;
-		if constexpr (std::is_integral<FLAG_TYPE>::value)
-			getMinMax(*iter, flags, thisMin, thisMax);
-		else
-			getMinMax(*iter, flags[iter - data.begin()], thisMin, thisMax);
-		if (isValid(thisMin, 1))
-		{
-			min = thisMin;
-			max = thisMax;
-			break;
-		}
-	}
-	//now go through the remaining data and find the min/max
-	for (; iter != data.end(); ++iter)
-	{
-		U thisMin;
-		U thisMax;
-		if constexpr (std::is_integral<FLAG_TYPE>::value)
-			getMinMax(*iter, flags, thisMin, thisMax);
-		else
-			getMinMax(*iter, flags[iter-data.begin()], thisMin, thisMax);
-		if (isValid(thisMin, 1))
-		{
-			min = std::min(min, thisMin);
-			max = std::max(max, thisMax);
-		}
-	}
-}
 
-enum class CellMethod
-{
-	none,
-	point,
-	sum,
-	mean,
-	max,
-	min,
-	midRange,
-	standardDeviation,
-	variance,
-	mode,
-	median
-};
 
-inline sci::string getCellMethodString(CellMethod cellMethod)
-{
-	if (cellMethod == CellMethod::none)
-		return sU("");
-	if (cellMethod == CellMethod::point)
-		return sU("point");
-	if (cellMethod == CellMethod::sum)
-		return sU("sum");
-	if (cellMethod == CellMethod::mean)
-		return sU("mean");
-	if (cellMethod == CellMethod::max)
-		return sU("maximum");
-	if (cellMethod == CellMethod::min)
-		return sU("minimum");
-	if (cellMethod == CellMethod::midRange)
-		return sU("mid_range");
-	if (cellMethod == CellMethod::standardDeviation)
-		return sU("standard_deviation");
-	if (cellMethod == CellMethod::variance)
-		return sU("variance");
-	if (cellMethod == CellMethod::mode)
-		return sU("mode");
-	if (cellMethod == CellMethod::median)
-		return sU("median");
-
-	return sU("unknown");
-}
-
-inline sci::string getCoordinatesAttributeText(const std::vector<sci::string> &coordinates)
-{
-	if (coordinates.size() == 0)
-		return sU("");
-	sci::ostringstream result;
-	result << coordinates[0];
-	for (size_t i = 1; i < coordinates.size(); ++i)
-	{
-		result << sU(" ") << coordinates[i];
-	}
-	return result.str();
-}
-
-inline sci::string getCellMethodsAttributeText(const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
-{
-	if (cellMethods.size() == 0)
-		return sU("");
-	sci::ostringstream result;
-	result << cellMethods[0].first << sU(": ") << getCellMethodString(cellMethods[0].second);
-	for (size_t i = 1; i < cellMethods.size(); ++i)
-	{
-		result << sU(" ") << cellMethods[i].first << sU(": ") << getCellMethodString(cellMethods[i].second);
-	}
-	return result.str();
-}
-
-template<class T, bool SWAP>
-struct DataType
-{
-
-};
-
-template<class T>
-struct DataType<T, true>
-{
-	typedef T& type;
-};
-
-template<class T>
-struct DataType<T, false>
-{
-	typedef const T& type;
-};
-
-template <class T, class U, bool SWAP>
+template <class T>
 class AmfNcVariable : public sci::NcVariable<T>
 {
 public:
-	template<class FLAG_TYPE>
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAG_TYPE &flags)
-		:NcVariable<T>(name, ncFile, dimension)
+	template<sci::IsGrid DATAGRID, sci::IsGrid FLAGSGRID>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, const DATAGRID &data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAGSGRID &flags)
+		:sci::NcVariable<T>(name, ncFile, dimension)
 	{
-		if constexpr (SWAP)
-			std::swap(m_data, data);
-		else
-			m_data = data;
+		static_assert(std::is_same_v<FLAGSGRID::value_type,uint8_t>, "flags must be of uint8_t type.");
 		T validMin;
 		T validMax;
-		getMinMax(m_data, flags, validMin, validMax);
+		getMinMax(data, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods);
 	}
-	template<class FLAG_TYPE>
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, U data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAG_TYPE& flags)
-		:NcVariable<T>(name, ncFile, dimensions)
+	template<sci::IsGrid DATAGRID, sci::IsGrid FLAGSGRID>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, const DATAGRID& data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAGSGRID& flags)
+		:sci::NcVariable<T>(name, ncFile, dimensions)
 	{
-		if constexpr (SWAP)
-			std::swap(m_data, data);
-		else
-			m_data = data;
+		static_assert(std::is_same_v<FLAGSGRID::value_type, uint8_t>, "flags must be of uint8_t type.");
 		T validMin;
 		T validMax;
-		getMinMax(m_data, flags, validMin, validMax);
+		getMinMax(data, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods);
 	}
-	const U& getData() const
+	template<class U>
+	static T transformForOutput(const U& val)
 	{
-		return m_data;
+		return val == val ? T(val) : OutputAmfNcFile::getFillValue<T>();
 	}
 private:
 	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
@@ -1296,30 +1649,29 @@ private:
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax);
 		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<T>());
-		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_data)>::baseType>());
+		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<T>());
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
 		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
-		addAttribute(longNameAttribute, ncFile);
-		addAttribute(unitsAttribute, ncFile);
-		addAttribute(validMinAttribute, ncFile);
-		addAttribute(validMaxAttribute, ncFile);
+		sci::NcVariable<T>::addAttribute(longNameAttribute, ncFile);
+		sci::NcVariable<T>::addAttribute(unitsAttribute, ncFile);
+		sci::NcVariable<T>::addAttribute(validMinAttribute, ncFile);
+		sci::NcVariable<T>::addAttribute(validMaxAttribute, ncFile);
 		//addAttribute(typeAttribute, ncFile);
 		if (standardName.length() > 0)
-			addAttribute(standardNameAttribute, ncFile);
+			sci::NcVariable<T>::addAttribute(standardNameAttribute, ncFile);
 		if (hasFillValue)
-			addAttribute(fillValueAttribute, ncFile);
+			sci::NcVariable<T>::addAttribute(fillValueAttribute, ncFile);
 		if (coordinates.size() > 0)
-			addAttribute(coordinatesAttribute, ncFile);
+			sci::NcVariable<T>::addAttribute(coordinatesAttribute, ncFile);
 		if(cellMethods.size() > 0)
-			addAttribute(cellMethodsAttribute, ncFile);
+			sci::NcVariable<T>::addAttribute(cellMethodsAttribute, ncFile);
 	}
-	U m_data;
 };
 
 class AmfNcFlagVariable : public sci::NcVariable<uint8_t>
 {
 public:
-	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>> &flagDefinitions, const sci::OutputNcFile &ncFile, std::vector<sci::NcDimension *> &dimensions)
+	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>> &flagDefinitions, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions)
 		: sci::NcVariable<uint8_t>(name, ncFile, dimensions)
 	{
 		initialise(flagDefinitions, ncFile);
@@ -1328,6 +1680,10 @@ public:
 		: sci::NcVariable<uint8_t>(name, ncFile, dimension)
 	{
 		initialise(flagDefinitions, ncFile);
+	}
+	static uint8_t transformForOutput(const uint8_t& val)
+	{
+		return val;
 	}
 private:
 	void initialise(const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile)
@@ -1363,50 +1719,61 @@ private:
 };
 
 //create a partial specialization for any AmfNcVariable based on a sci::Physical value
-template <class T, class VALUE_TYPE, class U, bool SWAP>
-class AmfNcVariable<sci::Physical<T, VALUE_TYPE>, U, SWAP> : public sci::NcVariable<sci::Physical<T, VALUE_TYPE>>
+template <class UNIT, class VALUE_TYPE>
+class AmfNcVariable<sci::Physical<UNIT, VALUE_TYPE>> : public sci::NcVariable<VALUE_TYPE>
 {
 public:
-	template<class FLAG_TYPE>
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAG_TYPE &flags, const sci::string &comment = sU(""))
-		:NcVariable<sci::Physical<T, VALUE_TYPE>>(name, ncFile, dimension)
+	template<sci::IsGridDims<1> DATA_GRID, sci::IsGrid FLAGS_GRID>
+	AmfNcVariable(const sci::string &name,
+		const sci::OutputNcFile &ncFile,
+		const sci::NcDimension &dimension,
+		const sci::string &longName,
+		const sci::string &standardName,
+		DATA_GRID data,
+		bool hasFillValue,
+		const std::vector<sci::string> &coordinates,
+		const std::vector<std::pair<sci::string, CellMethod>> &cellMethods,
+		FLAGS_GRID flags,
+		const sci::string &comment = sU(""))
+		:sci::NcVariable<VALUE_TYPE>(name, ncFile, dimension)
 	{
-		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T, VALUE_TYPE>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
-		if constexpr (SWAP)
-			std::swap(m_data, data);
-		else
-			m_data = data;
-		sci::Physical<T, VALUE_TYPE> validMin;
-		sci::Physical<T, VALUE_TYPE> validMax;
-		getMinMax(m_data, flags, validMin, validMax);
+		sci::Physical<UNIT, VALUE_TYPE> validMin;
+		sci::Physical<UNIT, VALUE_TYPE> validMax;
+		getMinMax(data, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	template<class FLAG_TYPE>
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, typename DataType<U, SWAP>::type data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAG_TYPE& flags, const sci::string &comment = sU(""))
-		:NcVariable<sci::Physical<T, VALUE_TYPE>>(name, ncFile, dimensions)
+	template<sci::IsGrid DATA_GRID, sci::IsGrid FLAGS_GRID>
+	AmfNcVariable(const sci::string &name,
+		const sci::OutputNcFile &ncFile,
+		const std::vector<sci::NcDimension *> &dimensions,
+		const sci::string &longName,
+		const sci::string &standardName,
+		const DATA_GRID &data,
+		bool hasFillValue,
+		const std::vector<sci::string> &coordinates,
+		const std::vector<std::pair<sci::string, CellMethod>> &cellMethods,
+		const FLAGS_GRID &flags,
+		const sci::string &comment = sU(""))
+		:sci::NcVariable<VALUE_TYPE>(name, ncFile, dimensions)
 	{
-		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<T, VALUE_TYPE>>::value, "AmfNcVariable::AmfNcVariable must be called with data with the same type as the template parameter.");
-		if constexpr (SWAP)
-			std::swap(m_data, data);
-		else
-			m_data = data;
-		sci::Physical<T, VALUE_TYPE> validMin;
-		sci::Physical<T, VALUE_TYPE> validMax;
-		getMinMax(m_data, flags, validMin, validMax);
+		sci::Physical<UNIT, VALUE_TYPE> validMin;
+		sci::Physical<UNIT, VALUE_TYPE> validMax;
+		getMinMax(data, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	const U& getData() const
+	template<class U>
+	static VALUE_TYPE transformForOutput(const U& val)
 	{
-		return m_data;
+		return val == val ? val.value<UNIT>() : OutputAmfNcFile::getFillValue<VALUE_TYPE>();
 	}
 
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<T, VALUE_TYPE> validMin, sci::Physical<T, VALUE_TYPE> validMax, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<UNIT, VALUE_TYPE> validMin, sci::Physical<UNIT, VALUE_TYPE> validMax, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		//the unit needs a little editing to comply with AMF standard
-		sci::string unit = sci::Physical<T, VALUE_TYPE>::getShortUnitString<sci::string>();
+		sci::string unit = sci::Physical<UNIT, VALUE_TYPE>::template getShortUnitString<sci::string>();
 		//replace blank string (unitless) with 1
 		if (unit == sU(""))
 			unit = sU("1");
@@ -1416,30 +1783,29 @@ private:
 			unit.replace(unit.find_first_of(sU('\u00b0')), 1, sU("degree"), 0, sci::string::npos);
 		}
 		sci::NcAttribute unitsAttribute(sU("units"), unit);
-		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<T>());
-		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<T>());
+		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<UNIT>());
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<UNIT>());
 		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<sci::Physical<T,VALUE_TYPE>>());
-		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<decltype(m_data)>::baseType>());
+		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<VALUE_TYPE>());
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
 		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
-		addAttribute(longNameAttribute, ncFile);
-		addAttribute(unitsAttribute, ncFile);
-		addAttribute(validMinAttribute, ncFile);
-		addAttribute(validMaxAttribute, ncFile);
-		//addAttribute(typeAttribute, ncFile);
+		sci::NcVariable< VALUE_TYPE>::addAttribute(longNameAttribute, ncFile);
+		sci::NcVariable<VALUE_TYPE>::addAttribute(unitsAttribute, ncFile);
+		sci::NcVariable<VALUE_TYPE>::addAttribute(validMinAttribute, ncFile);
+		sci::NcVariable<VALUE_TYPE>::addAttribute(validMaxAttribute, ncFile);
+		//sci::NcVariable<VALUE_TYPE>::addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
-			addAttribute(commentAttribute, ncFile);
+			sci::NcVariable<VALUE_TYPE>::addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
-			addAttribute(standardNameAttribute, ncFile);
+			sci::NcVariable<VALUE_TYPE>::addAttribute(standardNameAttribute, ncFile);
 		if (hasFillValue)
-			addAttribute(fillValueAttribute, ncFile);
+			sci::NcVariable<VALUE_TYPE>::addAttribute(fillValueAttribute, ncFile);
 		if (coordinates.size() > 0)
-			addAttribute(coordinatesAttribute, ncFile);
+			sci::NcVariable<VALUE_TYPE>::addAttribute(coordinatesAttribute, ncFile);
 		if(cellMethods.size() > 0)
-			addAttribute(cellMethodsAttribute, ncFile);
+			sci::NcVariable<VALUE_TYPE>::addAttribute(cellMethodsAttribute, ncFile);
 	}
-	U m_data;
 };
 
 //Specialize sci::NcVariable for Decibels
@@ -1457,7 +1823,7 @@ public:
 	//This flattenData function accepts a 1d vector of data in units compatible with reference units and returns a 1d
 	//array of doubles as dB, using the reference unit - not the unit in which the data is passed. I.e. it is converted
 	//to the reference unit before the log10.
-	template<class UNIT>
+	/*template<class UNIT>
 	static std::vector<valueType> flattenData(const std::vector<typename sci::Physical<UNIT, valueType>> &linearPhysicals)
 	{
 		std::vector<valueType> result(linearPhysicals.size());
@@ -1482,6 +1848,11 @@ public:
 			result.insert(result.end(), temp.begin(), temp.end());
 		}
 		return result;
+	}*/
+	template<class U>
+	static valueType transformForOutput(const U& val)
+	{
+		return val == val ? Decibel<REFERENCE_UNIT>::linearToDecibel(val).value<unitlessF>() : OutputAmfNcFile::getFillValue<valueType>();
 	}
 };
 
@@ -1489,43 +1860,35 @@ public:
 //dB during the flattenData call
 //REFERENCE_UNIT is the sci::Unit that is the reference unit for the dB
 //U is the data type - it will be a 1d or multi-d vector of Physicals
-template < class REFERENCE_UNIT, class U>
-class AmfNcVariable<Decibel<REFERENCE_UNIT>, U> : public sci::NcVariable<Decibel<REFERENCE_UNIT>>
+template < class REFERENCE_UNIT>
+class AmfNcVariable<Decibel<REFERENCE_UNIT>> : public sci::NcVariable<Decibel<REFERENCE_UNIT>>
 {
 public:
 
 	//typedef typename Decibel<REFERENCE_UNIT>::referencePhysical::valueType valueType;
 	typedef typename Decibel<REFERENCE_UNIT>::referencePhysical referencePhysical;
 	//Data must be passed in in linear units, not decibels!!!
-	template<class FLAG_TYPE>
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, const FLAG_TYPE &flags, const sci::string &comment = sU(""))
+	template<size_t NDATADIMS, size_t NFLAGDIMS>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::grid_view< Decibel<REFERENCE_UNIT>, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimension)
 	{
-		static_assert(std::is_same<sci::VectorTraits<U>::baseType, sci::Physical<typename REFERENCE_UNIT::unit>>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
-		m_dataLinear = dataLinear;
 		m_isDbZ = isDbZ;
 		m_outputReferenceUnit = outputReferenceUnit;
 		referencePhysical validMin;
 		referencePhysical validMax;
-		getMinMax(m_dataLinear, flags, validMin, validMax);
+		getMinMax(dataLinear, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
-	template<class FLAG_TYPE>
-	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const U &dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, const FLAG_TYPE &flags, const sci::string &comment = sU(""))
+	template<size_t NDATADIMS, size_t NFLAGDIMS>
+	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, sci::grid_view< Decibel<REFERENCE_UNIT>, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string &comment = sU(""))
 		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
 	{
-		//static_assert(std::is_same<sci::VectorTraits<U>::baseType, referencePhysical>::value, "AmfNcVariable::AmfNcVariable<decibel<>> must be called with data with the same linear type as the REFERENCE_UNIT template parameter.");
-		m_dataLinear = dataLinear;
 		m_isDbZ = isDbZ;
 		m_outputReferenceUnit = outputReferenceUnit;
-		sci::VectorTraits<U>::baseType validMin;
-		sci::VectorTraits<U>::baseType validMax;
-		getMinMax(m_dataLinear, flags, validMin, validMax);
+		referencePhysical validMin;
+		referencePhysical validMax;
+		getMinMax(dataLinear, flags, validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
-	}
-	const U& getData() const
-	{
-		return m_dataLinear;
 	}
 private:
 	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, referencePhysical validMinLinear, referencePhysical validMaxLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
@@ -1533,48 +1896,60 @@ private:
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), m_isDbZ ? sU("dBZ") : sU("dB"));
-		sci::string referenceUnit = referencePhysical::getShortUnitString<sci::string>();
+		sci::string referenceUnit = referencePhysical::template getShortUnitString<sci::string>();
 		if (referenceUnit.length() == 0)
 			referenceUnit = sU("1");
 		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referenceUnit);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), Decibel<REFERENCE_UNIT>::linearToDecibel(validMinLinear));
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), Decibel<REFERENCE_UNIT>::linearToDecibel(validMaxLinear));
 		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<Decibel<REFERENCE_UNIT>::valueType>());
-		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<sci::VectorTraits<U>::baseType>());
+		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue< Decibel<REFERENCE_UNIT>>());
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
 		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
-		addAttribute(longNameAttribute, ncFile);
-		addAttribute(unitsAttribute, ncFile);
+		sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(longNameAttribute, ncFile);
+		sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(unitsAttribute, ncFile);
 		if (m_outputReferenceUnit)
-			addAttribute(referenceUnitAttribute, ncFile);
-		addAttribute(validMinAttribute, ncFile);
-		addAttribute(validMaxAttribute, ncFile);
+			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(referenceUnitAttribute, ncFile);
+		sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(validMinAttribute, ncFile);
+		sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(validMaxAttribute, ncFile);
 		//addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
-			addAttribute(commentAttribute, ncFile);
+			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
-			addAttribute(standardNameAttribute, ncFile);
+			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(standardNameAttribute, ncFile);
 		if (hasFillValue)
-			addAttribute(fillValueAttribute, ncFile);
+			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(fillValueAttribute, ncFile);
 		if (coordinates.size() > 0)
-			addAttribute(coordinatesAttribute, ncFile);
+			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(coordinatesAttribute, ncFile);
 		if(cellMethods.size() > 0)
-			addAttribute(cellMethodsAttribute, ncFile);
+			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(cellMethodsAttribute, ncFile);
 	}
 
-	//this is in reference units and is a 1d or multi-d vector.
-	U m_dataLinear;
 	bool m_isDbZ;
 	bool m_outputReferenceUnit;
 };
 
-class AmfNcTimeVariable : public AmfNcVariable<typename second::valueType, std::vector<typename second::valueType>>
+class AmfNcTimeVariable : public AmfNcVariable<typename second::valueType>
 {
 public:
-	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<sci::UtcTime> &times)
-		:AmfNcVariable<typename second::valueType, std::vector<typename second::valueType >> (sU("time"), ncFile, dimension, sU("Time (seconds since 1970-01-01 00:00:00)"), sU("time"), sU("seconds since 1970-01-01 00:00:00"), sci::physicalsToValues<second::unit>(times - sci::UtcTime(1970, 1, 1, 0, 0, 0)), false, std::vector<sci::string>(0), std::vector<std::pair<sci::string, CellMethod>>(0), 1)
+	template<sci::IsGrid TIMES_GRID>
+	requires (sci::IsGridDims<TIMES_GRID, 1>)
+	AmfNcTimeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, TIMES_GRID &times)
+		:AmfNcVariable<typename second::valueType> (
+			sU("time"),
+			ncFile,
+			dimension,
+			sU("Time (seconds since 1970-01-01 00:00:00)"),
+			sU("time"),
+			sU("seconds since 1970-01-01 00:00:00"),
+			sci::make_gridtransform_view(times - sci::UtcTime(1970, 1, 1, 0, 0, 0),PhysicalToValueTransform<second>),
+			false,
+			std::vector<sci::string>(0),
+			std::vector<std::pair<sci::string, CellMethod>>(0),
+			sci::GridData<uint8_t, 0>(1))
 	{
+		static_assert(TIMES_GRID::ndims == 1, "The time variable must be 1-dimensional");
 		addAttribute(sci::NcAttribute(sU("axis"), sU("T")), ncFile);
 		addAttribute(sci::NcAttribute(sU("calendar"), sU("standard")), ncFile);
 	}
@@ -1586,69 +1961,88 @@ public:
 			secondsAfterEpoch[i] = times[i] - epoch;
 		return secondsAfterEpoch;
 	}
+	static second::valueType transformForOutput(const second& val)
+	{
+		return val == val ? val.value<second>() : OutputAmfNcFile::getFillValue<second::valueType>();
+	}
 };
 
 std::vector<std::pair<sci::string, CellMethod>> getLatLonCellMethod(FeatureType featureType, DeploymentMode deploymentMode);
 
-class AmfNcLongitudeVariable : public AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>
+class AmfNcLongitudeVariable : public AmfNcVariable<typename degreeF::valueType>
 {
 public:
-	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degreeF> &longitudes, FeatureType featureType, DeploymentMode deploymentMode)
-		:AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>(
+	template<sci::IsGrid GRID>
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const GRID &longitudes, FeatureType featureType, DeploymentMode deploymentMode)
+		:AmfNcVariable<typename degreeF::valueType>(
 			sU("longitude"),
 			ncFile, 
 			dimension,
 			sU("Longitude"),
 			sU("longitude"),
 			sU("degrees_east"),
-			sci::physicalsToValues<degreeF>(longitudes),
+			sci::make_gridtransform_view(longitudes, PhysicalToValueTransform<degreeF>),
 			true,
 			std::vector<sci::string>(0),
 			getLatLonCellMethod(featureType, deploymentMode),
-			1)
+			sci::GridData<uint8_t,1>(1))
 			
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
 	}
+	static degreeF::valueType transformForOutput(const degreeF& val)
+	{
+		return val == val ? val.value<degreeF>() : OutputAmfNcFile::getFillValue<degreeF::valueType>();
+	}
 };
-class AmfNcLatitudeVariable : public AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>
+class AmfNcLatitudeVariable : public AmfNcVariable<typename degreeF::valueType>
 {
 public:
-	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<degreeF> &latitudes, FeatureType featureType, DeploymentMode deploymentMode)
-		:AmfNcVariable<typename degreeF::valueType, std::vector<typename degreeF::valueType>>(
+	template<sci::IsGrid GRID>
+	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const GRID &latitudes, FeatureType featureType, DeploymentMode deploymentMode)
+		:AmfNcVariable<typename degreeF::valueType>(
 			sU("latitude"),
 			ncFile,
 			dimension,
 			sU("Latitude"),
 			sU("latitude"),
 			sU("degrees_north"),
-			sci::physicalsToValues<degreeF>(latitudes),
+			sci::make_gridtransform_view(latitudes, PhysicalToValueTransform<degreeF>),
 			true,
 			std::vector<sci::string>(0),
 			getLatLonCellMethod(featureType, deploymentMode),
-			1)
+			sci::GridData<uint8_t, 1>(1))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
+	static degreeF::valueType transformForOutput(const degreeF& val)
+	{
+		return val == val ? val.value<degreeF>() : OutputAmfNcFile::getFillValue<degreeF::valueType>();
+	}
 };
 
-class AmfNcAltitudeVariable : public AmfNcVariable<typename metreF::valueType, std::vector<typename metreF::valueType>>
+class AmfNcAltitudeVariable : public AmfNcVariable<typename metreF::valueType>
 {
 public:
-	AmfNcAltitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const std::vector<metreF> &altitudes, FeatureType featureType)
-		:AmfNcVariable<typename metreF::valueType, std::vector<typename metreF::valueType>>(
+	template<sci::IsGrid GRID>
+	AmfNcAltitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const GRID &altitudes, FeatureType featureType)
+		:AmfNcVariable<typename metreF::valueType>(
 			sU("altitude"),
 			ncFile,
 			dimension,
 			sU("Geometric height above geoid (WGS84)"),
 			sU("altitude"),
 			sU("m"),
-			sci::physicalsToValues<metreF>(altitudes),
+			sci::make_gridtransform_view(altitudes, PhysicalToValueTransform<metreF>),
 			true,
 			std::vector<sci::string>(0),
 			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0)
 			, 1)
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ncFile);
+	}
+	static metreF::valueType transformForOutput(const metreF& val)
+	{
+		return val == val ? val.value<metreF>() : OutputAmfNcFile::getFillValue<metreF::valueType>();
 	}
 };
