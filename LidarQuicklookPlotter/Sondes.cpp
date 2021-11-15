@@ -907,7 +907,7 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
-	sci::assertThrow(m_hasData, sci::err(sci::SERR_USER, 0, sU("The sonde processor has been asked to write data to a netcdf, when it has no data to write.")));
+	/*sci::assertThrow(m_hasData, sci::err(sci::SERR_USER, 0, sU("The sonde processor has been asked to write data to a netcdf, when it has no data to write.")));
 
 	DataInfo dataInfo;
 	dataInfo.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();
@@ -967,5 +967,5 @@ void SondeProcessor::writeToNc(const sci::string &directory, const PersonInfo &a
 	file.write(windDirectionVariable);
 	file.write(upwardBalloonVelocityVariable);
 	file.write(elapsedTimeVariable);
-	file.write(flagVariable, m_flags);
+	file.write(flagVariable, m_flags);*/
 }

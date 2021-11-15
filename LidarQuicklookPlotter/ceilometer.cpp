@@ -202,7 +202,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 	const ProjectInfo& projectInfo, const Platform& platform, const ProcessingOptions& processingOptions)
 {
 
-	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
+	/*AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
 
 	//according to the data procucts spreadsheet the instrument needs
 	//to produce aerosol-backscatter, cloud-base and cloud-coverage products
@@ -457,7 +457,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 		ceilometerCloudCoverageFile.write(sumsVariable);
 
 		ceilometerCloudCoverageFile.write(profileFlagsVariable, profileFlags);
-	}
+	}*/
 
 
 	//gates/heights

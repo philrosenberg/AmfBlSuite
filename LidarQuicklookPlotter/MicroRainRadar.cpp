@@ -208,7 +208,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
 	const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter)
 {
-	DataInfo dataInfo1d;
+	/*DataInfo dataInfo1d;
 	dataInfo1d.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();
 	dataInfo1d.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();
 	dataInfo1d.continuous = true;
@@ -464,7 +464,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	file2d.write(spectralReflectivityVariable, spectralReflectivity);
 	file2d.write(dropDiameterVariable, dropDiameters);
 	file2d.write(numberDistributionVariable, sizeDistributions);
-	file2d.write(spectralFlagVariable, spectralFlags);
+	file2d.write(spectralFlagVariable, spectralFlags);*/
 }
 
 std::vector<std::vector<sci::string>> MicroRainRadarProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const
