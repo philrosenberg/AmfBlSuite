@@ -91,8 +91,8 @@ class wxWindow;
 class CeilometerProcessor : public PlotableLidar
 {
 public:
-	CeilometerProcessor::CeilometerProcessor(const InstrumentInfo& instrumentInfo, const CalibrationInfo& calibrationInfo)
-		:PlotableLidar(sU("[/\\\\]........_ceilometer\\.csv$")), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo)
+	CeilometerProcessor(const InstrumentInfo& instrumentInfo, const CalibrationInfo& calibrationInfo)
+		:PlotableLidar(sci::string(sU("[/\\\\]........_ceilometer\\.csv$"))), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo)
 	{}
 	virtual void writeToNc(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles,
 		sci::string directory, const PersonInfo &author, const ProcessingSoftwareInfo &processingSoftwareInfo,

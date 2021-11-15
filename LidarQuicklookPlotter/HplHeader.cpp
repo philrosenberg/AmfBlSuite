@@ -171,7 +171,7 @@ std::istream & operator>> (std::istream & stream, HplHeader &hplHeader)
 		readHeaderLine(stream, hplHeader.scanType, "Scan type");
 		unitlessF focusRangeGate;
 		readHeaderLine(stream, hplHeader.focusRange, "Focus range");
-		hplHeader.focusRange = focusRangeGate >= unitlessF(65535) ? std::numeric_limits<metreF>::infinity() : focusRangeGate * hplHeader.rangeGateLength;
+		hplHeader.focusRange = focusRangeGate >= unitlessF(65535) ? std::numeric_limits<metreF>::infinity() : (metreF)(focusRangeGate * hplHeader.rangeGateLength);
 		readHeaderLine(stream, hplHeader.startTime, "Start time");
 		readHeaderLine(stream, hplHeader.dopplerResolution, "Resolution (m/s)");
 

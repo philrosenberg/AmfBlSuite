@@ -83,53 +83,6 @@ concept extraContiguous = requires(const _It & __i) {
 //	 __i++;
 // };
 
-void test()
-{
-	using cType = sci::GridData<int, 1>;
-	using iType = cType::iterator;
-	auto val = *std::declval<iType>();
-	static_assert(std::weakly_incrementable<iType>, "Failed the weakly incrementable test");
-	static_assert(std::movable<iType>, "Failed the moveable test");
-	static_assert(std::default_initializable<iType>, "Failed the default initializable test");
-	
-	
-	static_assert(haspassedweak<iType>(), "Failed the incrementing test");
-	static_assert(std::_Signed_integer_like<std::iter_difference_t<iType>>, "Failed integer like test");
-
-	static_assert(std::input_iterator<iType>, "failed input iterator");
-	static_assert(std::output_iterator<iType, int>, "failed output iterator");
-	static_assert(std::forward_iterator<iType>, "failed forward iterator");
-	static_assert(std::input_iterator<iType>, "failed input iterator");
-	static_assert(std::bidirectional_iterator<iType>, "failed bidirectional iterator");
-	static_assert(std::random_access_iterator<iType>, "failed random access iterator");
-	static_assert(std::contiguous_iterator<iType>, "failed contiguous iterator");
-
-	static_assert(std::derived_from<std::_Iter_concept<iType>, std::random_access_iterator_tag>, "error");
-	static_assert(std::totally_ordered<iType>, "error");
-	static_assert(std::sized_sentinel_for<iType, iType>, "error");
-	static_assert(hasPassedExtraBidirectional<iType>(), "extra bidirectional error");
-
-	static_assert(std::derived_from<std::_Iter_concept<iType>, std::contiguous_iterator_tag>, "error");
-	static_assert(std::is_lvalue_reference_v<std::iter_reference_t<iType>>, "error");
-	static_assert(std::same_as<std::iter_value_t<iType>, std::remove_cvref_t<std::iter_reference_t<iType>>>, "error");
-
-	
-
-
-
-	//MyClass<int, 1> myClass;
-	//sci::anyTrue(myClass);
-	//MyClass<bool, 1> myBoolClass;
-	//sci::anyTrue(myBoolClass);
-	//sci::anyTrue(MyClass<bool, 1>());
-	//int sun = sci::sum(myClass);
-	sci::GridData<int, 1> grid;
-	int sum2 = sci::sum(grid);
-	sci::increment(grid);
-	sci::GridData<bool, 1> boolGrid;
-	bool good = sci::anyTrue(boolGrid);
-}
-
 const double OutputAmfNcFile::Fill<double>::value = -1e20;
 const float OutputAmfNcFile::Fill<float>::value = -1e20f;
 const uint8_t OutputAmfNcFile::Fill<uint8_t>::value = 255;

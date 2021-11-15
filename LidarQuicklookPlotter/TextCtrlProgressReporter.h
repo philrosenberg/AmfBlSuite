@@ -50,12 +50,12 @@ private:
 	void setWarningModeFormat() override
 	{
 		m_textControl->SetDefaultStyle(wxTextAttr(wxColour(0, 128, 128)));
-		reportProgress(sU("Warning: "));
+		StreamProgressReporter<sci::Oteestream<wxTextCtrl, STREAM>>::reportProgress(sU("Warning: "));
 	}
 	void setErrorModeFormat() override
 	{
 		m_textControl->SetDefaultStyle(wxTextAttr(*wxRED));
-		reportProgress(sU("Error: "));
+		StreamProgressReporter<sci::Oteestream<wxTextCtrl, STREAM>>::reportProgress(sU("Error: "));
 	}
 
 	wxTextCtrl *m_textControl;

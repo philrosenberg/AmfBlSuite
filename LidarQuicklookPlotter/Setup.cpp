@@ -13,7 +13,7 @@
 //data do not need to be equally spaced, but if there is missing data this should be indicated with a nan. If there is missing
 //data for all parameters then add a valid time within the period of missing data and set all parameters to nan. This will
 //stop the code interpolating accross missing data periods.
-void readLocationData(const sci::string &locationFile, std::vector<sci::UtcTime> &times, std::vector<degreeF> &latitudes, std::vector<degreeF> &longitudes, std::vector<metreF> &altitudes, std::vector<degreeF> &elevations, std::vector<degreeF> &azimuths, std::vector<degreeF> &rolls, std::vector<degreeF> &courses, std::vector<metrePerSecondF> &speeds, ProgressReporter &progressReporter)
+void readLocationData(const sci::string &locationFile, sci::GridData<sci::UtcTime, 1> &times, sci::GridData<degreeF, 1> &latitudes, sci::GridData<degreeF, 1> &longitudes, sci::GridData<metreF, 1> &altitudes, sci::GridData<degreeF, 1> &elevations, sci::GridData<degreeF, 1> &azimuths, sci::GridData<degreeF, 1> &rolls, sci::GridData<degreeF, 1> &courses, sci::GridData<metrePerSecondF, 1> &speeds, ProgressReporter &progressReporter)
 {
 	sci::assertThrow(wxFileExists(sci::nativeUnicode(locationFile)), sci::err(sci::errcategory::SERR_USER, 0, sU("Location data file \"") + locationFile + sU("\" does not exist.")));
 	
@@ -548,7 +548,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 	sci::string platformType;
 	sci::string deploymentMode;
 	sci::string locationFile;
-	std::vector<sci::string> locationKeywords;
+	sci::GridData<sci::string, 1> locationKeywords;
 	std::vector<nameVarPair<sci::string>> stringLinks
 	{ nameVarPair<sci::string>(sU("name"), &(name)),
 		nameVarPair<sci::string>(sU("type"), &(platformType)),
@@ -628,15 +628,15 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 		parseXmlNode(node, boolLinks.begin(), boolLinks.end());
 		sci::assertThrow(boolLinks.begin()->m_read, sci::err(sci::SERR_USER, 0, "Could not find the platformRelative parameter when parsing a moving platform."));
 
-		std::vector<sci::UtcTime> times;
-		std::vector<degreeF> latitudes;
-		std::vector<degreeF> longitudes;
-		std::vector<metreF> altitudes;
-		std::vector<degreeF> elevations;
-		std::vector<degreeF> azimuths;
-		std::vector<degreeF> rolls;
-		std::vector<degreeF> courses;
-		std::vector<metrePerSecondF> speeds;
+		sci::GridData<sci::UtcTime, 1> times;
+		sci::GridData<degreeF, 1> latitudes;
+		sci::GridData<degreeF, 1> longitudes;
+		sci::GridData<metreF, 1> altitudes;
+		sci::GridData<degreeF, 1> elevations;
+		sci::GridData<degreeF, 1> azimuths;
+		sci::GridData<degreeF, 1> rolls;
+		sci::GridData<degreeF, 1> courses;
+		sci::GridData<metrePerSecondF, 1> speeds;
 
 		readLocationData(locationFile, times, latitudes, longitudes, altitudes, elevations, azimuths, rolls, courses, speeds, progressReporter);
 		if (progressReporter.shouldStop())

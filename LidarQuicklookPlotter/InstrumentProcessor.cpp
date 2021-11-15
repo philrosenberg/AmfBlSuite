@@ -103,7 +103,7 @@ std::vector<sci::string> InstrumentProcessor::selectRelevantFilesUsingRegEx(cons
 {
 	std::vector<sci::string> result;
 	result.reserve(allFiles.size());
-	wxRegEx regularExpression = sci::nativeUnicode(regEx);
+	wxRegEx regularExpression = wxString(sci::nativeUnicode(regEx));
 	sci::assertThrow(regularExpression.IsValid(), sci::err(sci::SERR_USER, 0, sci::nativeCodepage(regEx)));
 	for (size_t i = 0; i < allFiles.size(); ++i)
 	{
