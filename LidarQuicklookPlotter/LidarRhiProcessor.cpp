@@ -36,15 +36,16 @@ void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::v
 		setupCanvas(&window, &plot, sU(""), parent);
 		WindowCleaner cleaner(window);
 
-		std::vector<std::vector<perSteradianPerMetreF>> betas = getBetas();
-		std::vector<degreeF> angles(betas.size() + 1);
-		std::vector<metreF> ranges = getGateBoundariesForPlotting(0);
+		sci::GridData<perSteradianPerMetreF, 2> betas = getBetas();
+		sci::GridData<degreeF, 1> angles({ betas.shape()[0] + 1 });
+		sci::GridData<metreF, 1> ranges = getGateBoundariesForPlotting(0);
 
 		degreeF angleIntervalDeg = degreeF(360.0f) / unitlessF((unitlessF::valueType)(betas.size() - 1));
 		for (size_t i = 0; i < angles.size(); ++i)
 			angles[i] = unitlessF((unitlessF::valueType)(i - 0.5))*angleIntervalDeg;
 
-		std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>> gridData(new PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>(angles, ranges, betas, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new RhiTransformer)));
+		//to do - update plotting code to deal with GridData
+		/*std::shared_ptr<PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>> gridData(new PhysicalGridData<degreeF::unit, metreF::unit, perSteradianPerMetreF::unit, metreF::unit, metreF::unit>(angles, ranges, betas, g_lidarColourscale, true, true, std::shared_ptr<splotTransformer>(new RhiTransformer)));
 		plot->addData(gridData);
 
 		plot->getxaxis()->settitle(sU("Time"));
@@ -54,6 +55,6 @@ void LidarRhiProcessor::plotData(const sci::string &outputFilename, const std::v
 		if (getGateBoundariesForPlotting(0).back() > maxRanges[i])
 			plot->setmaxy(sci::physicalsToValues<decltype(gridData)::element_type::yUnitType>(maxRanges[i]));
 
-		createDirectoryAndWritePlot(window, rangeLimitedfilename.str(), 1000, 1000, progressReporter);
+		createDirectoryAndWritePlot(window, rangeLimitedfilename.str(), 1000, 1000, progressReporter);*/
 	}
 }

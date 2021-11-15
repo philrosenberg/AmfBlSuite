@@ -24,14 +24,14 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 		WindowCleaner cleaner(window);
 
 		//create time boundaries between plots;
-		std::vector<second> times = getTimesSeconds();
+		sci::GridData<second, 1> times = getTimesSeconds();
 		sci::assertThrow(times.size() > 0, sci::err(sci::SERR_USER, 0, "Attempted to plot a set of stares with no profiles."));
 		if (times.size() == 1)
 			times.push_back(times.back() + second(2.5));
 		else
 			times.push_back(times.back() + times.back() - times[times.size() - 2]);
 
-		std::shared_ptr<PhysicalGridData<second::unit, metreF::unit, perSteradianPerMetreF::unit>> gridData(new PhysicalGridData<second::unit, metreF::unit, perSteradianPerMetreF::unit>(times, getGateBoundariesForPlotting(0), getBetas(), g_lidarColourscale, true, true));
+		/*std::shared_ptr<PhysicalGridData<second::unit, metreF::unit, perSteradianPerMetreF::unit>> gridData(new PhysicalGridData<second::unit, metreF::unit, perSteradianPerMetreF::unit>(times, getGateBoundariesForPlotting(0), getBetas(), g_lidarColourscale, true, true));
 		plot->addData(gridData);
 
 		plot->getxaxis()->settitle(sU("Time"));
@@ -41,7 +41,7 @@ void LidarStareProcessor::plotData(const sci::string &outputFilename, const std:
 		if (getGateBoundariesForPlotting(0).back() > maxRanges[i])
 			plot->setmaxy(sci::physicalsToValues<decltype(gridData)::element_type::yUnitType>(maxRanges[i]));
 
-		createDirectoryAndWritePlot(window, rangeLimitedfilename.str(), 1000, 1000, progressReporter);
+		createDirectoryAndWritePlot(window, rangeLimitedfilename.str(), 1000, 1000, progressReporter);*/
 	}
 }
 

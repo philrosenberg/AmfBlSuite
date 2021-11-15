@@ -247,7 +247,7 @@ public:
 	void plotDataUnwrapped(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent);
 private:
 	size_t m_nSegmentsMin;
-	void getDataSortedByAzimuth(std::vector<std::vector<perSteradianPerMetreF>> &sortedBetas, std::vector<degreeF> &sortedElevations, std::vector<degreeF> &sortedMidAzimuths, std::vector<degreeF> &azimuthBoundaries);
+	void getDataSortedByAzimuth(sci::GridData<perSteradianPerMetreF, 2>& sortedBetas, sci::GridData<degreeF, 1>& sortedElevations, sci::GridData<degreeF, 1>& sortedMidAzimuths, sci::GridData<degreeF, 1>& azimuthBoundaries);
 };
 
 class LidarVadProcessor : public ConicalScanningProcessor
@@ -382,6 +382,7 @@ const uint8_t lidarClippedWindProfileFlag = 7;
 const uint8_t lidarPaddedBackscatter = 8;
 const uint8_t lidarNonMatchingRanges = 9;
 const uint8_t lidarCoAndCrossMisaligned = 10;
+const uint8_t lidarMissingDataFlag = 11;
 
 const std::vector<std::pair<uint8_t, sci::string>> lidarDopplerFlags
 {
@@ -395,5 +396,6 @@ const std::vector<std::pair<uint8_t, sci::string>> lidarDopplerFlags
 {lidarClippedWindProfileFlag, sU("wind profiles are clipped by manufacturer software so padding wih fill value")},
 {lidarPaddedBackscatter, sU("padded crosspolarised or copolarised data to match the other in dimension size")},
 {lidarNonMatchingRanges, sU("crosspolarised and copolarised data do not have matching ranges or directions")},
-{lidarCoAndCrossMisaligned, sU("copolarised and crosspolarised beams are misaligned")}
+{lidarCoAndCrossMisaligned, sU("copolarised and crosspolarised beams are misaligned")},
+{lidarMissingDataFlag, sU("lidar data missing, probably due to the number of gates being changed durang the day.")}
 };

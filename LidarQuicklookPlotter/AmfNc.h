@@ -1985,7 +1985,7 @@ public:
 			true,
 			std::vector<sci::string>(0),
 			getLatLonCellMethod(featureType, deploymentMode),
-			sci::GridData<uint8_t,1>(1))
+			sci::GridData<uint8_t,0>(1))
 			
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("X")), ncFile);
@@ -2011,7 +2011,7 @@ public:
 			true,
 			std::vector<sci::string>(0),
 			getLatLonCellMethod(featureType, deploymentMode),
-			sci::GridData<uint8_t, 1>(1))
+			sci::GridData<uint8_t,0>(1))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
@@ -2036,8 +2036,25 @@ public:
 			sci::make_gridtransform_view(altitudes, PhysicalToValueTransform<metreF>),
 			true,
 			std::vector<sci::string>(0),
-			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0)
-			, 1)
+			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0).
+			sci::GridData<uint8_t, 0>(1))
+	{
+		addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ncFile);
+	}
+	template<sci::IsGrid GRID>
+	AmfNcAltitudeVariable(const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const GRID& altitudes, FeatureType featureType)
+		:AmfNcVariable<typename metreF::valueType>(
+			sU("altitude"),
+			ncFile,
+			dimensions,
+			sU("Geometric height above geoid (WGS84)"),
+			sU("altitude"),
+			sU("m"),
+			sci::make_gridtransform_view(altitudes, PhysicalToValueTransform<metreF>),
+			true,
+			std::vector<sci::string>(0),
+			featureType == FeatureType::trajectory ? std::vector<std::pair<sci::string, CellMethod>>{ {sU("time"), CellMethod::point}} : std::vector<std::pair<sci::string, CellMethod>>(0),
+			sci::GridData<uint8_t, 0>(1))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Z")), ncFile);
 	}
