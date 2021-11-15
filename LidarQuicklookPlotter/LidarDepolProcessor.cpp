@@ -232,13 +232,13 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			}
 			if(nToInsert > 0)
 			{
-				startTimesCross.insert(i, startTimesCo.getgrid_view(i, nToInsert));
-				endTimesCross.insert(i, endTimesCo.getgrid_view(i, nToInsert));
-				instrumentRelativeAzimuthAnglesCross.insert(i, instrumentRelativeAzimuthAnglesCo.getgrid_view(i, nToInsert));
-				instrumentRelativeElevationAnglesCross.insert(i, instrumentRelativeElevationAnglesCo.getgrid_view(i, nToInsert));
-				attitudeCorrectedAzimuthAnglesCross.insert(i, attitudeCorrectedAzimuthAnglesCo.getgrid_view(i, nToInsert));
-				attitudeCorrectedElevationAnglesCross.insert(i, attitudeCorrectedElevationAnglesCo.getgrid_view(i, nToInsert));
-				rangesCross.insert(i, rangesCo.getgrid_view(i, nToInsert));
+				startTimesCross.insert(i, startTimesCo.subGrid(i, nToInsert));
+				endTimesCross.insert(i, endTimesCo.subGrid(i, nToInsert));
+				instrumentRelativeAzimuthAnglesCross.insert(i, instrumentRelativeAzimuthAnglesCo.subGrid(i, nToInsert));
+				instrumentRelativeElevationAnglesCross.insert(i, instrumentRelativeElevationAnglesCo.subGrid(i, nToInsert));
+				attitudeCorrectedAzimuthAnglesCross.insert(i, attitudeCorrectedAzimuthAnglesCo.subGrid(i, nToInsert));
+				attitudeCorrectedElevationAnglesCross.insert(i, attitudeCorrectedElevationAnglesCo.subGrid(i, nToInsert));
+				rangesCross.insert(i, rangesCo.subGrid(i, nToInsert));
 
 				backscattersCross.insert(i, nToInsert, std::numeric_limits<perSteradianPerMetreF>::quiet_NaN());
 				snrPlusOneCross.insert(i, nToInsert, std::numeric_limits<unitlessF>::quiet_NaN());
@@ -334,10 +334,10 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			//first time within this averaged block
 			sci::UtcTime startTime = startTimesCo[i];
 			//these are the ranges at the biginning of the average period, we will check they don't change during the average time
-			sci::grid_view<metreF, 2> startRanges = rangesCo[i];
+			sci::GridData<metreF, 2> startRanges = rangesCo[i];
 			//position at the begining of the averaging period - we will check this doesn't change during the averaging time
-			sci::grid_view<degreeF, 1> startInstrumentRelativeAzimuthAngles = instrumentRelativeAzimuthAnglesCo[i];
-			sci::grid_view<degreeF, 1> startInstrumentRelativeElevationAngles = instrumentRelativeElevationAnglesCo[i];
+			sci::GridData<degreeF, 1> startInstrumentRelativeAzimuthAngles = instrumentRelativeAzimuthAnglesCo[i];
+			sci::GridData<degreeF, 1> startInstrumentRelativeElevationAngles = instrumentRelativeElevationAnglesCo[i];
 			//sum of the cross and co backscatters over the average time. First dim is range, second is angle
 			//set the size up correctly and set all values to 0.0 sr-1 m-1
 			sci::GridData<perSteradianPerMetreF, 2> crossSum(backscattersCross[i].shape(), perSteradianPerMetreF(0.0));
@@ -366,7 +366,6 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			//this loop increments i and sums the apropriate data until we exceed the averaging period
 			while (i < backscattersCross.size() - 1 && integrationTime < dataInfo.averagingPeriod )
 			{
-				sci::grid_view<degreeF, 1> test(instrumentRelativeAzimuthAnglesCo[i]);
 				auto result = sci::operator-(instrumentRelativeAzimuthAnglesCo[i], startInstrumentRelativeAzimuthAngles);
 				if (count > 0)
 				{
@@ -595,37 +594,37 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	std::vector<std::pair<sci::string, CellMethod>>cellMethodsRange{ };
 	std::vector<sci::string> coordinatesData{ sU("latitude"), sU("longitude") };
 
-	std::array<size_t, 2> newShape{ averagedTime.size(), averagedRanges[0].size() };
-	std::array<size_t, 1> newShapeAngle{ averagedTime.size() };
-	std::vector<metreF> flat = sci::flatten(averagedRanges);
-	std::vector<std::vector<metreF>> tempRange= sci::unflatten(flat, newShape);
-	AmfNcVariable<metreF> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), reshape(averagedRanges, newShape), true, coordinatesData, cellMethodsRange, 1);
-	AmfNcVariable<degreeF> azimuthVariable(sU("sensor_azimuth_angle_instrument_frame"), file, file.getTimeDimension(), sU("Scanning head azimuth angle in the instrument frame of reference"), sU(""), reshape(instrumentRelativeAzimuthAngles, newShapeAngle), true, coordinatesData, cellMethodsAngles, 1);
-	AmfNcVariable<degreeF> elevationVariable(sU("sensor_view_angle_instrument_frame"), file, file.getTimeDimension(), sU("Scanning head elevation angle in the instrument frame of reference"), sU(""), reshape(instrumentRelativeElevationAngles, newShapeAngle), true, coordinatesData, cellMethodsAngles, 1);
-	AmfNcVariable<degreeF> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & angleIndexDimension}, sU("Scanning head azimuth angle in the Earth frame of reference"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinatesData, cellMethodsAnglesEarthFrame, 1);
-	AmfNcVariable<degreeF> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & angleIndexDimension}, sU("Scanning head elevation angle in the Earth frame of reference"), sU(""), attitudeCorrectedElevationAngles, true, coordinatesData, cellMethodsAnglesEarthFrame, 1);
-	AmfNcVariable<perSteradianPerMetreF> backscatterCoVariable(sU("attenuated_aerosol_backscatter_coefficient_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Planar Polarised)"), sU(""), reshape(averagedBackscatterCo, newShape), true, coordinatesData, cellMethodsData, reshape(averagedFlagsCo, newShape));
-	AmfNcVariable<unitlessF> snrPlusOneCoVariable(sU("signal_to_noise_ratio_plus_1_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Planar Polarised)"), sU(""), reshape(averagedSnrPlusOneCo, newShape), true, coordinatesData, cellMethodsData, reshape(averagedFlagsCo, newShape));
-	AmfNcVariable<perSteradianPerMetreF> backscatterCrossVariable(sU("attenuated_aerosol_backscatter_coefficient_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Cross Polarised)"), sU(""), reshape(averagedBackscatterCross, newShape), true, coordinatesData, cellMethodsData, reshape(averagedFlagsCross, newShape));
-	AmfNcVariable<unitlessF> snrPlusOneCrossVariable(sU("signal_to_noise_ratio_plus_1_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Cross Polarised)"), sU(""), reshape(averagedSnrPlusOneCross, newShape), true, coordinatesData, cellMethodsData, reshape(averagedFlagsCross, newShape));
-	AmfNcVariable<unitlessF> depolarisationVariable(sU("depolarisation_ratio"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Volume Linear Depolarization Ratio"), sU(""), reshape(depolarisation, newShape), true, coordinatesData, cellMethodsData, reshape(depolarisationFlags, newShape));
+	//std::array<size_t, 2> newShape{ averagedTime.size(), averagedRanges[0].size() };
+	//std::array<size_t, 1> newShapeAngle{ averagedTime.size() };
+	//std::vector<metreF> flat = sci::flatten(averagedRanges);
+	//std::vector<std::vector<metreF>> tempRange= sci::unflatten(flat, newShape);
+	AmfNcVariable<metreF> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), averagedRanges, true, coordinatesData, cellMethodsRange, sci::GridData<uint8_t,0>(1));
+	AmfNcVariable<degreeF> azimuthVariable(sU("sensor_azimuth_angle_instrument_frame"), file, file.getTimeDimension(), sU("Scanning head azimuth angle in the instrument frame of reference"), sU(""), instrumentRelativeAzimuthAngles, true, coordinatesData, cellMethodsAngles, sci::GridData<uint8_t, 0>(1));
+	AmfNcVariable<degreeF> elevationVariable(sU("sensor_view_angle_instrument_frame"), file, file.getTimeDimension(), sU("Scanning head elevation angle in the instrument frame of reference"), sU(""), instrumentRelativeElevationAngles, true, coordinatesData, cellMethodsAngles, sci::GridData<uint8_t, 0>(1));
+	AmfNcVariable<degreeF> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & angleIndexDimension}, sU("Scanning head azimuth angle in the Earth frame of reference"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinatesData, cellMethodsAnglesEarthFrame, sci::GridData<uint8_t, 0>(1));
+	AmfNcVariable<degreeF> elevationVariableEarthFrame(sU("sensor_view_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & angleIndexDimension}, sU("Scanning head elevation angle in the Earth frame of reference"), sU(""), attitudeCorrectedElevationAngles, true, coordinatesData, cellMethodsAnglesEarthFrame, sci::GridData<uint8_t, 0>(1));
+	AmfNcVariable<perSteradianPerMetreF> backscatterCoVariable(sU("attenuated_aerosol_backscatter_coefficient_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Planar Polarised)"), sU(""), averagedBackscatterCo, true, coordinatesData, cellMethodsData, averagedFlagsCo);
+	AmfNcVariable<unitlessF> snrPlusOneCoVariable(sU("signal_to_noise_ratio_plus_1_co"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Planar Polarised)"), sU(""), averagedSnrPlusOneCo, true, coordinatesData, cellMethodsData, averagedFlagsCo);
+	AmfNcVariable<perSteradianPerMetreF> backscatterCrossVariable(sU("attenuated_aerosol_backscatter_coefficient_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Attenuated Aerosol Backscatter Coefficient (Cross Polarised)"), sU(""), averagedBackscatterCross, true, coordinatesData, cellMethodsData, averagedFlagsCross);
+	AmfNcVariable<unitlessF> snrPlusOneCrossVariable(sU("signal_to_noise_ratio_plus_1_cr"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Signal to Noise Ratio: SNR+1 (Cross Polarised)"), sU(""), averagedSnrPlusOneCross, true, coordinatesData, cellMethodsData, averagedFlagsCross);
+	AmfNcVariable<unitlessF> depolarisationVariable(sU("depolarisation_ratio"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension}, sU("Volume Linear Depolarization Ratio"), sU(""), depolarisation, true, coordinatesData, cellMethodsData, depolarisationFlags);
 	AmfNcFlagVariable backscatterFlagCoVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient_co"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable backscatterFlagCrossVariable(sU("qc_flag_attenuated_aerosol_backscatter_coefficient_cr"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 	AmfNcFlagVariable depolarisationFlagVariable(sU("qc_flag_depolarisation_ratio"), lidarDopplerFlags, file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), &rangeIndexDimension});
 
 	file.writeTimeAndLocationData(platform);
 
-	file.write(rangeVariable);
-	file.write(azimuthVariable);
-	file.write(azimuthVariableEarthFrame);
-	file.write(elevationVariable);
-	file.write(elevationVariableEarthFrame);
-	file.write(backscatterCoVariable);
-	file.write(snrPlusOneCoVariable);
-	file.write(backscatterCrossVariable);
-	file.write(snrPlusOneCrossVariable);
-	file.write(depolarisationVariable);
-	file.write(backscatterFlagCoVariable, reshape(averagedFlagsCo, newShape));
-	file.write(backscatterFlagCrossVariable, reshape(averagedFlagsCross, newShape));
-	file.write(depolarisationFlagVariable, reshape(depolarisationFlags, newShape));
+	file.write(rangeVariable, averagedRanges);
+	file.write(azimuthVariable, instrumentRelativeAzimuthAngles);
+	file.write(azimuthVariableEarthFrame, attitudeCorrectedAzimuthAngles);
+	file.write(elevationVariable, instrumentRelativeElevationAngles);
+	file.write(elevationVariableEarthFrame, attitudeCorrectedElevationAngles);
+	file.write(backscatterCoVariable, averagedBackscatterCo);
+	file.write(snrPlusOneCoVariable, averagedSnrPlusOneCo);
+	file.write(backscatterCrossVariable, averagedBackscatterCross);
+	file.write(snrPlusOneCrossVariable, averagedSnrPlusOneCross);
+	file.write(depolarisationVariable, depolarisation);
+	file.write(backscatterFlagCoVariable, averagedFlagsCo);
+	file.write(backscatterFlagCrossVariable, averagedFlagsCross);
+	file.write(depolarisationFlagVariable, depolarisationFlags);
 }
