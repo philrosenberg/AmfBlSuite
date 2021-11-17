@@ -20,10 +20,10 @@ public:
 	void setTime(const sci::UtcTime &time) { m_time = time; }
 	degreeF getAzimuth() const { return m_azimuth; }
 	degreeF getElevation() const { return m_elevation; }
-	sci::GridData<size_t, 1> getGates() const { return sci::GridData<size_t, 1>(m_gates.begin(), m_gates.end()); }
-	sci::GridData<metrePerSecondF, 1> getDopplerVelocities() const { return sci::GridData<metrePerSecondF, 1>(m_dopplerVelocities.begin(), m_dopplerVelocities.end()); }
-	sci::GridData<unitlessF, 1> getIntensities() const { return sci::GridData<unitlessF, 1>(m_intensities.begin(), m_intensities.end()); }
-	sci::GridData<perSteradianPerMetreF, 1> getBetas() const { return sci::GridData<perSteradianPerMetreF, 1>(m_betas.begin(), m_betas.end()); }
+	const sci::GridData<size_t, 1>& getGates() const { return m_gates; }
+	const sci::GridData<metrePerSecondF, 1>& getDopplerVelocities() const { return m_dopplerVelocities; }
+	const sci::GridData<unitlessF, 1>& getIntensities() const { return m_intensities; }
+	const sci::GridData<perSteradianPerMetreF, 1>& getBetas() const { return m_betas; }
 	size_t nGates() const { return m_gates.size(); }
 private:
 	sci::UtcTime m_time;
@@ -31,8 +31,8 @@ private:
 	degreeF m_elevation;
 	degreeF m_pitch;
 	degreeF m_roll;
-	std::vector<size_t> m_gates;
-	std::vector<metrePerSecondF> m_dopplerVelocities;
-	std::vector<unitlessF> m_intensities;
-	std::vector<perSteradianPerMetreF> m_betas;
+	sci::GridData<size_t, 1> m_gates;
+	sci::GridData<metrePerSecondF, 1> m_dopplerVelocities;
+	sci::GridData<unitlessF, 1> m_intensities;
+	sci::GridData<perSteradianPerMetreF, 1> m_betas;
 };

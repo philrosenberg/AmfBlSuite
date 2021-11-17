@@ -299,8 +299,8 @@ void restructureLidarData(sci::GridData<T, 3>& dest, const sci::GridData<T, 2>& 
 			{
 				//note k and j reversed below as we need altitude before angle
 				dest[{i, k, j}] = source[profileIndex][k];
-				++profileIndex;
 			}
+			++profileIndex;
 		}
 	}
 }
@@ -394,6 +394,20 @@ void LidarScanningProcessor::formatDataForOutput(ProgressReporter& progressRepor
 	restructureLidarData(attitudeCorrectedAzimuthAngles, getAttitudeCorrectedAzimuths(), profilesPerFile, nScans, maxProfilesPerScan, isStare());
 	restructureLidarData(instrumentRelativeElevationAngles, getInstrumentRelativeElevations(), profilesPerFile, nScans, maxProfilesPerScan, isStare());
 	restructureLidarData(attitudeCorrectedElevationAngles, getAttitudeCorrectedElevations(), profilesPerFile, nScans, maxProfilesPerScan, isStare());
+
+	ranges.reshape(backscatters.shape());
+	for (size_t i = 0; i < nScans; ++i)
+	{
+		sci::GridData<metreF, 1> gateCentres = getGateCentres(i);
+		for (size_t j = 0; j < maxNGates; ++j)
+			for (size_t k = 0; k < maxProfilesPerScan; ++k)
+				ranges[{i, j, k}] = gateCentres[j];
+	}
+
+	scanStartTimes = getTimesUtcTime();
+	scanEndTimes.resize(scanStartTimes.size());
+	for(size_t i=0; i<scanEndTimes.size(); ++i)
+		scanEndTimes[i] = scanStartTimes[i] + (unitlessF((unitlessF::valueType)(getHeaderForProfile(i).pulsesPerRay * getHeaderForProfile(i).nRays)) / sci::Physical<sci::Hertz<1, 3>, typename unitlessF::valueType>(15.0)); //this is the time of the last profile in the scan plus the duration of this profile
 	/*
 	//build up our data arrays. We must account for the fact that the user could change
 	//the number of profiles in a scan pattern or the range of the instruemnt during a day
@@ -708,12 +722,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	//work out the averaging time - this is the difference between the scan start and end times.
 	//use the median as the value for the file
 	if (scanStartTimes.size() > 0)
-	{
-		sci::GridData<sci::TimeInterval, 1> averagingTimes = scanEndTimes - scanStartTimes;
-		sci::GridData<sci::TimeInterval, 1> sortedAveragingTimes = averagingTimes;
-		std::sort(sortedAveragingTimes.begin(), sortedAveragingTimes.end());
-		dataInfo.averagingPeriod = secondF(sortedAveragingTimes[sortedAveragingTimes.size() / 2]);
-	}
+		dataInfo.averagingPeriod = sci::median(scanEndTimes - scanStartTimes);
 
 	//work out the sampling interval - this is the difference between each scan time.
 	//use the median as the value for the file

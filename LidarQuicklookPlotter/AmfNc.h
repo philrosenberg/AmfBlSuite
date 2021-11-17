@@ -1549,7 +1549,7 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 		//flags is a scalar
 
 		//if flags is zero, we have essentially flagged everything out
-		if (flags[{}] !=1)
+		if (flags[{}] == 0)
 			return;
 
 		min = std::numeric_limits<T>::max();
