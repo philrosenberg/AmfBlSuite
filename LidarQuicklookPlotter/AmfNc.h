@@ -896,10 +896,48 @@ public:
 		sci::OutputNcFile::write(dimension);
 	}
 	template<class T, class U>
-	void write(const T &variable, U data)
+	void write(const T &variable, const U &data)
 	{
 		auto ncOutputView = sci::make_gridtransform_view(data, [](const U::value_type& val) { return T::transformForOutput(val); });
 		sci::OutputNcFile::write(variable, ncOutputView);
+	}
+	template<class T, sci::IsGrid U>
+	void writeIgnoreDefunctLastDim(const T& variable, const U &data)
+	{
+		static_assert(U::ndims > 1, "Cannot remove a defunct last dimension when the data has zero or 1 dimension");
+
+		//get the original shape
+		auto shape = data.shape();
+
+		//check that the last size is 1
+		sci::assertThrow(shape.back() == 1, sci::err(sci::SERR_USER, 0, "cannot remove defunct last dimension when the size of that dimension is not 0"));
+
+		//calculate the strides of the new grid
+		std::array<size_t, U::ndims - 2> strides;
+		for (size_t i = 0; i < strides.size(); ++i)
+		{
+			strides[i] = 1;
+			for (size_t j = i + 1; j < shape.size(); ++j)
+				strides[i] *= shape[j];
+		}
+
+		if constexpr (U::ndims > 2)
+		{
+			//create a new view of the data, but with the new strides
+			auto reshapedView(data | sci::views::grid<U::ndims - 1>(sci::GridPremultipliedStridesReference< U::ndims - 1>(&strides[0])));
+			//make a view applying any needed transform
+			auto ncOutputView = sci::make_gridtransform_view(reshapedView, [](const U::value_type& val) { return T::transformForOutput(val); });
+			//write out the data
+			sci::OutputNcFile::write(variable, ncOutputView);
+		}
+		else
+		{
+			auto reshapedView(data | sci::views::grid<U::ndims - 1>(sci::GridPremultipliedStridesReference< U::ndims - 1>()));
+			//make a view applying any needed transform
+			auto ncOutputView = sci::make_gridtransform_view(reshapedView, [](const U::value_type& val) { return T::transformForOutput(val); });
+			//write out the data
+			sci::OutputNcFile::write(variable, ncOutputView);
+		}
 	}
 	template<class T>
 	static T getFillValue()
@@ -1544,6 +1582,8 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 	if (data.size() == 0)
 		return;
 
+	min = std::numeric_limits<T>::max();
+	max = std::numeric_limits<T>::lowest();
 	if constexpr (FLAGS_GRID::ndims == 0)
 	{
 		//flags is a scalar
@@ -1552,8 +1592,6 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 		if (flags[{}] == 0)
 			return;
 
-		min = std::numeric_limits<T>::max();
-		max = std::numeric_limits<T>::min();
 		for (auto const & d : data)
 		{
 			if (d == d)
@@ -1562,17 +1600,11 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 				max = std::max(max, d);
 			}
 		}
-		if (min == std::numeric_limits<T>::max() || min != min)
-			min = getDefault<T>();
-		if (max == std::numeric_limits<T>::min() || max != max)
-			max = getDefault<T>();
 	}
 	else if constexpr (FLAGS_GRID::ndims == DATA_GRID::ndims)
 	{
 		//flags has the same number of dimensions as data, we can work through them both in sync
 
-		min = std::numeric_limits<T>::max();
-		max = std::numeric_limits<T>::min();
 		auto iterData = data.begin();
 		auto iterFlags = flags.begin();
 		for (; iterData != data.end(); ++iterData, ++iterFlags)
@@ -1591,8 +1623,6 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 		const size_t dimToWatch = DATA_GRID::ndims - 1 - dimsDiff;
 		size_t stride = data.getStride()[dimToWatch];
 
-		min = std::numeric_limits<T>::max();
-		max = std::numeric_limits<T>::min();
 		auto iterData = data.begin();
 		auto iterFlags = flags.begin();
 		size_t index;
@@ -1607,6 +1637,10 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 				++iterFlags;
 		}
 	}
+	if (min == std::numeric_limits<T>::max() || min != min)
+		min = getDefault<T>();
+	if (max == std::numeric_limits<T>::min() || max != max)
+		max = getDefault<T>();
 }
 
 
@@ -1778,10 +1812,17 @@ private:
 		if (unit == sU(""))
 			unit = sU("1");
 		//replace degree symbol with the word degree
+#if defined UNITS_H_USING_CP1253
+		while (unit.find_first_of(sU('\xf8')) != sci::string::npos)
+		{
+			unit.replace(unit.find_first_of(sU('\u00b0')), 1, sU("degree"), 0, sci::string::npos);
+		}
+#else
 		while (unit.find_first_of(sU('\u00b0')) != sci::string::npos)
 		{
 			unit.replace(unit.find_first_of(sU('\u00b0')), 1, sU("degree"), 0, sci::string::npos);
 		}
+#endif
 		sci::NcAttribute unitsAttribute(sU("units"), unit);
 		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<UNIT>());
 		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<UNIT>());

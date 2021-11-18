@@ -146,6 +146,31 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 		attitudeCorrectedElevationAnglesCross, instrumentRelativeDopplerVelocitiesCross, motionCorrectedDopplerVelocitiesCross, backscattersCross, snrPlusOneCross, dopplerVelocityFlagsCross,
 		backscatterFlagsCross, startTimesCross, endTimesCross, maxProfilesPerScanCross, maxNGatesCross, pulsesPerRayCross, raysPerPointCross, focusCross, dopplerResolutionCross, gateLengthCross, pointsPerGateCross);
 		
+	//make the attitude corrected angles continuous for moving platforms otherwise the averaging gets messed up
+	for (size_t i = 0; i < attitudeCorrectedAzimuthAnglesCo.shape()[1]; ++i) //for each angle
+	{
+		degreeF offset(0);
+		for (size_t j = 1; j < attitudeCorrectedAzimuthAnglesCo.shape()[0]; ++j) //for each scan pattern/timestep
+		{
+			if (attitudeCorrectedAzimuthAnglesCo[j][i] - attitudeCorrectedAzimuthAnglesCo[j - 1][i] > degreeF(180))
+				offset -= degreeF(180);
+			else if (attitudeCorrectedAzimuthAnglesCo[j][i] - attitudeCorrectedAzimuthAnglesCo[j - 1][i] < degreeF(-180))
+				offset += degreeF(180);
+			attitudeCorrectedAzimuthAnglesCo[j][i] += offset;
+		}
+	}
+	for (size_t i = 0; i < attitudeCorrectedAzimuthAnglesCross.shape()[1]; ++i) //for each angle
+	{
+		degreeF offset(0);
+		for (size_t j = 1; j < attitudeCorrectedAzimuthAnglesCross.shape()[0]; ++j) //for each scan pattern/timestep
+		{
+			if (attitudeCorrectedAzimuthAnglesCross[j][i] - attitudeCorrectedAzimuthAnglesCross[j - 1][i] > degreeF(180))
+				offset -= degreeF(180);
+			else if (attitudeCorrectedAzimuthAnglesCross[j][i] - attitudeCorrectedAzimuthAnglesCross[j - 1][i] < degreeF(-180))
+				offset += degreeF(180);
+			attitudeCorrectedAzimuthAnglesCross[j][i] += offset;
+		}
+	}
 
 	if (startTimesCo.size() < 1)
 	{
@@ -182,7 +207,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	for(auto iter = backscatterFlagsCo.begin(); iter!=backscatterFlagsCo.end(); ++iter)
 		if (*iter == lidarSnrBelow1Flag || *iter == lidarSnrBelow2Flag || *iter == lidarSnrBelow3Flag)
 			*iter = lidarGoodDataFlag;
-	for (auto iter = backscatterFlagsCross.begin(); iter != backscatterFlagsCo.end(); ++iter)
+	for (auto iter = backscatterFlagsCross.begin(); iter != backscatterFlagsCross.end(); ++iter)
 		if (*iter == lidarSnrBelow1Flag || *iter == lidarSnrBelow2Flag || *iter == lidarSnrBelow3Flag)
 			*iter = lidarGoodDataFlag;
 
@@ -329,7 +354,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 		//we start with i=0, then within each pass of the while loop we increment i multiple
 		//times until we exceed the integration time. This gives us a range to average
 		size_t i = 0;
-		while(i<backscattersCross.size()-1)
+		while(i<backscattersCross.shape()[0]-1)
 		{
 			//first time within this averaged block
 			sci::UtcTime startTime = startTimesCo[i];
@@ -364,9 +389,9 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			second integrationTime(0.0);
 
 			//this loop increments i and sums the apropriate data until we exceed the averaging period
-			while (i < backscattersCross.size() - 1 && integrationTime < dataInfo.averagingPeriod )
+			while (i < backscattersCross.shape()[0] - 1 && integrationTime < dataInfo.averagingPeriod )
 			{
-				auto result = sci::operator-(instrumentRelativeAzimuthAnglesCo[i], startInstrumentRelativeAzimuthAngles);
+				auto result = instrumentRelativeAzimuthAnglesCo[i] - startInstrumentRelativeAzimuthAngles;
 				if (count > 0)
 				{
 					//compare this profile against the first profile in the average period to see if it is compatible
@@ -389,14 +414,14 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 				crossNoiseSumSquared += sci::pow<2>((backscattersCross[i] / rangesCross[i] / rangesCross[i]) / (snrPlusOneCross[i] - unitlessF(1.0f)));
 				coNoiseSumSquared += sci::pow<2>((backscattersCo[i] / rangesCo[i] / rangesCo[i]) / (snrPlusOneCo[i] - unitlessF(1.0f)));
 				//track the worst flag over the averaging period
-				for (size_t j = 0; j < worstFlagCo.size(); ++j)
-					for (size_t k = 0; k < worstFlagCo[j].size(); ++k)
+				for (size_t j = 0; j < worstFlagCo.shape()[0]; ++j)
+					for (size_t k = 0; k < worstFlagCo.shape()[1]; ++k)
 						worstFlagCo[j][k] = std::max(backscatterFlagsCo[i][j][k], worstFlagCo[j][k]);
-				for (size_t j = 0; j < worstFlagCo.size(); ++j)
-					for (size_t k = 0; k < worstFlagCo[j].size(); ++k)
+				for (size_t j = 0; j < worstFlagCo.shape()[0]; ++j)
+					for (size_t k = 0; k < worstFlagCo.shape()[1]; ++k)
 						worstFlagCr[j][k] = std::max(backscatterFlagsCross[i][j][k], worstFlagCr[j][k]);
-				for (size_t j = 0; j < worstFlagCo.size(); ++j)
-					for (size_t k = 0; k < worstFlagCo[j].size(); ++k)
+				for (size_t j = 0; j < worstFlagCo.shape()[0]; ++j)
+					for (size_t k = 0; k < worstFlagCo.shape()[1]; ++k)
 						worstFlagDepol[j][k] = std::max(worstFlagCr[j][k], worstFlagCo[j][k]);
 				//add the current attitude corrected positions to the sums
 				attitudeCorrectedAverageAzimuth += (attitudeCorrectedAzimuthAnglesCo[i] + attitudeCorrectedAzimuthAnglesCross[i]) / unitlessF(2);
@@ -417,8 +442,8 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			averagedRanges.push_back(startRanges);
 			averagedFlagsCo.push_back(worstFlagCo);
 			averagedFlagsCross.push_back(worstFlagCr);
-			attitudeCorrectedAzimuthAngles.push_back(attitudeCorrectedAverageAzimuth);
-			attitudeCorrectedElevationAngles.push_back(attitudeCorrectedAverageElevation);
+			attitudeCorrectedAzimuthAngles.push_back(attitudeCorrectedAverageAzimuth/unitlessF(count));
+			attitudeCorrectedElevationAngles.push_back(attitudeCorrectedAverageElevation/unitlessF(count));
 			integrationTimes.push_back(integrationTime);
 			missmatchedProfileFlags.push_back(goodAverage ? lidarGoodDataFlag : lidarCoAndCrossMisaligned);
 
@@ -439,6 +464,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			
 
 			//it's worth reserving some space for the arrays early on to save multiple memory allocations and reassignments
+			//this code waits untile we have 5 entries in averagedTime, then estimates the space we will need
 			if (averagedTime.size() == 5)
 			{
 				auto expectedSize3d = backscattersCo.shape();
@@ -474,50 +500,53 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 		}
 	}
 
+	//by making the earth frame azimuth continuous we may have strayed out of the +/-180 degree range. Fix that now
+
+	for (auto& angle : attitudeCorrectedAzimuthAngles)
+	{
+		while (angle < degreeF(-180))
+			angle += degreeF(360);
+		while (angle > degreeF(180))
+			angle -= degreeF(360);
+	}
+
 	if (averagedTime.size() == 0)
 	{
 		progressReporter << sU("Did not find enough good profiles to create any depolarisation averages. No output file will be created.");
 		return;
 	}
 
-	for (size_t i = 0; i < averagedBackscatterCo.size(); ++i)
+	auto averagedFlagsCoIter = averagedFlagsCo.begin();
+	auto averagedSnrPlusOneCoIter = averagedSnrPlusOneCo.begin();
+	for (; averagedFlagsCoIter != averagedFlagsCo.end(); ++averagedFlagsCoIter, ++averagedSnrPlusOneCoIter)
 	{
-		for (size_t j = 0; j < averagedBackscatterCo[i].size(); ++j)
-		{
-			for (size_t k = 0; k < averagedBackscatterCo[i][j].size(); ++k)
-			{
-				if (averagedSnrPlusOneCo[i][j][k] < unitlessF(2.0) && averagedFlagsCo[i][j][k] == lidarGoodDataFlag)
-					averagedFlagsCo[i][j][k] = lidarSnrBelow1Flag;
-				if (averagedSnrPlusOneCo[i][j][k] < unitlessF(3.0) && averagedFlagsCo[i][j][k] == lidarGoodDataFlag)
-					averagedFlagsCo[i][j][k] = lidarSnrBelow3Flag;
-				if (averagedSnrPlusOneCo[i][j][k] < unitlessF(4.0) && averagedFlagsCo[i][j][k] == lidarGoodDataFlag)
-					averagedFlagsCo[i][j][k] = lidarSnrBelow1Flag;
-			}
-		}
+		if (*averagedSnrPlusOneCoIter < unitlessF(2.0) && *averagedFlagsCoIter == lidarGoodDataFlag)
+			*averagedFlagsCoIter = lidarSnrBelow1Flag;
+		if (*averagedSnrPlusOneCoIter < unitlessF(3.0) && *averagedFlagsCoIter == lidarGoodDataFlag)
+			*averagedFlagsCoIter = lidarSnrBelow3Flag;
+		if (*averagedSnrPlusOneCoIter < unitlessF(4.0) && *averagedFlagsCoIter == lidarGoodDataFlag)
+			*averagedFlagsCoIter = lidarSnrBelow1Flag;
 	}
 
-	for (size_t i = 0; i < averagedBackscatterCross.size(); ++i)
+	auto averagedFlagsCrossIter = averagedFlagsCross.begin();
+	auto averagedSnrPlusOneCrossIter = averagedSnrPlusOneCross.begin();
+	for (; averagedFlagsCrossIter != averagedFlagsCross.end(); ++averagedFlagsCrossIter, ++averagedSnrPlusOneCrossIter)
 	{
-		for (size_t j = 0; j < averagedBackscatterCross[i].size(); ++j)
-		{
-			for (size_t k = 0; k < averagedBackscatterCross[i][j].size(); ++k)
-			{
-				if (averagedSnrPlusOneCross[i][j][k] < unitlessF(2.0) && averagedFlagsCross[i][j][k] == lidarGoodDataFlag)
-					averagedFlagsCross[i][j][k] = lidarSnrBelow1Flag;
-				if (averagedSnrPlusOneCross[i][j][k] < unitlessF(3.0) && averagedFlagsCross[i][j][k] == lidarGoodDataFlag)
-					averagedFlagsCross[i][j][k] = lidarSnrBelow3Flag;
-				if (averagedSnrPlusOneCross[i][j][k] < unitlessF(4.0) && averagedFlagsCross[i][j][k] == lidarGoodDataFlag)
-					averagedFlagsCross[i][j][k] = lidarSnrBelow1Flag;
-			}
-		}
+		if (*averagedSnrPlusOneCrossIter < unitlessF(2.0) && *averagedFlagsCrossIter == lidarGoodDataFlag)
+			*averagedFlagsCrossIter = lidarSnrBelow1Flag;
+		if (*averagedSnrPlusOneCrossIter < unitlessF(3.0) && *averagedFlagsCrossIter == lidarGoodDataFlag)
+			*averagedFlagsCrossIter = lidarSnrBelow3Flag;
+		if (*averagedSnrPlusOneCrossIter < unitlessF(4.0) && *averagedFlagsCrossIter == lidarGoodDataFlag)
+			*averagedFlagsCrossIter = lidarSnrBelow1Flag;
 	}
+
 
 	depolarisationFlags = averagedFlagsCo;
-	for (size_t i = 0; i < averagedBackscatterCross.size(); ++i)
+	for (size_t i = 0; i < averagedBackscatterCross.shape()[0]; ++i)
 	{
-		for (size_t j = 0; j < averagedBackscatterCross[i].size(); ++j)
+		for (size_t j = 0; j < averagedBackscatterCross.shape()[1]; ++j)
 		{
-			for (size_t k = 0; k < averagedBackscatterCross[i][j].size(); ++k)
+			for (size_t k = 0; k < averagedBackscatterCross.shape()[2]; ++k)
 			{
 				depolarisationFlags[i][j][k] = std::max(std::max(averagedFlagsCo[i][j][k], averagedFlagsCross[i][j][k]), missmatchedProfileFlags[i]);
 			}
@@ -529,8 +558,8 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	//dataInfo.averagingPeriod = secondF(sortedIntegrationTimes[sortedIntegrationTimes.size() / 2]);
 
 	std::vector<sci::NcDimension*> nonTimeDimensions;
-	sci::NcDimension rangeIndexDimension(sU("index_of_range"), rangesCo.size() > 0 ? rangesCo[0].size() : 0);
-	sci::NcDimension angleIndexDimension(sU("index_of_angle"), attitudeCorrectedAzimuthAngles[0].size() > 0 ? rangesCo[0].size() : 0);
+	sci::NcDimension rangeIndexDimension(sU("index_of_range"), rangesCo.size() > 0 ? rangesCo.shape()[1] : 0);
+	sci::NcDimension angleIndexDimension(sU("index_of_angle"), attitudeCorrectedAzimuthAngles.size() > 0 ? attitudeCorrectedAzimuthAngles.shape()[1] : 0);
 	nonTimeDimensions.push_back(&rangeIndexDimension);
 	nonTimeDimensions.push_back(&angleIndexDimension);
 
@@ -598,7 +627,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	//std::array<size_t, 1> newShapeAngle{ averagedTime.size() };
 	//std::vector<metreF> flat = sci::flatten(averagedRanges);
 	//std::vector<std::vector<metreF>> tempRange= sci::unflatten(flat, newShape);
-	AmfNcVariable<metreF> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU("range"), averagedRanges, true, coordinatesData, cellMethodsRange, sci::GridData<uint8_t,0>(1));
+	AmfNcVariable<metreF> rangeVariable(sU("range"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & rangeIndexDimension }, sU("Distance of Measurement Volume Centre Point from Instrument"), sU(""), averagedRanges, true, coordinatesData, cellMethodsRange, sci::GridData<uint8_t,0>(1));
 	AmfNcVariable<degreeF> azimuthVariable(sU("sensor_azimuth_angle_instrument_frame"), file, file.getTimeDimension(), sU("Scanning head azimuth angle in the instrument frame of reference"), sU(""), instrumentRelativeAzimuthAngles, true, coordinatesData, cellMethodsAngles, sci::GridData<uint8_t, 0>(1));
 	AmfNcVariable<degreeF> elevationVariable(sU("sensor_view_angle_instrument_frame"), file, file.getTimeDimension(), sU("Scanning head elevation angle in the instrument frame of reference"), sU(""), instrumentRelativeElevationAngles, true, coordinatesData, cellMethodsAngles, sci::GridData<uint8_t, 0>(1));
 	AmfNcVariable<degreeF> azimuthVariableEarthFrame(sU("sensor_azimuth_angle_earth_frame"), file, std::vector<sci::NcDimension*>{ &file.getTimeDimension(), & angleIndexDimension}, sU("Scanning head azimuth angle in the Earth frame of reference"), sU(""), attitudeCorrectedAzimuthAngles, true, coordinatesData, cellMethodsAnglesEarthFrame, sci::GridData<uint8_t, 0>(1));
@@ -614,17 +643,17 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 
 	file.writeTimeAndLocationData(platform);
 
-	file.write(rangeVariable, averagedRanges);
-	file.write(azimuthVariable, instrumentRelativeAzimuthAngles);
+	file.writeIgnoreDefunctLastDim(rangeVariable, averagedRanges);
+	file.writeIgnoreDefunctLastDim(azimuthVariable, instrumentRelativeAzimuthAngles);
 	file.write(azimuthVariableEarthFrame, attitudeCorrectedAzimuthAngles);
-	file.write(elevationVariable, instrumentRelativeElevationAngles);
+	file.writeIgnoreDefunctLastDim(elevationVariable, instrumentRelativeElevationAngles);
 	file.write(elevationVariableEarthFrame, attitudeCorrectedElevationAngles);
-	file.write(backscatterCoVariable, averagedBackscatterCo);
-	file.write(snrPlusOneCoVariable, averagedSnrPlusOneCo);
-	file.write(backscatterCrossVariable, averagedBackscatterCross);
-	file.write(snrPlusOneCrossVariable, averagedSnrPlusOneCross);
-	file.write(depolarisationVariable, depolarisation);
-	file.write(backscatterFlagCoVariable, averagedFlagsCo);
-	file.write(backscatterFlagCrossVariable, averagedFlagsCross);
-	file.write(depolarisationFlagVariable, depolarisationFlags);
+	file.writeIgnoreDefunctLastDim(backscatterCoVariable, averagedBackscatterCo);
+	file.writeIgnoreDefunctLastDim(snrPlusOneCoVariable, averagedSnrPlusOneCo);
+	file.writeIgnoreDefunctLastDim(backscatterCrossVariable, averagedBackscatterCross);
+	file.writeIgnoreDefunctLastDim(snrPlusOneCrossVariable, averagedSnrPlusOneCross);
+	file.writeIgnoreDefunctLastDim(depolarisationVariable, depolarisation);
+	file.writeIgnoreDefunctLastDim(backscatterFlagCoVariable, averagedFlagsCo);
+	file.writeIgnoreDefunctLastDim(backscatterFlagCrossVariable, averagedFlagsCross);
+	file.writeIgnoreDefunctLastDim(depolarisationFlagVariable, depolarisationFlags);
 }

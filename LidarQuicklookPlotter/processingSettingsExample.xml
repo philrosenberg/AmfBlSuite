@@ -8,11 +8,11 @@
     <instrument type="amfEntity/instrument" id="1"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
   </processor>-->
-  <!--<processor>
+  <processor>
     <name>LidarDepolarisationProcessor</name>
     <instrument type="amfEntity/instrument" id="1"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
-  </processor>-->
+  </processor>
   <!--<processor>
     <name>SondeProcessor</name>
     <instrument type ="amfEntity/instrument" id="4"></instrument>
@@ -23,11 +23,11 @@
     <instrument type="amfEntity/instrument" id="3"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="3">></calibrationInfo>
   </processor>-->
-  <processor>
+  <!--<processor>
     <name>LidarCopolarisedStareProcessor</name>
     <instrument type="amfEntity/instrument" id="1"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
-  </processor>
+  </processor>-->
   <!--<processor>
     <name>LidarCrosspolarisedStareProcessor</name>
     <instrument type="amfEntity/instrument" id="1"></instrument>
