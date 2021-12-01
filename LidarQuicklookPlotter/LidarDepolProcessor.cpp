@@ -224,8 +224,8 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			//this is a really slow way to insert data if there are many missing points,
 			//but actually I can't think of any case where we would end up with missing
 			//the copolarised data, unless we totally messed up the files
-			startTimesCo.insert(i, startTimesCross[i]);
-			endTimesCo.insert(i, endTimesCross[i]);
+			startTimesCo.insert(i, endTimesCross[i]);//deliberately set startTimeCross to endTimeCo to introduce some stagger
+			endTimesCo.insert(i, endTimesCross[i]);//start and end times are the same as there is no data
 			instrumentRelativeAzimuthAnglesCo.insert(i, instrumentRelativeAzimuthAnglesCross[i]);
 			instrumentRelativeElevationAnglesCo.insert(i, instrumentRelativeElevationAnglesCross[i]);
 			attitudeCorrectedAzimuthAnglesCo.insert(i, attitudeCorrectedAzimuthAnglesCross[i]);
@@ -257,8 +257,8 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			}
 			if(nToInsert > 0)
 			{
-				startTimesCross.insert(i, startTimesCo.subGrid(i, nToInsert));
-				endTimesCross.insert(i, endTimesCo.subGrid(i, nToInsert));
+				startTimesCross.insert(i, endTimesCo.subGrid(i, nToInsert)); //deliberately set startTimeCross to endTimeCo to introduce some stagger
+				endTimesCross.insert(i, endTimesCo.subGrid(i, nToInsert)); //start and end times are the same as there is no actual data
 				instrumentRelativeAzimuthAnglesCross.insert(i, instrumentRelativeAzimuthAnglesCo.subGrid(i, nToInsert));
 				instrumentRelativeElevationAnglesCross.insert(i, instrumentRelativeElevationAnglesCo.subGrid(i, nToInsert));
 				attitudeCorrectedAzimuthAnglesCross.insert(i, attitudeCorrectedAzimuthAnglesCo.subGrid(i, nToInsert));
