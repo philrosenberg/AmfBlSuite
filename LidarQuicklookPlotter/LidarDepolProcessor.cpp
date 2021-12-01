@@ -214,12 +214,12 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	//We should have one co for each cross and the co should be jsut before the cross.
 	//go through the data and check this is the case. removing any unpaired data.
 	//Unpaired data would be the result of e.g. powering down the lidar.
-	for(size_t i=0; i<std::max(startTimesCo.size(), startTimesCross.size()); ++i)
+	for(size_t i=0; i<std::max(startTimesCo.shape()[0], startTimesCross.shape()[0]); ++i)
 	{
 		
 		//This code checks for missing co data. If it finds it
 		//then it inserts data to match.
-		if (i == startTimesCo.shape()[0] || startTimesCo[i] > startTimesCross[i])
+		if (i < startTimesCross.shape()[0] && (i == startTimesCo.shape()[0] || startTimesCo[i] > startTimesCross[i]))
 		{
 			//this is a really slow way to insert data if there are many missing points,
 			//but actually I can't think of any case where we would end up with missing
@@ -244,7 +244,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 			//was turned off for a time and it is very slow to add lots of data one
 			//element at a time, part way through a data set
 			size_t nToInsert = 0;
-			if (i == startTimesCross.size()-1)
+			if (i == startTimesCross.size())
 				nToInsert = startTimesCo.size() - startTimesCross.size();
 			else
 			{
