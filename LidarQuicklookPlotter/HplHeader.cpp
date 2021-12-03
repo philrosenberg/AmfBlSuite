@@ -1,4 +1,6 @@
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include "HplHeader.h"
 #include<sstream>
 #include<svector/serr.h>

@@ -1,5 +1,7 @@
 #define _USE_MATH_DEFINES //This ensures we get values for math constants when we include cmath
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include"Campbell.h"
 #include<stdint.h>
 #include<vector>
