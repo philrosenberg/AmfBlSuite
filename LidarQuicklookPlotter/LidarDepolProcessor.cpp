@@ -248,7 +248,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 				nToInsert = startTimesCo.size() - startTimesCross.size();
 			else
 			{
-				while (startTimesCross[i] > startTimesCo[i + nToInsert + 1])
+				while (i + nToInsert + 1 < startTimesCo.size() && startTimesCross[i] > startTimesCo[i + nToInsert + 1])
 				{
 					++nToInsert;
 					if (i + nToInsert + 1 == startTimesCo.size())
