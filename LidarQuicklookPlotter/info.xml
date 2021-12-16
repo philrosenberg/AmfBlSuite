@@ -214,6 +214,16 @@
     <operatingSoftwareVersion>unknown</operatingSoftwareVersion>
   </instrument>
   
+  <instrument id="6">
+    <name>ncas scanning radiometer 1</name>
+    <description>NCAS Scanning Microwave Radiometer unit 1</description>
+    <manufacturer>RPG</manufacturer>
+    <model>HATPRO</model>
+    <serial>R-DPR-05/002</serial>
+    <operatingSoftware>RPG-HATPRO</operatingSoftware>
+    <operatingSoftwareVersion>v8.48</operatingSoftwareVersion>
+  </instrument>
+  
   <!--Calibration Info-->
   <calibrationInfo id ="1">
     <calibrationDescription>Calibrated to manufacturers standard:: 0 to 19 ms-1</calibrationDescription>
@@ -268,6 +278,19 @@
       <second>0</second>
     </certificationDate>
     <certificateUrl>not applicable</certificateUrl>
+  </calibrationInfo>
+
+  <calibrationInfo id ="5">
+    <calibrationDescription>Calibrated using liquid nitrogen tray with 45 degree reflector</calibrationDescription>
+    <certificationDate>
+      <year>0</year>
+      <month>1</month>
+      <day>1</day>
+      <hour>0</hour>
+      <minute>0</minute>
+      <second>0</second>
+    </certificationDate>
+    <certificateUrl>Not available</certificateUrl>
   </calibrationInfo>
   
 </amfEntity>

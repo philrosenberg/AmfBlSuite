@@ -33,6 +33,7 @@ typedef sci::Physical<sci::MultipliedUnit<sci::Metre<1, -3>, sci::Hour<-1>>, flo
 typedef sci::Physical<sci::MultipliedUnit<sci::Gram<>, sci::Metre<-3>>, float> gramPerMetreCubedF;
 typedef sci::Physical<sci::Pascal<1, 2>, float> hectoPascalF;
 typedef sci::Physical<sci::MultipliedUnit<sci::Gram<>, sci::Metre<-2>>, float> gramPerMetreSquaredF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Kilogram<>, sci::Metre<-2>>, float> kilogramPerMetreSquaredF;
 
 
 template<class REFERENCE_UNIT>

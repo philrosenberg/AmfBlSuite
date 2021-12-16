@@ -2,17 +2,17 @@
   <!--This file contains the settings for a run of the processing software-->
   <author type ="amfEntity/person" id="1"></author>
   <project type="amfEntity/project" id="1"></project>
-  <platform type="amfEntity/platform" id="1"></platform>
-  <!--<processor>
-    <name>MicrowaveRadiometerProcessor</name>
-    <instrument type="amfEntity/instrument" id="1"></instrument>
-    <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
-  </processor>-->
+  <platform type="amfEntity/platform" id="3"></platform>
   <processor>
+    <name>MicrowaveRadiometerProcessor</name>
+    <instrument type="amfEntity/instrument" id="6"></instrument>
+    <calibrationInfo type="amfEntity/calibrationInfo" id="5">></calibrationInfo>
+  </processor>
+  <!--<processor>
     <name>LidarDepolarisationProcessor</name>
     <instrument type="amfEntity/instrument" id="1"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="1">></calibrationInfo>
-  </processor>
+  </processor>-->
   <!--<processor>
     <name>SondeProcessor</name>
     <instrument type ="amfEntity/instrument" id="4"></instrument>
@@ -86,7 +86,8 @@
 
   <comment>This is a test file</comment>
   <!-- <inputDirectory>Z:\a96\MOCCHA\raw\</inputDirectory>-->
-  <inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\AMOF Projects\MOCCHA\ComplianceTestData\</inputDirectory>
+  <inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\AMOF Projects\MOCCHA\DayTest</inputDirectory>
+  <!--<inputDirectory>D:\MOCCHA\HALO_lidar\</inputDirectory>-->
   <!--<inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\ncas-ceil-1\</inputDirectory>-->
   <outputDirectory>C:\Temp</outputDirectory>
   <beta>true</beta>
@@ -118,7 +119,7 @@
   <endTime>
     <year>2018</year>
     <month>8</month>
-    <day>1</day>
+    <day>9</day>
     <hour>1</hour>
     <minute>59</minute>
     <second>59.99</second>
