@@ -1639,7 +1639,7 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 	}
 	if (min == std::numeric_limits<T>::max() || min != min)
 		min = getDefault<T>();
-	if (max == std::numeric_limits<T>::min() || max != max)
+	if (max == std::numeric_limits<T>::lowest() || max != max)
 		max = getDefault<T>();
 }
 

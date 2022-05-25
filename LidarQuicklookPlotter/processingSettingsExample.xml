@@ -86,7 +86,7 @@
 
   <comment>This is a test file</comment>
   <!-- <inputDirectory>Z:\a96\MOCCHA\raw\</inputDirectory>-->
-  <inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\AMOF Projects\MOCCHA\DayTest</inputDirectory>
+  <inputDirectory>C:\Users\Phil\OneDrive - University of Leeds\Documents\AMOF Projects\MOCCHA\DayTest</inputDirectory>
   <!--<inputDirectory>D:\MOCCHA\HALO_lidar\</inputDirectory>-->
   <!--<inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\ncas-ceil-1\</inputDirectory>-->
   <outputDirectory>C:\Temp</outputDirectory>

@@ -322,14 +322,11 @@ void ConicalScanningProcessor::plotDataUnwrapped(const sci::string &outputFilena
 
 void ConicalScanningProcessor::getDataSortedByAzimuth(sci::GridData<perSteradianPerMetreF, 2> &sortedBetas, sci::GridData<degreeF, 1> &sortedElevations, sci::GridData<degreeF, 1> &sortedMidAzimuths, sci::GridData<degreeF, 1> &azimuthBoundaries)
 {
-
-	sci::GridData<degreeF, 1> midAzimuths = getInstrumentRelativeAzimuths();
-	sci::GridData<size_t, 1> newLocations;
-	sort(midAzimuths, sortedMidAzimuths, newLocations);
-	sci::GridData<perSteradianPerMetreF, 2> betas = getBetas();
-	sortedBetas = reorder(betas, newLocations);
-	sci::GridData<degreeF, 1> elevations = getInstrumentRelativeElevations();
-	sortedElevations = reorder(elevations, newLocations);
+	sortedMidAzimuths = getInstrumentRelativeAzimuths();
+	sortedBetas = getBetas();
+	sortedElevations = getInstrumentRelativeElevations();
+	auto toSort = std::make_tuple(&sortedBetas, &sortedElevations);
+	sci::sortBy(sortedMidAzimuths, toSort);
 
 	azimuthBoundaries.resize(sortedBetas.shape()[0] + 1);
 	if (sortedMidAzimuths.back() > sortedMidAzimuths[0])

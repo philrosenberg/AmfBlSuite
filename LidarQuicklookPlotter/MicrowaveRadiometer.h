@@ -19,7 +19,56 @@ const uint8_t mwrLowQualityLwpTooHighFlag = 7;
 const uint8_t mwrQualityNotEvaluatedFlag = 8;
 const uint8_t mwrMissingDataFlag = 9;
 
-const std::vector<std::pair<uint8_t, sci::string>> mwrDopplerFlags
+const std::vector<std::pair<uint8_t, sci::string>> mwrMetFlags
+{
+	{ mwrUnusedFlag, sU("not_used") },
+	{mwrGoodDataFlag, sU("good_data")}
+};
+
+const uint8_t mwrRainUnusedFlag = 0;
+const uint8_t mwrRainGoodDataFlag = 1;
+const uint8_t mwrRainRainingFlag = 2;
+const uint8_t mwrRainMissingDataFlag = 3;
+
+const std::vector<std::pair<uint8_t, sci::string>> mwrRainFlags
+{
+	{ mwrRainUnusedFlag, sU("not_used") },
+	{mwrRainGoodDataFlag, sU("good_data")},
+	{mwrRainRainingFlag, sU("raining")},
+	{mwrRainMissingDataFlag, sU("missing_data")}
+};
+
+const uint8_t mwrChannelUnusedFlag = 0;
+const uint8_t mwrChannelGoodDataFlag = 1;
+const uint8_t mwrChannelFailFlag = 2;
+const uint8_t mwrChannelMissingDataFlag = 3;
+
+const std::vector<std::pair<uint8_t, sci::string>> mwrChannelFlags
+{
+	{ mwrRainUnusedFlag, sU("not_used") },
+	{mwrRainGoodDataFlag, sU("good_data")},
+	{mwrRainRainingFlag, sU("failed")},
+	{mwrChannelMissingDataFlag, sU("missing_data")}
+};
+
+const uint8_t mwrStabilityUnusedFlag = 0;
+const uint8_t mwrStabilityGoodDataFlag = 1;
+const uint8_t mwrStabilityPoorFlag = 2;
+const uint8_t mwrStabilityVeryPoorFlag = 3;
+const uint8_t mwrStabilityVeryVeryPoorFlag = 4;
+const uint8_t mwrStabilityMissingDataFlag = 5;
+
+const std::vector<std::pair<uint8_t, sci::string>> mwrStabilityFlags
+{
+	{ mwrStabilityUnusedFlag, sU("not_used") },
+	{mwrStabilityGoodDataFlag, sU("good_data")},
+	{mwrStabilityPoorFlag, sU("suspect_data_temperature_stability_in_the_range_5_to_10mK")},
+	{mwrStabilityVeryPoorFlag, sU("suspect_data_temperature_stability_in_the_range_10_to_50mK")},
+	{mwrStabilityVeryVeryPoorFlag, sU("suspect_data_temperature_stability_over_50mK")},
+	{mwrStabilityMissingDataFlag, sU("missing_data")}
+};
+
+const std::vector<std::pair<uint8_t, sci::string>> mwrFlags
 {
 	{mwrUnusedFlag, sU("not_used")},
 	{mwrGoodDataFlag, sU("good_data")},
@@ -58,11 +107,12 @@ inline degreeF hatproDecodeElevation(float hatproAngle)
 const uint32_t hatproLwpId = 934501978;
 const uint32_t hatproIwvId = 594811068;
 const uint32_t hatproHkdId = 837854832;
+const uint32_t hatproMetId = 599658943;
 
 inline void readHatproHkdFile(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<degreeF, 1>& latitude, sci::GridData<degreeF, 1>& longitude,
 	sci::GridData<kelvinF, 1>& ambientTarget1Temperature, sci::GridData<kelvinF, 1>& ambientTarget2Temperature, sci::GridData<kelvinF, 1>& humidityProfilerTemperature,
 	sci::GridData<kelvinF, 1>& temperatureProfilerTemperature, sci::GridData<kelvinF, 1>& temperatureStabilityReceiver1, sci::GridData<kelvinF, 1>& temperatureStabilityReceiver2,
-	sci::GridData<uint32_t, 1>& remainingMemory)
+	sci::GridData<uint32_t, 1> &status, sci::GridData<uint32_t, 1>& remainingMemory, uint32_t& fileTypeId)
 {
 	try
 	{
@@ -71,7 +121,6 @@ inline void readHatproHkdFile(sci::string filename, sci::GridData<sci::UtcTime, 
 		sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Failed to open HATPRO LWP file ") + filename));
 
 		uint32_t nSamples;
-		uint32_t fileTypeId;
 		uint32_t timeType;
 
 		fin.read((char*)&fileTypeId, 4);
@@ -100,11 +149,14 @@ inline void readHatproHkdFile(sci::string filename, sci::GridData<sci::UtcTime, 
 		temperatureProfilerTemperature.resize(nSamples, std::numeric_limits<kelvinF>::quiet_NaN());
 		temperatureStabilityReceiver1.resize(nSamples, std::numeric_limits<kelvinF>::quiet_NaN());
 		temperatureStabilityReceiver2.resize(nSamples, std::numeric_limits<kelvinF>::quiet_NaN());
+		status.resize(nSamples, -1);
 		remainingMemory.resize(nSamples, -1);
 		sci::GridData<uint8_t, 1> alarm(nSamples, -1);
 		sci::GridData<uint32_t, 1> quality(nSamples, -1);
-		sci::GridData<uint32_t, 1> status(nSamples, -1);
 		uint32_t timeTemp;
+		float angleRaw;
+		float angleDegrees;
+		float angleArcMinutes;
 		for (size_t i = 0; i < nSamples; ++i)
 		{
 			fin.read((char*)&timeTemp, 4);
@@ -114,8 +166,14 @@ inline void readHatproHkdFile(sci::string filename, sci::GridData<sci::UtcTime, 
 
 			if (hkdSelect & 0x01)
 			{
-				fin.read((char*)&latitude[i], 4);
-				fin.read((char*)&longitude[i], 4);
+				fin.read((char*)&angleRaw, 4);
+				angleDegrees = std::floor(angleRaw / 100.0f);
+				angleArcMinutes = angleRaw - angleDegrees * 100.0f;
+				longitude[i] = degreeF(angleDegrees) + arcMinuteF(angleArcMinutes);
+				fin.read((char*)&angleRaw, 4);
+				angleDegrees = std::floor(angleRaw / 100.0f);
+				angleArcMinutes = angleRaw - angleDegrees * 100.0f;
+				latitude[i] = degreeF(angleDegrees) + arcMinuteF(angleArcMinutes);
 			}
 			if (hkdSelect & 0x02)
 			{
@@ -138,6 +196,80 @@ inline void readHatproHkdFile(sci::string filename, sci::GridData<sci::UtcTime, 
 				fin.read((char*)&quality[i], 4);
 				fin.read((char*)&status[i], 4);
 			}
+		}
+	}
+	catch (...)
+	{
+		throw;
+	}
+}
+
+inline void readHatproMetData(const sci::string & filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<kelvinF, 1> &temperature, sci::GridData<unitlessF, 1> &relativeHumidity,
+	sci::GridData<hectoPascalF, 1> &pressure, sci::GridData<bool,1> rainFlag, uint32_t& fileTypeId)
+{
+
+	try
+	{
+		std::fstream fin;
+		fin.open(sci::nativeUnicode(filename), std::ios::in | std::ios::binary);
+		sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Failed to open HATPRO LWP file ") + filename));
+
+		uint32_t nSamples;
+		uint32_t timeType;
+
+		fin.read((char*)&fileTypeId, 4);
+		sci::assertThrow(fileTypeId == hatproMetId, sci::err(sci::SERR_USER, 0, sU("File ") + filename + sU(" does not start with the MET code.")));
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+		fin.read((char*)&nSamples, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+		float minPressure;
+		float maxPressure;
+		float minTemperature;
+		float maxTemperature;
+		float minRelativeHumidity;
+		float maxRelativeHumidity;
+
+		fin.read((char*)&minPressure, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		fin.read((char*)&maxPressure, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		fin.read((char*)&minTemperature, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		fin.read((char*)&maxTemperature, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		fin.read((char*)&minRelativeHumidity, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		fin.read((char*)&maxRelativeHumidity, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+
+		fin.read((char*)&timeType, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		sci::assertThrow(timeType == 1, sci::err(sci::SERR_USER, 0, sU("File ") + filename + sU(" is in local time, not UTC time. This software can only process UTC time data.")));
+
+
+		//read the data
+
+		time.resize(nSamples);
+		temperature.resize(nSamples, std::numeric_limits<kelvinF>::quiet_NaN());
+		relativeHumidity.resize(nSamples, std::numeric_limits<unitlessF>::quiet_NaN());
+		pressure.resize(nSamples, std::numeric_limits<hectoPascalF>::quiet_NaN());
+		
+		uint32_t timeTemp;
+		percentF relativeHumidityTemp;
+		uint8_t rainFlagTemp;
+		for (size_t i = 0; i < nSamples; ++i)
+		{
+			fin.read((char*)&timeTemp, 4);
+			time[i] = sci::UtcTime(2001, 1, 1, 0, 0, 0) + second(double(timeTemp));
+			fin.read((char*)&rainFlagTemp, 1);
+			rainFlag[i] = rainFlagTemp == 0 ? false : true;
+			fin.read((char*)&pressure[i], 4);
+			fin.read((char*)&temperature[i], 4);
+			fin.read((char*)&relativeHumidityTemp, 4);
+			relativeHumidity[i] = relativeHumidityTemp;
 		}
 	}
 	catch (...)
@@ -202,9 +334,9 @@ void readHatproLwpOrIwvData(sci::string filename, sci::GridData<sci::UtcTime, 1>
 			fin.read((char*)&angleTemp, 4);
 
 			time[i] = sci::UtcTime(2001, 1, 1, 0, 0, 0) + second(double(timeTemp));
-			rainFlag[i] = (rainFlagTemp | 0x00000001) > 0;
-			quality[i] = (rainFlagTemp | 0x00000006) >> 1;
-			qualityExplanation[i] = (rainFlagTemp | 0x00000018) >> 3;
+			rainFlag[i] = (rainFlagTemp & 0x01) > 0;
+			quality[i] = (rainFlagTemp & 0x06) >> 1;
+			qualityExplanation[i] = (rainFlagTemp & 0x18) >> 3;
 
 			if(fileTypeId == hatproLwpId)
 				water[i] = gramPerMetreSquaredF(waterTemp);
@@ -257,6 +389,9 @@ public:
 	{
 		return sU("Microwave Radiometer Processor");
 	}
+	void writeIwvLwpNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter);
 private:
 	InstrumentInfo m_instrumentInfo;
 	CalibrationInfo m_calibrationInfo;
@@ -288,5 +423,11 @@ private:
 	sci::GridData<kelvinF, 1> m_temperatureProfilerTemperature;
 	sci::GridData<kelvinF, 1> m_temperatureStabilityReceiver1;
 	sci::GridData<kelvinF, 1> m_temperatureStabilityReceiver2;
+	sci::GridData<uint32_t, 1> m_status;
 	sci::GridData<uint32_t, 1> m_remainingMemory;
+
+	sci::GridData<sci::UtcTime, 1> m_metTime;
+	sci::GridData<kelvinF, 1> m_enviromentTemperature;
+	sci::GridData<hectoPascalF, 1> m_enviromentPressure;
+	sci::GridData<unitlessF, 1> m_enviromentRelativeHumidity;
 };
