@@ -7,12 +7,24 @@
 
 struct HplHeader;
 
+//The purpose of this function is to always return false at compile time
+//It can be used in combination with static_assert to throw a compile time error
+//when an invalid template is instantiated. The reason it is needed is that
+//static_assert(false, "some errorr message") will always generate an error even
+//if the template is never instantiated. We need to actually use the template type
+//to generate the bool argument of static_assert
+template <class T>
+constexpr bool makeFalse()
+{
+	return sizeof(T) == -1; //sizeof T can never be -1, always returns false.
+}
+
 class HplProfile
 {
 public:
 	bool readFromStream(std::istream &stream, const HplHeader &header);
 	template<class T>
-	T getTime() const { static_assert(false, "HplProfile::getTime<T> can only be called with T=sci::UtcTime or T=second."); }
+	T getTime() const { static_assert(makeFalse<T>(), "HplProfile::getTime<T> can only be called with T=sci::UtcTime or T=second."); }
 	template<>
 	sci::UtcTime getTime<sci::UtcTime>() const { return m_time; }
 	template<>

@@ -15,6 +15,7 @@ typedef sci::Physical<sci::ArcMinute<>, float> arcMinuteF;
 //typedef sci::Physical<sci::Radian<>, valueType> radian;
 typedef sci::Physical<sci::Hertz<>, float> hertzF;
 typedef sci::Physical<sci::Hertz<1, 6>, float> megahertzF;
+typedef sci::Physical<sci::Hertz<1, 9>, float> gigaHertzF;
 typedef sci::Physical<sci::Unitless, float> unitlessF;
 typedef sci::Physical<sci::Percent, float> percentF;
 typedef sci::Physical<sci::Volt<1, -3>, float> millivoltF;
@@ -36,6 +37,8 @@ typedef sci::Physical<sci::MultipliedUnit<sci::Gram<>, sci::Metre<-3>>, float> g
 typedef sci::Physical<sci::Pascal<1, 2>, float> hectoPascalF;
 typedef sci::Physical<sci::MultipliedUnit<sci::Gram<>, sci::Metre<-2>>, float> gramPerMetreSquaredF;
 typedef sci::Physical<sci::MultipliedUnit<sci::Kilogram<>, sci::Metre<-2>>, float> kilogramPerMetreSquaredF;
+typedef sci::Physical<sci::DividedUnit<sci::Joule<>, sci::Kilogram<>>, float> joulePerKilogramF;
+typedef sci::Physical<sci::Second<-1, 1>, float> perSecondF;
 
 
 template<class REFERENCE_UNIT>

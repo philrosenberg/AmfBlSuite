@@ -2,7 +2,7 @@
 #include"ProgressReporter.h"
 
 MicrowaveRadiometerProcessor::MicrowaveRadiometerProcessor(const InstrumentInfo& instrumentInfo, const CalibrationInfo& calibrationInfo)
-	: InstrumentProcessor(sU("[/\\\\]Y....[/\\\\]M..[/\\\\]D..[/\\\\]........\\.(LWP|IWV|HKD)$"))
+	: InstrumentProcessor(sU("[/\\\\]Y....[/\\\\]M..[/\\\\]D..[/\\\\]........\\.(LWP|IWV|HKD|STA|BRT|MET|ATN)$"))
 	//: InstrumentProcessor(sU("[/\\\\]Y....[/\\\\]M..[/\\\\]D..[/\\\\]........\\.LWP$"))
 {
 	m_hasData = false;
@@ -61,6 +61,32 @@ void MicrowaveRadiometerProcessor::readData(const std::vector<sci::string>& inpu
 	}
 }
 
+template<class T>
+void appendData2dInFirstDimension(sci::GridData<T, 2>& destination, const sci::GridData<T, 2>& source)
+{
+	if (destination.shape()[0] == 0 || destination.shape()[1] == 0)
+	{
+		destination = source;
+		return;
+	}
+
+	sci::assertThrow(destination.shape()[1] == source.shape()[1], sci::err(sci::SERR_USER, 0, sU("Trying to append 2d data where the size in the second dimension does not match.")));
+
+	auto destShape = destination.shape();
+	auto sourceShape = source.shape();
+	std::array<size_t, 2> resultShape{ destShape[0] + sourceShape[0], destShape[1] };
+
+	destination.reshape(resultShape);
+
+	for (size_t i = 0; i < sourceShape[0]; ++i)
+	{
+		for (size_t j = 0; j < sourceShape[1]; ++j)
+		{
+			destination[i+destShape[0]][j] = source[i][j];
+		}
+	}
+}
+
 void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, const Platform& platform, ProgressReporter& progressReporter, bool clear)
 {
 	if (clear)
@@ -99,6 +125,32 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		m_enviromentTemperature.resize(0);
 		m_enviromentPressure.resize(0);
 		m_enviromentRelativeHumidity.resize(0);
+
+		m_staTime.resize(0);
+		m_staRainFlag.resize(0);
+		m_liftedIndex.resize(0);
+		m_kModifiedIndex.resize(0);
+		m_totalTotalsIndex.resize(0);
+		m_kIndex.resize(0);
+		m_showalterIndex.resize(0);
+		m_cape.resize(0);
+
+		sci::GridData<sci::UtcTime, 1> m_bldTime;
+		sci::GridData<metreF, 1> m_boundaryLayerDepth;
+
+		m_brtTime.resize(0);
+		m_brtFrequencies.resize(0);
+		m_brightnessTemperature.reshape({ 0,0 });
+		m_brtElevation.resize(0);
+		m_brtAzimuth.resize(0);
+		m_brtRainFlag.resize(0);
+
+		m_atnTime.resize(0);
+		m_atnFrequencies.resize(0);
+		m_attenuation.reshape({ 0,0 });
+		m_atnElevation.resize(0);
+		m_atnAzimuth.resize(0);
+		m_atnRainFlag.resize(0);
 	}
 
 	uint32_t fileTypeId;
@@ -123,6 +175,16 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 	sci::GridData<kelvinF, 1> enviromentTemperature;
 	sci::GridData<hectoPascalF, 1> enviromentPressure;
 	sci::GridData<unitlessF, 1> enviromentRelativeHumidity;
+	sci::GridData<kelvinF, 1> liftedIndex;
+	sci::GridData<kelvinF, 1> kModifiedIndex;
+	sci::GridData<kelvinF, 1> totalTotalsIndex;
+	sci::GridData<kelvinF, 1> kIndex;
+	sci::GridData<kelvinF, 1> showalterIndex;
+	sci::GridData<joulePerKilogramF, 1> cape;
+	sci::GridData<metreF, 1> boundaryLayerDepth;
+	sci::GridData<perSecondF, 1> frequencies;
+	sci::GridData<kelvinF, 2> brightnessTemperature;
+	sci::GridData<unitlessF, 2> attenuation;
 
 	sci::string extension = inputFilename.length() < 3 ? inputFilename : inputFilename.substr(inputFilename.length() - 3);
 	
@@ -131,10 +193,18 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		readHatproHkdFile(inputFilename, time, latitude, longitude, ambientTarget1Temperature, ambientTarget2Temperature,
 			humidityProfilerTemperature, temperatureProfilerTemperature, temperatureStabilityReceiver1, temperatureStabilityReceiver2,
 			status, remainingMemory, fileTypeId);
-	else if (extension == sU("LWP") || extension == sU("IWV"))
-		readHatproLwpOrIwvData(inputFilename, time, water, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+	else if (extension == sU("IWV"))
+		readHatproIwvData(inputFilename, time, water, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+	else if (extension == sU("LWP"))
+		readHatproLwpData(inputFilename, time, water, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
 	else if (extension == sU("MET"))
 		readHatproMetData(inputFilename, time, enviromentTemperature, enviromentRelativeHumidity, enviromentPressure, rainFlag, fileTypeId);
+	else if (extension == sU("STA"))
+		readHatproStaData(inputFilename, time, liftedIndex, kModifiedIndex, totalTotalsIndex, kIndex, showalterIndex, cape, rainFlag, fileTypeId);
+	else if (extension == sU("BRT"))
+		readHatproBrtData(inputFilename, time, frequencies, brightnessTemperature, elevation, azimuth, rainFlag, fileTypeId);
+	else if (extension == sU("ATN"))
+		readHatproAtnData(inputFilename, time, frequencies, attenuation, elevation, azimuth, rainFlag, fileTypeId);
 
 	if (fileTypeId == hatproLwpId)
 	{
@@ -145,6 +215,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		m_lwpRainFlag.insert(m_lwpRainFlag.size(), rainFlag);
 		m_lwpQuality.insert(m_lwpQuality.size(), quality);
 		m_lwpQualityExplanation.insert(m_lwpQualityExplanation.size(), qualityExplanation);
+		m_hasData = true;
 	}
 	else if (fileTypeId == hatproIwvId)
 	{
@@ -155,6 +226,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		m_iwvRainFlag.insert(m_iwvRainFlag.size(), rainFlag);
 		m_iwvQuality.insert(m_iwvQuality.size(), quality);
 		m_iwvQualityExplanation.insert(m_iwvQualityExplanation.size(), qualityExplanation);
+		m_hasData = true;
 	}
 	else if (fileTypeId == hatproHkdId)
 	{
@@ -168,69 +240,94 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		m_temperatureStabilityReceiver1.insert(m_temperatureStabilityReceiver1.size(), temperatureStabilityReceiver1);
 		m_temperatureStabilityReceiver2.insert(m_temperatureStabilityReceiver2.size(), temperatureStabilityReceiver2);
 		m_status.insert(m_status.size(), status);
+		m_hasData = true;
 	}
-	else if (fileTypeId == hatproMetId)
+	else if (fileTypeId == hatproMetId || fileTypeId == hatproMetNewId)
 	{
 		m_metTime.insert(m_metTime.size(), time);
 		m_enviromentTemperature.insert(m_enviromentTemperature.size(), enviromentTemperature);
 		m_enviromentPressure.insert(m_enviromentPressure.size(), enviromentPressure);
 		m_enviromentRelativeHumidity.insert(m_enviromentRelativeHumidity.size(), enviromentRelativeHumidity);
+		m_hasData = true;
 	}
-
-	m_hasData = m_lwpTime.size() > 0 || m_iwvTime.size() > 0 || m_hkdTime.size() > 0;
+	else if (fileTypeId == hatproStaId)
+	{
+		m_staTime.insert(m_staTime.size(), time);
+		m_staRainFlag.insert(m_staRainFlag.size(), rainFlag);
+		m_liftedIndex.insert(m_liftedIndex.size(), liftedIndex);
+		m_kModifiedIndex.insert(m_kModifiedIndex.size(), kModifiedIndex);
+		m_totalTotalsIndex.insert(m_totalTotalsIndex.size(), totalTotalsIndex);
+		m_kIndex.insert(m_kIndex.size(), kIndex);
+		m_showalterIndex.insert(m_showalterIndex.size(), showalterIndex);
+		m_cape.insert(m_cape.size(), cape);
+		m_hasData = true;
+	}
+	else if (fileTypeId == hatproBrtId)
+	{
+		m_brtTime.insert(m_brtTime.size(), time);
+		appendData2dInFirstDimension(m_brightnessTemperature, brightnessTemperature);
+		if(m_brtFrequencies.size()==0)
+			m_brtFrequencies = frequencies;
+		else
+		{
+			sci::assertThrow(frequencies.size() == m_brtFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("Found a file with a different number of frequencies.")));
+			for (size_t i = 0; i < m_brtFrequencies.size(); ++i)
+				sci::assertThrow(frequencies[i] == m_brtFrequencies[i], sci::err(sci::SERR_USER, 0, sU("Found a file with different frequencies.")));
+		}
+		m_brtElevation.insert(m_brtElevation.size(), elevation);
+		m_brtAzimuth.insert(m_brtAzimuth.size(), azimuth);
+		m_brtRainFlag.insert(m_brtRainFlag.size(), rainFlag);
+		m_hasData = true;
+	}
+	else if (fileTypeId == hatproAtnId)
+	{
+		m_atnTime.insert(m_atnTime.size(), time);
+		appendData2dInFirstDimension(m_attenuation, attenuation);
+		if (m_atnFrequencies.size() == 0)
+			m_atnFrequencies = frequencies;
+		else
+		{
+			sci::assertThrow(frequencies.size() == m_atnFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("Found a file with a different number of frequencies.")));
+			for (size_t i = 0; i < m_atnFrequencies.size(); ++i)
+				sci::assertThrow(frequencies[i] == m_atnFrequencies[i], sci::err(sci::SERR_USER, 0, sU("Found a file with different frequencies.")));
+		}
+		m_atnElevation.insert(m_atnElevation.size(), elevation);
+		m_atnAzimuth.insert(m_atnAzimuth.size(), azimuth);
+		m_atnRainFlag.insert(m_atnRainFlag.size(), rainFlag);
+		m_hasData = true;
+	}
 }
 
 void MicrowaveRadiometerProcessor::writeToNc(const sci::string& directory, const PersonInfo& author,
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
+	//ensure the data is sorted by time and that the flags a
+	sci::sortBy(m_lwpTime, std::make_tuple(&m_lwp, &m_lwpElevation, &m_lwpAzimuth, &m_lwpRainFlag, &m_lwpQuality, &m_lwpQualityExplanation));
+	sci::sortBy(m_iwvTime, std::make_tuple(&m_iwv, &m_iwvElevation, &m_iwvAzimuth, &m_iwvRainFlag, &m_iwvQuality, &m_lwpQualityExplanation));
+	sci::sortBy(m_hkdTime, std::make_tuple(&m_iwv, &m_latitude, &m_longitude, &m_ambientTarget1Temperature, &m_ambientTarget2Temperature,
+		&m_humidityProfilerTemperature, &m_temperatureProfilerTemperature, &m_temperatureStabilityReceiver1, &m_temperatureStabilityReceiver2,
+		&m_remainingMemory));
+	sci::sortBy(m_staTime, std::make_tuple(&m_staRainFlag, &m_liftedIndex, &m_kModifiedIndex, &m_totalTotalsIndex, &m_kIndex, &m_showalterIndex, &m_cape));
+	sci::sortBy(m_brtTime, std::make_tuple(&m_brightnessTemperature, &m_brtElevation, &m_brtAzimuth, &m_brtRainFlag));
+	sci::sortBy(m_atnTime, std::make_tuple(&m_attenuation, &m_atnElevation, &m_atnAzimuth, &m_atnRainFlag));
+
 	writeIwvLwpNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
+	writeSurfaceMetNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
+	writeStabilityNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
+	writeBrightnessTemperatureNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
 }
 
 void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, const PersonInfo& author,
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
-	//ensure the data is sorted by time
-	sci::sortBy(m_lwpTime, std::make_tuple(&m_lwp, &m_lwpElevation, &m_lwpAzimuth, &m_lwpRainFlag, &m_lwpQuality, &m_lwpQualityExplanation));
-	sci::sortBy(m_iwvTime, std::make_tuple(&m_iwv, &m_iwvElevation, &m_iwvAzimuth, &m_iwvRainFlag, &m_iwvQuality, &m_lwpQualityExplanation));
-	sci::sortBy(m_hkdTime, std::make_tuple(&m_iwv, &m_latitude, &m_longitude, &m_ambientTarget1Temperature, &m_ambientTarget2Temperature,
-		&m_humidityProfilerTemperature, &m_temperatureProfilerTemperature, &m_temperatureStabilityReceiver1, &m_temperatureStabilityReceiver2,
-		&m_remainingMemory));
-
-
-	DataInfo dataInfo;
-	dataInfo.averagingPeriod = std::numeric_limits<secondF>::quiet_NaN();
-	dataInfo.samplingInterval = std::numeric_limits<secondF>::quiet_NaN();
-	dataInfo.continuous = true;
-	dataInfo.startTime = m_lwpTime[0];
-	dataInfo.endTime = m_lwpTime.back();
-	
-	dataInfo.featureType = FeatureType::timeSeriesPoint;
-	dataInfo.options = std::vector<sci::string>(0);
-	dataInfo.processingLevel = 1;
-	dataInfo.productName = sU("iwv lwp");
-	dataInfo.processingOptions = processingOptions;
-	
-	sci::GridData<secondF, 1> intervals(m_lwpTime.size() - 1);
-	for (size_t i = 0; i < intervals.size(); ++i)
-		intervals[i] = secondF(m_lwpTime[i + 1] - m_lwpTime[i]);
-	dataInfo.averagingPeriod = sci::median(intervals);
-	dataInfo.samplingInterval = dataInfo.averagingPeriod;
+	DataInfo dataInfo = buildDataInfo(sU("iwv lwp"), m_lwpTime, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
 	
 
-	//get attitudes corrected for platform attitude
-	sci::GridData<degreeF, 1> correctedElevations(m_lwpTime.size());
-	sci::GridData<degreeF, 1> correctedAzimuths(m_lwpTime.size());
-	for (size_t i = 0; i < m_lwpTime.size(); ++i)
-	{
-		sci::UtcTime startTime = i > 0 ? m_lwpTime[i-1] : m_lwpTime[0] - (m_lwpTime[1]-m_lwpTime[0]);
-		platform.correctDirection(startTime, m_lwpTime[i], m_lwpAzimuth[i], m_lwpElevation[i], correctedAzimuths[i], correctedElevations[i]);
-		
-	}
 
 	//check that the iwv and lwp data are the same size or that one is missing entirely so we can omit it
 	sci::assertThrow(m_iwv.size() == 0 || m_lwp.size() == 0 || m_iwv.size() == m_lwp.size(), sci::err(sci::SERR_USER, 0, sU("IWV and LWP files have missmatch in data length.")));
@@ -239,154 +336,26 @@ void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, c
 		sci::assertThrow(m_iwvTime[i] == m_lwpTime[i], sci::err(sci::SERR_USER, 0, sU("IWV and LWP files have missmatched times.")));
 
 	//convert the hatpro flags into amof flags
-	sci::GridData<uint8_t, 1> lwpFlag(m_lwpTime.size());
-	for (size_t i = 0; i < lwpFlag.size(); ++i)
-		lwpFlag[i] = hatproToAmofFlag(m_lwpQuality[i], m_lwpQualityExplanation[i]);
-	sci::GridData<uint8_t, 1> iwvFlag(m_iwvTime.size());
-	for (size_t i = 0; i < iwvFlag.size(); ++i)
-		iwvFlag[i] = hatproToAmofFlag(m_iwvQuality[i], m_iwvQualityExplanation[i]);
+	sci::GridData<uint8_t, 1> lwpFlag = buildAmfFlagFromHatproQualityAndNanBadData(m_lwpQuality, m_lwpQualityExplanation, m_lwp);
+	sci::GridData<uint8_t, 1> iwvFlag = buildAmfFlagFromHatproQualityAndNanBadData(m_iwvQuality, m_iwvQualityExplanation, m_iwv);
 
-	//nan out any data that is flagged not good or missing
-	for (size_t i = 0; i < lwpFlag.size(); ++i)
-		if (lwpFlag[i] == mwrLowQualityUnknownReasonFlag
-			|| lwpFlag[i] == mwrLowQualityInterferenceFailureFlag
-			|| lwpFlag[i] == mwrLowQualityLwpTooHighFlag
-			|| lwpFlag[i] == mwrMissingDataFlag)
-			m_lwp[i] = std::numeric_limits<gramPerMetreSquaredF>::quiet_NaN();
-	for (size_t i = 0; i < iwvFlag.size(); ++i)
-		if (iwvFlag[i] == mwrLowQualityUnknownReasonFlag
-			|| iwvFlag[i] == mwrLowQualityInterferenceFailureFlag
-			|| iwvFlag[i] == mwrLowQualityLwpTooHighFlag
-			|| iwvFlag[i] == mwrMissingDataFlag)
-			m_iwv[i] = std::numeric_limits<kilogramPerMetreSquaredF>::quiet_NaN();
+	//pad the data so it matches the housekeeping data
+	padDataToMatchHkp(m_hkdTime, m_iwvTime, m_iwv, m_iwvElevation, m_iwvAzimuth, m_iwvRainFlag, m_iwvQuality, m_iwvQualityExplanation, iwvFlag);
+	padDataToMatchHkp(m_hkdTime, m_lwpTime, m_lwp, m_lwpElevation, m_lwpAzimuth, m_lwpRainFlag, m_lwpQuality, m_lwpQualityExplanation, lwpFlag);
 
-	for (size_t i = 0; i < std::min(m_iwvTime.size(), m_hkdTime.size()); ++i)
+	//get attitudes corrected for platform attitude
+	sci::GridData<degreeF, 1> correctedElevations(m_lwpTime.size());
+	sci::GridData<degreeF, 1> correctedAzimuths(m_lwpTime.size());
+	for (size_t i = 0; i < m_lwpTime.size(); ++i)
 	{
-		if (m_iwvTime[i] > m_hkdTime[i])
-		{
-			size_t j;
-			for (j = i; j < m_hkdTime.size(); ++j)
-				if (m_iwvTime[i] <= m_hkdTime[j])
-					break;
-			if (j == m_hkdTime.size())
-			{
-				break;
-			}
-			else
-			{
-				//if we found an exact match for our time, then pad with nans
-				//if we went past our time, then also nan out the curent point - there is no matching hkd time
-				size_t nToPad = j - i;
-				if (m_iwvTime[i] < m_hkdTime[j])
-				{
-					--nToPad;
-					m_iwvTime[i] = m_hkdTime[j];
-					m_iwv[i] = std::numeric_limits<kilogramPerMetreSquaredF>::quiet_NaN();
-					m_iwvElevation[i] = std::numeric_limits<degreeF>::quiet_NaN();
-					m_iwvAzimuth[i] = std::numeric_limits<degreeF>::quiet_NaN();
-					m_iwvRainFlag[i] = mwrRainMissingDataFlag;
-					m_iwvQuality[i] = mwrMissingDataFlag;
-					m_iwvQualityExplanation[i] = 0;
-					iwvFlag[i] = mwrMissingDataFlag;
+		sci::UtcTime startTime = i > 0 ? m_lwpTime[i - 1] : m_lwpTime[0] - (m_lwpTime[1] - m_lwpTime[0]);
+		platform.correctDirection(startTime, m_lwpTime[i], m_lwpAzimuth[i], m_lwpElevation[i], correctedAzimuths[i], correctedElevations[i]);
 
-					m_lwpTime[i] = m_hkdTime[j];
-					m_lwp[i] = std::numeric_limits<kilogramPerMetreSquaredF>::quiet_NaN();
-					m_lwpElevation[i] = std::numeric_limits<degreeF>::quiet_NaN();
-					m_lwpAzimuth[i] = std::numeric_limits<degreeF>::quiet_NaN();
-					m_lwpRainFlag[i] = mwrRainMissingDataFlag;
-					m_lwpQuality[i] = mwrMissingDataFlag;
-					m_lwpQualityExplanation[i] = 0;
-					lwpFlag[i] = mwrMissingDataFlag;
-				}
-				//now pad
-				if (nToPad > 0) //this can actually be zero if there was just one bad time and it is decremented above
-				{
-					m_iwvTime.insert(i, m_hkdTime.subGrid(i, nToPad));
-					m_iwv.insert(i, nToPad, std::numeric_limits<kilogramPerMetreSquaredF>::quiet_NaN());
-					m_iwvElevation.insert(i, nToPad, std::numeric_limits<degreeF>::quiet_NaN());
-					m_iwvAzimuth.insert(i, nToPad, std::numeric_limits<degreeF>::quiet_NaN());
-					m_iwvRainFlag.insert(i, nToPad, mwrRainMissingDataFlag);
-					m_iwvQuality.insert(i, nToPad, mwrMissingDataFlag);
-					m_iwvQualityExplanation.insert(i, nToPad, 0);
-					iwvFlag.insert(i, nToPad, mwrMissingDataFlag);
-
-					m_lwpTime.insert(i, m_hkdTime.subGrid(i, nToPad));
-					m_lwp.insert(i, nToPad, std::numeric_limits<kilogramPerMetreSquaredF>::quiet_NaN());
-					m_lwpElevation.insert(i, nToPad, std::numeric_limits<degreeF>::quiet_NaN());
-					m_lwpAzimuth.insert(i, nToPad, std::numeric_limits<degreeF>::quiet_NaN());
-					m_lwpRainFlag.insert(i, nToPad, mwrRainMissingDataFlag);
-					m_lwpQuality.insert(i, nToPad, mwrMissingDataFlag);
-					m_lwpQualityExplanation.insert(i, nToPad, 0);
-					lwpFlag.insert(i, nToPad, mwrMissingDataFlag);
-				}
-			}
-		}
 	}
-	if (m_iwvTime.size() < m_hkdTime.size())
-	{
-		m_iwvTime.insert(m_iwvTime.size(), m_hkdTime.subGrid(m_iwvTime.size(), m_hkdTime.size() - m_iwvTime.size()));
-		m_iwv.resize(m_hkdTime.size(), std::numeric_limits<kilogramPerMetreSquaredF>::quiet_NaN());
-		m_iwvElevation.resize(m_hkdTime.size(), std::numeric_limits<degreeF>::quiet_NaN());
-		m_iwvAzimuth.resize(m_hkdTime.size(), std::numeric_limits<degreeF>::quiet_NaN());
-		m_iwvRainFlag.resize(m_hkdTime.size(), mwrRainMissingDataFlag);
-		m_iwvQuality.resize(m_hkdTime.size(), mwrMissingDataFlag);
-		m_iwvQualityExplanation.resize(m_hkdTime.size(), 0);
-		iwvFlag.resize(m_hkdTime.size(), mwrMissingDataFlag);
-
-
-		m_lwpTime.insert(m_hkdTime.size(), m_hkdTime.subGrid(m_lwpTime.size(), m_hkdTime.size() - m_lwpTime.size()));
-		m_lwp.resize(m_hkdTime.size(), std::numeric_limits<kilogramPerMetreSquaredF>::quiet_NaN());
-		m_lwpElevation.resize(m_hkdTime.size(), std::numeric_limits<degreeF>::quiet_NaN());
-		m_lwpAzimuth.resize(m_iwvTime.size(), std::numeric_limits<degreeF>::quiet_NaN());
-		m_lwpRainFlag.resize(m_iwvTime.size(), mwrRainMissingDataFlag);
-		m_lwpQuality.resize(m_iwvTime.size(), mwrMissingDataFlag);
-		m_lwpQualityExplanation.resize(m_iwvTime.size(), 0);
-		lwpFlag.resize(m_hkdTime.size(), mwrMissingDataFlag);
-	}
-
 	
-	
-	//set the met flags all to good - we don't even include the met data in the files
-	sci::GridData<uint8_t, 1> surfaceTemperatureFlag(m_iwv.size(), mwrGoodDataFlag);
-	sci::GridData<uint8_t, 1> surfacePressureFlag(m_iwv.size(), mwrGoodDataFlag);
-	sci::GridData<uint8_t, 1> surfaceRelativeHumidityFlag(m_iwv.size(), mwrGoodDataFlag);
-	//set the rest of the flags
-	sci::GridData<uint8_t, 1> rainFlag(m_iwvRainFlag.size(), mwrRainGoodDataFlag);
-	for (size_t i = 0; i < m_iwvRainFlag.size(); ++i)
-		if (m_iwvRainFlag[i])
-			rainFlag[i] = mwrRainRainingFlag;
-	sci::GridData<sci::GridData<uint8_t, 1>,1> channelFailureFlags(14, sci::GridData<uint8_t, 1>(m_status.size()));
-	sci::GridData<uint32_t, 1> statusFilters{ 0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000100, 0x00000200,
-		0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000 }; //note 0x0080 and 0x8000 are missing deliberately
-	for (size_t i = 0; i < 14; ++i)
-		for (size_t j = 0; j < m_status.size(); ++j)
-			channelFailureFlags[i][j] = (m_status[j] & statusFilters[i]) == 0 ? mwrChannelFailFlag : mwrChannelGoodDataFlag;
-	sci::GridData<uint8_t, 1> temperatureReceiverStabilityFlag(m_temperatureStabilityReceiver1.size(), mwrStabilityGoodDataFlag);
-	for (size_t i = 0; i < temperatureReceiverStabilityFlag.size(); ++i)
-	{
-		if (m_temperatureStabilityReceiver1[i] > millikelvinF(50))
-			temperatureReceiverStabilityFlag[i] = mwrStabilityVeryVeryPoorFlag;
-		else if (m_temperatureStabilityReceiver1[i] > millikelvinF(10))
-			temperatureReceiverStabilityFlag[i] = mwrStabilityVeryPoorFlag;
-		else if (m_temperatureStabilityReceiver1[i] > millikelvinF(5))
-			temperatureReceiverStabilityFlag[i] = mwrStabilityPoorFlag;
-	}
-	sci::GridData<uint8_t, 1> relativeHumidityReceiverStabilityFlag(m_temperatureStabilityReceiver2.size(), mwrStabilityGoodDataFlag);
-	for (size_t i = 0; i < relativeHumidityReceiverStabilityFlag.size(); ++i)
-	{
-		if (m_temperatureStabilityReceiver2[i] > millikelvinF(50))
-			relativeHumidityReceiverStabilityFlag[i] = mwrStabilityVeryVeryPoorFlag;
-		else if (m_temperatureStabilityReceiver2[i] > millikelvinF(10))
-			relativeHumidityReceiverStabilityFlag[i] = mwrStabilityVeryPoorFlag;
-		else if (m_temperatureStabilityReceiver2[i] > millikelvinF(5))
-			relativeHumidityReceiverStabilityFlag[i] = mwrStabilityPoorFlag;
-	}
-
-
-
-
-
-
+	MetAndStabilityFlags metAndStabilityflags(m_lwpRainFlag, m_status, m_temperatureStabilityReceiver1,
+		m_temperatureStabilityReceiver2);
+	sci::GridData<uint8_t, 1> minMaxFilter = metAndStabilityflags.getFilter();
 
 	std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
@@ -397,33 +366,14 @@ void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, c
 	std::unique_ptr<AmfNcVariable<gramPerMetreSquaredF>> lwpVariable(nullptr);
 	
 	if(m_iwv.size() > 0)
-		iwvVariable.reset(new AmfNcVariable<kilogramPerMetreSquaredF> (sU("integrated_water_vapor"), file, file.getTimeDimension(), sU("Integrated Water Vapour"), sU(""), m_iwv, true, coordinates, cellMethods, iwvFlag, sU("")));
+		iwvVariable.reset(new AmfNcVariable<kilogramPerMetreSquaredF> (sU("integrated_water_vapor"), file, file.getTimeDimension(), sU("Integrated Water Vapour"), sU(""), m_iwv, true, coordinates, cellMethods, minMaxFilter, sU("")));
 	if (m_lwp.size() > 0)
-		lwpVariable.reset(new AmfNcVariable<gramPerMetreSquaredF>(sU("liquid_water_path"), file, file.getTimeDimension(), sU("Liquid Water Path"), sU(""), m_lwp, true, coordinates, cellMethods, lwpFlag, sU("")));
+		lwpVariable.reset(new AmfNcVariable<gramPerMetreSquaredF>(sU("liquid_water_path"), file, file.getTimeDimension(), sU("Liquid Water Path"), sU(""), m_lwp, true, coordinates, cellMethods, minMaxFilter, sU("")));
 	
 	if (m_iwv.size() == 0 && m_lwp.size() == 0)
 		return;
 
-	AmfNcFlagVariable temperatureFlagVariable(sU("qc_flag_surface_temperature"), mwrMetFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable relativeHumidityFlagVariable(sU("qc_flag_surface_relative_humidity"), mwrMetFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable pressureFlagVariable(sU("qc_flag_surface_pressure"), mwrMetFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable rainFlagVariable(sU("qc_flag_surface_precipitation"), mwrRainFlags , file, file.getTimeDimension());
-	AmfNcFlagVariable ch1FlagVariable(sU("qc_flag_channel_1_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch2FlagVariable(sU("qc_flag_channel_2_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch3FlagVariable(sU("qc_flag_channel_3_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch4FlagVariable(sU("qc_flag_channel_4_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch5FlagVariable(sU("qc_flag_channel_5_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch6FlagVariable(sU("qc_flag_channel_6_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch7FlagVariable(sU("qc_flag_channel_7_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch8FlagVariable(sU("qc_flag_channel_8_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch9FlagVariable(sU("qc_flag_channel_9_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch10FlagVariable(sU("qc_flag_channel_10_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch11FlagVariable(sU("qc_flag_channel_11_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch12FlagVariable(sU("qc_flag_channel_12_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch13FlagVariable(sU("qc_flag_channel_13_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable ch14FlagVariable(sU("qc_flag_channel_14_failure"), mwrChannelFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable temperatureStabilityFlagVariable(sU("qc_flag_t_receiver_temperature_stability"), mwrStabilityFlags, file, file.getTimeDimension());
-	AmfNcFlagVariable relativeHumidityStabilityFlagVariable(sU("qc_flag_rh_receiver_temperature_stability"), mwrStabilityFlags, file, file.getTimeDimension());
+	metAndStabilityflags.createNcFlags(file);
 
 
 	file.writeTimeAndLocationData(platform);
@@ -432,26 +382,164 @@ void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, c
 		file.write(*iwvVariable, m_iwv);
 	if (lwpVariable)
 		file.write(*lwpVariable, m_lwp);
-	file.write(temperatureFlagVariable, surfaceTemperatureFlag);
-	file.write(relativeHumidityFlagVariable, surfaceRelativeHumidityFlag);
-	file.write(pressureFlagVariable, surfacePressureFlag);
-	file.write(rainFlagVariable, rainFlag);
-	file.write(ch1FlagVariable, channelFailureFlags[0]);
-	file.write(ch2FlagVariable, channelFailureFlags[1]);
-	file.write(ch3FlagVariable, channelFailureFlags[2]);
-	file.write(ch4FlagVariable, channelFailureFlags[3]);
-	file.write(ch5FlagVariable, channelFailureFlags[4]);
-	file.write(ch6FlagVariable, channelFailureFlags[5]);
-	file.write(ch7FlagVariable, channelFailureFlags[6]);
-	file.write(ch8FlagVariable, channelFailureFlags[7]);
-	file.write(ch9FlagVariable, channelFailureFlags[8]);
-	file.write(ch10FlagVariable, channelFailureFlags[9]);
-	file.write(ch11FlagVariable, channelFailureFlags[10]);
-	file.write(ch12FlagVariable, channelFailureFlags[11]);
-	file.write(ch13FlagVariable, channelFailureFlags[12]);
-	file.write(ch14FlagVariable, channelFailureFlags[13]);
-	file.write(temperatureStabilityFlagVariable, temperatureReceiverStabilityFlag);
-	file.write(relativeHumidityStabilityFlagVariable, relativeHumidityReceiverStabilityFlag);
+	metAndStabilityflags.writeToNetCdf(file);
+}
+
+void MicrowaveRadiometerProcessor::writeSurfaceMetNc(const sci::string& directory, const PersonInfo& author,
+	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
+{
+	DataInfo dataInfo = buildDataInfo(sU("surface met"), m_lwpTime, processingOptions);
+
+	//assign amf version based on if we are moving or not.
+	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
+
+	MetFlags metFlags(m_enviromentTemperature.size());
+	sci::GridData<uint8_t, 1> minMaxFilter = metFlags.getFilter();
+
+	std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
+	OutputAmfNcFile file(amfVersion, directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
+		projectInfo, platform, sU("hatpro surface met data"), m_metTime);
+
+	std::unique_ptr<AmfNcVariable<hectoPascalF>> pressureVariable(nullptr);
+	std::unique_ptr<AmfNcVariable<kelvinF>> temperatureVariable(nullptr);
+	std::unique_ptr<AmfNcVariable<percentF>> relativeHumidityVariable(nullptr);
+
+	pressureVariable.reset(new AmfNcVariable<hectoPascalF>(sU("air_pressure"), file, file.getTimeDimension(), sU("air_pressure"), sU("Air Pressure"), m_enviromentPressure, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
+	temperatureVariable.reset(new AmfNcVariable<kelvinF>(sU("air_temperature"), file, file.getTimeDimension(), sU("air_temperture"), sU("Air Temperature"), m_enviromentTemperature, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
+	relativeHumidityVariable.reset(new AmfNcVariable<percentF>(sU("relative_humidity"), file, file.getTimeDimension(), sU("relative_humidity"), sU("Relative Humidity"), m_enviromentRelativeHumidity, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
+
+	metFlags.createNcFlags(file);
+
+
+	file.writeTimeAndLocationData(platform);
+
+	file.write(*pressureVariable, m_enviromentPressure);
+	file.write(*temperatureVariable, m_enviromentTemperature);
+	file.write(*relativeHumidityVariable, m_enviromentRelativeHumidity);
+	metFlags.writeToNetCdf(file);
+}
+
+void MicrowaveRadiometerProcessor::writeStabilityNc(const sci::string& directory, const PersonInfo& author,
+	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
+{
+	if (m_liftedIndex.size() == 0 && m_kModifiedIndex.size() == 0 && m_totalTotalsIndex.size() == 0 && m_kIndex.size() == 0
+		&& m_showalterIndex.size() == 0 && m_cape.size() == 0)
+		return;
+
+	DataInfo dataInfo = buildDataInfo(sU("stability indices"), m_lwpTime, processingOptions);
+
+	//assign amf version based on if we are moving or not.
+	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
+
+	//pad the data so it matches the housekeeping data
+	padDataToMatchHkp(m_hkdTime, m_staTime, m_liftedIndex);
+	padDataToMatchHkp(m_hkdTime, m_staTime, m_kModifiedIndex);
+	padDataToMatchHkp(m_hkdTime, m_staTime, m_totalTotalsIndex);
+	padDataToMatchHkp(m_hkdTime, m_staTime, m_kIndex);
+	padDataToMatchHkp(m_hkdTime, m_staTime, m_showalterIndex);
+	padDataToMatchHkp(m_hkdTime, m_staTime, m_cape);
+	padDataToMatchHkp(m_hkdTime, m_staTime, m_staRainFlag, false);
+	m_staTime = m_hkdTime;
+
+	MetAndStabilityFlags metAndStabilityflags(m_lwpRainFlag, m_status, m_temperatureStabilityReceiver1,
+		m_temperatureStabilityReceiver2);
+	sci::GridData<uint8_t, 1> minMaxFilter = metAndStabilityflags.getFilter();
+
+	std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
+	OutputAmfNcFile file(amfVersion, directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
+		projectInfo, platform, sU("hatpro microwave radiometer intergrated water vapour and liquid water path retrieval"), m_iwv.size() > 0 ? m_iwvTime : m_lwpTime);
+
+	std::unique_ptr<AmfNcVariable<kelvinF>> liftedIndexVariable(nullptr);
+	std::unique_ptr<AmfNcVariable<kelvinF>> kModifiedIndexVariable(nullptr);
+	std::unique_ptr<AmfNcVariable<kelvinF>> totalTotalsIndexVariable(nullptr);
+	std::unique_ptr<AmfNcVariable<kelvinF>> kIndexVariable(nullptr);
+	std::unique_ptr<AmfNcVariable<kelvinF>> showalterIndexVariable(nullptr);
+	std::unique_ptr<AmfNcVariable<joulePerKilogramF>> capeVariable(nullptr);
+
+	if (m_liftedIndex.size() > 0)
+		liftedIndexVariable.reset(new AmfNcVariable<kelvinF>(sU("atmosphere_stability_lifted_index"), file, file.getTimeDimension(), sU("Atmosphere Stability Lifted Index (LI)"), sU(""), m_liftedIndex, true, coordinates, cellMethods, minMaxFilter, sU("")));
+	if (m_kModifiedIndex.size() > 0)
+		kModifiedIndexVariable.reset(new AmfNcVariable<kelvinF>(sU("modified_atmosphere_stability_k_index"), file, file.getTimeDimension(), sU("Modified Atmosphere Stability K Index (KOI)"), sU(""), m_kModifiedIndex, true, coordinates, cellMethods, minMaxFilter, sU("")));
+	if (m_totalTotalsIndex.size() > 0)
+		totalTotalsIndexVariable.reset(new AmfNcVariable<kelvinF>(sU("atmosphere_stability_total_totals_index"), file, file.getTimeDimension(), sU("Atmosphere Stability Total Totals Index (TTI)"), sU("atmosphere_stability_total_totals_index"), m_totalTotalsIndex, true, coordinates, cellMethods, minMaxFilter, sU("")));
+	if (m_kIndex.size() > 0)
+		kIndexVariable.reset(new AmfNcVariable<kelvinF>(sU("atmosphere_stability_k_index"), file, file.getTimeDimension(), sU("Atmosphere Stability K Index (KI)"), sU("atmosphere_stability_k_index"), m_kIndex, true, coordinates, cellMethods, minMaxFilter, sU("")));
+	if (m_showalterIndex.size() > 0)
+		showalterIndexVariable.reset(new AmfNcVariable<kelvinF>(sU("atmosphere_stability_showalter_index"), file, file.getTimeDimension(), sU("Atmosphere Stability Showalter Index (SI)"), sU("atmosphere_stability_showalter_index"), m_showalterIndex, true, coordinates, cellMethods, minMaxFilter, sU("")));
+	if (m_cape.size() > 0)
+		capeVariable.reset(new AmfNcVariable<joulePerKilogramF>(sU("atmosphere_convective_available_potential_energy"), file, file.getTimeDimension(), sU("Atmosphere Convective Available Potential Energy (CAPE)"), sU("atmosphere_convective_available_potential_energy"), m_cape, true, coordinates, cellMethods, minMaxFilter, sU("")));
+	
+
+	metAndStabilityflags.createNcFlags(file);
+
+
+	file.writeTimeAndLocationData(platform);
+
+	if (liftedIndexVariable)
+		file.write(*liftedIndexVariable, m_liftedIndex);
+	if (kModifiedIndexVariable)
+		file.write(*kModifiedIndexVariable, m_kModifiedIndex);
+	if (totalTotalsIndexVariable)
+		file.write(*totalTotalsIndexVariable, m_totalTotalsIndex);
+	if (kIndexVariable)
+		file.write(*kIndexVariable, m_kIndex);
+	if (showalterIndexVariable)
+		file.write(*showalterIndexVariable, m_showalterIndex);
+	if (capeVariable)
+		file.write(*capeVariable, m_cape);
+
+	metAndStabilityflags.writeToNetCdf(file);
+}
+
+void MicrowaveRadiometerProcessor::writeBrightnessTemperatureNc(const sci::string& directory, const PersonInfo& author,
+	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
+{
+	sci::assertThrow(m_brtFrequencies.size() == m_atnFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("BRT and ATN data have a different number of frequencies")));
+
+	DataInfo dataInfo = buildDataInfo(sU("brightness temperature"), m_lwpTime, processingOptions);
+
+	//assign amf version based on if we are moving or not.
+	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
+
+	padDataToMatchHkp(m_hkdTime, m_brtTime, m_brightnessTemperature);
+	padDataToMatchHkp(m_hkdTime, m_brtTime, m_attenuation);
+	m_brtTime = m_hkdTime;
+
+	MetFlags metFlags(m_enviromentTemperature.size());
+	sci::GridData<uint8_t, 1> minMaxFilter = metFlags.getFilter();
+
+	std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
+	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
+	std::vector<sci::NcDimension*> nonTimeDimensions;
+	sci::NcDimension frequencyDimension(sU("radiation frequency"), m_brtFrequencies.size());
+	nonTimeDimensions.push_back(&frequencyDimension);
+	OutputAmfNcFile file(amfVersion, directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
+		projectInfo, platform, sU("hatpro brightness temperature data"), m_brtTime, nonTimeDimensions);
+
+	std::unique_ptr<AmfNcVariable<perSecondF>> frequencyVariable(nullptr);
+	std::unique_ptr<AmfNcVariable<kelvinF>> brightnessTemperatureVariable(nullptr);
+	std::unique_ptr<AmfNcDbVariable<unitlessF>> attenuationVariable(nullptr);
+
+	frequencyVariable.reset(new AmfNcVariable<perSecondF>(sU("radiation_frequency"), file, frequencyDimension, sU("Receiver Channel Centre Frequency"), sU("radiation_frequency"), m_brtFrequencies, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
+	brightnessTemperatureVariable.reset(new AmfNcVariable<kelvinF>(sU("brightness_temperature"), file, { &file.getTimeDimension(), &frequencyDimension }, sU("Brightness Temperature"), sU("brightness_temperatue"), m_brightnessTemperature, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
+	//                                                         (const sci::string & name,     const sci::OutputNcFile & ncFile, const std::vector<sci::NcDimension*> &dimensions, const sci::string & longName,  const sci::string & standardName, sci::grid_view< REFERENCE_UNIT, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string & comment = sU(""))
+	attenuationVariable.reset(new AmfNcDbVariable<unitlessF>(sU("atmospheric_attenuation"), file, { &file.getTimeDimension(), &frequencyDimension }, sU("Atmospheric Attenuation"), sU(""), m_attenuation, true, coordinates, cellMethods, false, false, sci::GridData<uint8_t, 0>(1), sU("")));
+	//attenuationVariable.reset(new AmfNcDbVariable<unitlessF>(sU("atmospheric_attenuation"), file, {&file.getTimeDimension(), &frequencyDimension }, sU("Atmospheric Attenuation"), sU(""), m_attenuation);
+	
+	metFlags.createNcFlags(file);
+
+
+	file.writeTimeAndLocationData(platform);
+
+	file.write(*frequencyVariable, m_brtFrequencies);
+	file.write(*brightnessTemperatureVariable, m_brightnessTemperature);
+	//file.write(*attenuationVariable, m_attenuation);
+	metFlags.writeToNetCdf(file);
 }
 
 std::vector<std::vector<sci::string>> MicrowaveRadiometerProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string>& newFiles, const std::vector<sci::string>& allFiles) const
