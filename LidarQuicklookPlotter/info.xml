@@ -48,6 +48,7 @@
     <elevationDegree>0</elevationDegree>
     <azimuthDegree>0</azimuthDegree>
     <rollDegree> 0</rollDegree>
+	<hatproRetrieval>ArcticRetrieval</hatproRetrieval>
     <locationKeyword>Arctic</locationKeyword>
     <locationKeyword>Sweden</locationKeyword>
     <locationKeyword>Norway</locationKeyword>
@@ -84,6 +85,7 @@
     <elevationDegree>0</elevationDegree>
     <azimuthDegree>0</azimuthDegree>
     <rollDegree> 0</rollDegree>
+	<hatproRetrieval>NN_RPG_v00101.ret</hatproRetrieval>
     <locationKeyword>Leeds</locationKeyword>
     <locationKeyword>University Of Leeds</locationKeyword>
     <locationKeyword>United Kingdom</locationKeyword>

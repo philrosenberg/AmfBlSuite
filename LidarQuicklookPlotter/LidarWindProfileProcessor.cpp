@@ -304,7 +304,7 @@ void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const Pe
 	nonTimeDimensions.push_back(&indexDimension);
 	std::vector<sci::NcAttribute*> lidarGlobalAttributes{ };
 	OutputAmfNcFile file(AmfVersion::v1_1_0, directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platform, sU("doppler lidar wind profile"), scanStartTimes, nonTimeDimensions, std::vector<sci::NcAttribute*>());
+		projectInfo, platform, sU("doppler lidar wind profile"), scanStartTimes, nonTimeDimensions);
 
 	size_t maxLevels = 0;
 	for (size_t i = 0; i < m_profiles.size(); ++i)

@@ -170,18 +170,23 @@ struct AttitudeAverage
 class Platform
 {
 public:
-	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, sci::GridData<sci::string, 1> locationKeywords)
+	Platform(sci::string name, PlatformType platformType, DeploymentMode deploymentMode, sci::GridData<sci::string, 1> locationKeywords, sci::string hatproRetrieval)
 	{
 		m_platformInfo.name = name;
 		m_platformInfo.platformType = platformType;
 		m_platformInfo.deploymentMode = deploymentMode;
 		m_platformInfo.locationKeywords = locationKeywords;
+		m_hatproRetrieval = hatproRetrieval;
 	}
 
 	PlatformInfo getPlatformInfo() const
 	{
 		return m_platformInfo;
 	};
+	sci::string getHatproRetrieval() const
+	{
+		return m_hatproRetrieval;
+	}
 	virtual ~Platform() {}
 	void correctDirection(sci::UtcTime startTime, sci::UtcTime endTime, degreeF instrumentRelativeAzimuth, degreeF instrumentRelativeElevation, degreeF &correctedAzimuth, degreeF &correctedElevation) const
 	{
@@ -231,13 +236,14 @@ public:
 	virtual bool getFixedAltitude() const = 0;
 private:
 	PlatformInfo m_platformInfo;
+	sci::string m_hatproRetrieval;
 };
 
 class StationaryPlatform : public Platform
 {
 public:
-	StationaryPlatform(sci::string name, metreF altitude, degreeF latitude, degreeF longitude, sci::GridData<sci::string, 1> locationKeywords, degreeF instrumentElevation, degreeF instrumentAzimuth, degreeF instrumentRoll)
-		:Platform(name, PlatformType::stationary, DeploymentMode::land, locationKeywords)
+	StationaryPlatform(sci::string name, metreF altitude, degreeF latitude, degreeF longitude, sci::GridData<sci::string, 1> locationKeywords, degreeF instrumentElevation, degreeF instrumentAzimuth, degreeF instrumentRoll, sci::string hatproRetrieval)
+		:Platform(name, PlatformType::stationary, DeploymentMode::land, locationKeywords, hatproRetrieval)
 	{
 		m_latitude = latitude;
 		m_longitude = longitude;
@@ -368,8 +374,8 @@ inline degreeF rangeLimitAngle(degreeF angle)
 class ShipPlatform : public Platform
 {
 public:
-	ShipPlatform(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, const sci::GridData<degreeF, 1> &instrumentElevationsShipRelative, const sci::GridData<degreeF, 1> &instrumentAzimuthsShipRelative, const sci::GridData<degreeF, 1> &instrumentRollsShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls)
-		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords)
+	ShipPlatform(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, const sci::GridData<degreeF, 1> &instrumentElevationsShipRelative, const sci::GridData<degreeF, 1> &instrumentAzimuthsShipRelative, const sci::GridData<degreeF, 1> &instrumentRollsShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls, sci::string hatproRetrieval)
+		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords, hatproRetrieval)
 	{
 		m_previousLowerIndexEndTime = 0;
 		m_previousLowerIndexStartTime = 0;
@@ -471,8 +477,8 @@ public:
 		m_instrumentAzimuthsAbsoluteNoJumps = shipAzimuths;
 		makeContinuous(m_instrumentAzimuthsAbsoluteNoJumps);
 	}
-	ShipPlatform(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls)
-		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords)
+	ShipPlatform(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls, sci::string hatproRetrieval)
+		:Platform(name, PlatformType::moving, DeploymentMode::sea, locationKeywords, hatproRetrieval)
 	{
 		m_previousLowerIndexEndTime = 0;
 		m_previousLowerIndexStartTime = 0;
@@ -758,8 +764,8 @@ private:
 class ShipPlatformShipRelativeCorrected : public ShipPlatform
 {
 public:
-	ShipPlatformShipRelativeCorrected(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls)
-		: ShipPlatform(name, altitude, times, latitudes, longitudes, locationKeywords, instrumentElevationShipRelative, instrumentAzimuthShipRelative, instrumentRollShipRelative, shipCourses, shipSpeeds, shipElevations, shipAzimuths, shipRolls)
+	ShipPlatformShipRelativeCorrected(sci::string name, metreF altitude, const sci::GridData<sci::UtcTime, 1> &times, const sci::GridData<degreeF, 1> &latitudes, const sci::GridData<degreeF, 1> &longitudes, const sci::GridData<sci::string, 1> &locationKeywords, degreeF instrumentElevationShipRelative, degreeF instrumentAzimuthShipRelative, degreeF instrumentRollShipRelative, const sci::GridData<degreeF, 1> &shipCourses, const sci::GridData<metrePerSecondF, 1> &shipSpeeds, const sci::GridData<degreeF, 1> &shipElevations, const sci::GridData<degreeF, 1> &shipAzimuths, const sci::GridData<degreeF, 1> &shipRolls, sci::string hatproRetrieval)
+		: ShipPlatform(name, altitude, times, latitudes, longitudes, locationKeywords, instrumentElevationShipRelative, instrumentAzimuthShipRelative, instrumentRollShipRelative, shipCourses, shipSpeeds, shipElevations, shipAzimuths, shipRolls, hatproRetrieval)
 	{
 		m_sinInstrumentElevation = sci::sin(instrumentElevationShipRelative);
 		m_sinInstrumentAzimuth = sci::sin(instrumentAzimuthShipRelative);
@@ -824,6 +830,9 @@ sci::string getBoundsString(const LAT_GRID& latitudes, const LON_GRID& longitude
 	return result.str();
 }
 
+template < class REFERENCE_UNIT>
+class AmfNcDbVariableFromLogarithmicData;
+
 class OutputAmfNcFile : public sci::OutputNcFile
 {
 	//friend class AmfNcVariable;
@@ -843,13 +852,14 @@ public:
 		const sci::string &title,
 		const TIMES_GRID &times,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
+		sci::string comment = sU(""),
 		const std::vector< sci::NcAttribute *> &globalAttributes = std::vector< sci::NcAttribute*>(0),
 		bool incrementMajorVersion = false)
 		:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 	{
 		initialise(amfVersion, directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
 			projectInfo, platform, title, times, sci::GridData<degreeF, 1>(), sci::GridData<degreeF, 1>(), nonTimeDimensions,
-			globalAttributes, incrementMajorVersion);
+			comment, globalAttributes, incrementMajorVersion);
 	}
 	//use this constructor to provide instrument derived lats and lons, e.g. for sondes
 	template<class TIMES_GRID, class LAT_GRID, class LON_GRID>
@@ -870,12 +880,13 @@ public:
 		const LAT_GRID &latitudes,
 		const LON_GRID &longitudes,
 		const std::vector<sci::NcDimension *> &nonTimeDimensions = std::vector<sci::NcDimension *>(0),
+		sci::string comment = sU(""),
 		const std::vector< sci::NcAttribute*>& globalAttributes = std::vector< sci::NcAttribute*>(0),
 		bool incrementMajorVersion = false)
 		:OutputNcFile(), m_timeDimension(sU("time"), times.size()), m_times(times)
 	{
 		initialise(amfVersion, directory, instrumentInfo, author, processingsoftwareInfo, calibrationInfo, dataInfo,
-			projectInfo, platform, title, times, latitudes, longitudes, nonTimeDimensions, globalAttributes,
+			projectInfo, platform, title, times, latitudes, longitudes, nonTimeDimensions, comment, globalAttributes,
 			incrementMajorVersion);
 	}
 	sci::NcDimension &getTimeDimension() { return m_timeDimension; }
@@ -901,6 +912,8 @@ public:
 		auto ncOutputView = sci::make_gridtransform_view(data, [](const U::value_type& val) { return T::transformForOutput(val); });
 		sci::OutputNcFile::write(variable, ncOutputView);
 	}
+	//template<size_t NDIMS>
+	//void writeDbData(const AmfNcDbVariableFromLogarithmicData<unitlessF>& variable, const sci::GridData<unitlessF, NDIMS>& data);
 	template<class T, sci::IsGrid U>
 	void writeIgnoreDefunctLastDim(const T& variable, const U &data)
 	{
@@ -949,6 +962,10 @@ public:
 	{
 		return TypeName<T>::name;
 	}
+	sci::string getFileName() const
+	{
+		return m_filename;
+	}
 private:
 	template<class TIMES_GRID, class LAT_GRID, class LON_GRID>
 		requires (sci::IsGridDims<TIMES_GRID, 1>&&
@@ -968,6 +985,7 @@ private:
 			LAT_GRID latitudes,
 			LON_GRID longitudes,
 			const std::vector<sci::NcDimension*>& nonTimeDimensions,
+			sci::string comment,
 			const std::vector< sci::NcAttribute*>& globalAttributes,
 			bool incrementMajorVersion);
 	template<class T>
@@ -1064,6 +1082,8 @@ private:
 	{
 		static const sci::string name;
 	};
+
+	sci::string m_filename;
 
 	sci::NcDimension m_timeDimension;
 	std::unique_ptr<AmfNcTimeVariable> m_timeVariable;
@@ -1172,15 +1192,18 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 		//flags is a scalar
 
 		//if flags is zero, we have essentially flagged everything out
-		if (flags[{}] == 0)
-			return;
+		//so do nothing, otherwise we have flagged everything in, so
+		//find the min and max
 
-		for (auto const & d : data)
+		if (flags[{}])
 		{
-			if (d == d)
+			for (auto const& d : data)
 			{
-				min = std::min(min, T(d));
-				max = std::max(max, T(d));
+				if (d == d)
+				{
+					min = std::min(min, T(d));
+					max = std::max(max, T(d));
+				}
 			}
 		}
 	}
@@ -1236,21 +1259,31 @@ public:
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, const sci::string &units, const DATAGRID &data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAGSGRID &flags)
 		:sci::NcVariable<T>(name, ncFile, dimension)
 	{
-		static_assert(std::is_same_v<FLAGSGRID::value_type,uint8_t>, "flags must be of uint8_t type.");
-		T validMin;
-		T validMax;
-		getMinMax(data, flags, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods);
+		if (data.size() > 0)
+		{
+			static_assert(std::is_same_v<FLAGSGRID::value_type, uint8_t>, "flags must be of uint8_t type.");
+			T validMin;
+			T validMax;
+			getMinMax(data, flags, validMin, validMax);
+			setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods);
+		}
+		else
+		{
+			setAttributesExceptMinMax(ncFile, longName, standardName, units, hasFillValue, coordinates, cellMethods);
+		}
 	}
 	template<sci::IsGrid DATAGRID, sci::IsGrid FLAGSGRID>
 	AmfNcVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, const sci::string &units, const DATAGRID& data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const FLAGSGRID& flags)
 		:sci::NcVariable<T>(name, ncFile, dimensions)
 	{
-		static_assert(std::is_same_v<FLAGSGRID::value_type, uint8_t>, "flags must be of uint8_t type.");
-		T validMin;
-		T validMax;
-		getMinMax(data, flags, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods);
+		if (data.size() > 0)
+		{
+			static_assert(std::is_same_v<FLAGSGRID::value_type, uint8_t>, "flags must be of uint8_t type.");
+			T validMin;
+			T validMax;
+			getMinMax(data, flags, validMin, validMax);
+			setAttributes(ncFile, longName, standardName, units, validMin, validMax, hasFillValue, coordinates, cellMethods);
+		}
 	}
 	template<class U>
 	static T transformForOutput(const U& val)
@@ -1260,19 +1293,20 @@ public:
 private:
 	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, const sci::string &units, T validMin, T validMax, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods)
 	{
+		setAttributesExceptMinMax(ncFile, longName, standardName, units, hasFillValue, coordinates, cellMethods);
+		setMinMaxAttributes(ncFile, validMin, validMax);
+	}
+	void setAttributesExceptMinMax(const sci::OutputNcFile& ncFile, const sci::string& longName, const sci::string& standardName, const sci::string& units, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods)
+	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
 		sci::NcAttribute unitsAttribute(sU("units"), units);
-		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
-		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax);
 		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<T>());
 		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<T>());
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
 		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
 		sci::NcVariable<T>::addAttribute(longNameAttribute, ncFile);
 		sci::NcVariable<T>::addAttribute(unitsAttribute, ncFile);
-		sci::NcVariable<T>::addAttribute(validMinAttribute, ncFile);
-		sci::NcVariable<T>::addAttribute(validMaxAttribute, ncFile);
 		//addAttribute(typeAttribute, ncFile);
 		if (standardName.length() > 0)
 			sci::NcVariable<T>::addAttribute(standardNameAttribute, ncFile);
@@ -1280,30 +1314,37 @@ private:
 			sci::NcVariable<T>::addAttribute(fillValueAttribute, ncFile);
 		if (coordinates.size() > 0)
 			sci::NcVariable<T>::addAttribute(coordinatesAttribute, ncFile);
-		if(cellMethods.size() > 0)
+		if (cellMethods.size() > 0)
 			sci::NcVariable<T>::addAttribute(cellMethodsAttribute, ncFile);
+	}
+	void setMinMaxAttributes(const sci::OutputNcFile& ncFile, T validMin, T validMax)
+	{
+		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin);
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax);
+		sci::NcVariable<T>::addAttribute(validMinAttribute, ncFile);
+		sci::NcVariable<T>::addAttribute(validMaxAttribute, ncFile);
 	}
 };
 
 class AmfNcFlagVariable : public sci::NcVariable<uint8_t>
 {
 public:
-	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>> &flagDefinitions, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions)
+	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>> &flagDefinitions, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, sci::string longNameSuffix = sU(""))
 		: sci::NcVariable<uint8_t>(name, ncFile, dimensions)
 	{
-		initialise(flagDefinitions, ncFile);
+		initialise(flagDefinitions, ncFile, longNameSuffix);
 	}
-	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile, sci::NcDimension& dimension)
+	AmfNcFlagVariable(sci::string name, const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile, sci::NcDimension& dimension, sci::string longNameSuffix = sU(""))
 		: sci::NcVariable<uint8_t>(name, ncFile, dimension)
 	{
-		initialise(flagDefinitions, ncFile);
+		initialise(flagDefinitions, ncFile, longNameSuffix);
 	}
 	static uint8_t transformForOutput(const uint8_t& val)
 	{
 		return val;
 	}
 private:
-	void initialise(const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile)
+	void initialise(const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile, sci::string longNameSuffix)
 	{
 		sci::stringstream  flagValues;
 		sci::stringstream flagDescriptions;
@@ -1327,7 +1368,10 @@ private:
 			else
 				flagDescriptionsString[i] = std::tolower(flagDescriptionsString[i], locale);
 		}
-		addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag")), ncFile);
+		if (longNameSuffix.length() == 0)
+			addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag")), ncFile);
+		else
+			addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag: ") + longNameSuffix), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues.str()), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptionsString), ncFile);
 		//addAttribute(sci::NcAttribute(sU("type"), OutputAmfNcFile::getTypeName<uint8_t>()), ncFile);
@@ -1354,10 +1398,17 @@ public:
 		const sci::string &comment = sU(""))
 		:sci::NcVariable<VALUE_TYPE>(name, ncFile, dimension)
 	{
-		sci::Physical<UNIT, VALUE_TYPE> validMin;
-		sci::Physical<UNIT, VALUE_TYPE> validMax;
-		getMinMax(data, flags, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+		if (data.size() > 0)
+		{
+			sci::Physical<UNIT, VALUE_TYPE> validMin;
+			sci::Physical<UNIT, VALUE_TYPE> validMax;
+			getMinMax(data, flags, validMin, validMax);
+			if (validMin != validMin) //this indicates all data was flagged out. If this happens, retry but using all non-nan data
+				getMinMax(data, sci::GridData<unsigned char, 0>(1), validMin, validMax);
+			setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+		}
+		else
+			setAttributesExcludingMinMax(ncFile, longName, standardName, hasFillValue, coordinates, cellMethods, comment);
 	}
 	template<sci::IsGrid DATA_GRID, sci::IsGrid FLAGS_GRID>
 	AmfNcVariable(const sci::string &name,
@@ -1376,6 +1427,8 @@ public:
 		sci::Physical<UNIT, VALUE_TYPE> validMin;
 		sci::Physical<UNIT, VALUE_TYPE> validMax;
 		getMinMax(data, flags, validMin, validMax);
+		if (validMin != validMin) //this indicates all data was flagged out. If this happens, retry but using all non-nan data
+			getMinMax(data, sci::GridData<unsigned char, 0>(1), validMin, validMax);
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	template<class U>
@@ -1385,7 +1438,12 @@ public:
 	}
 
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, sci::Physical<UNIT, VALUE_TYPE> validMin, sci::Physical<UNIT, VALUE_TYPE> validMax, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
+	void setAttributes(const sci::OutputNcFile& ncFile, const sci::string& longName, const sci::string& standardName, sci::Physical<UNIT, VALUE_TYPE> validMin, sci::Physical<UNIT, VALUE_TYPE> validMax, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods, const sci::string& comment)
+	{
+		setAttributesExcludingMinMax(ncFile, longName, standardName, hasFillValue, coordinates, cellMethods, comment);
+		setMinMax(ncFile, validMin, validMax);
+	}
+	void setAttributesExcludingMinMax(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
@@ -1407,8 +1465,6 @@ private:
 		}
 #endif
 		sci::NcAttribute unitsAttribute(sU("units"), unit);
-		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<UNIT>());
-		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<UNIT>());
 		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<sci::Physical<T,VALUE_TYPE>>());
 		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue<VALUE_TYPE>());
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
@@ -1416,8 +1472,6 @@ private:
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
 		sci::NcVariable< VALUE_TYPE>::addAttribute(longNameAttribute, ncFile);
 		sci::NcVariable<VALUE_TYPE>::addAttribute(unitsAttribute, ncFile);
-		sci::NcVariable<VALUE_TYPE>::addAttribute(validMinAttribute, ncFile);
-		sci::NcVariable<VALUE_TYPE>::addAttribute(validMaxAttribute, ncFile);
 		//sci::NcVariable<VALUE_TYPE>::addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
 			sci::NcVariable<VALUE_TYPE>::addAttribute(commentAttribute, ncFile);
@@ -1429,6 +1483,13 @@ private:
 			sci::NcVariable<VALUE_TYPE>::addAttribute(coordinatesAttribute, ncFile);
 		if(cellMethods.size() > 0)
 			sci::NcVariable<VALUE_TYPE>::addAttribute(cellMethodsAttribute, ncFile);
+	}
+	void setMinMax(const sci::OutputNcFile& ncFile, sci::Physical<UNIT, VALUE_TYPE> validMin, sci::Physical<UNIT, VALUE_TYPE> validMax)
+	{
+		sci::NcAttribute validMinAttribute(sU("valid_min"), validMin.value<UNIT>());
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMax.value<UNIT>());
+		sci::NcVariable<VALUE_TYPE>::addAttribute(validMinAttribute, ncFile);
+		sci::NcVariable<VALUE_TYPE>::addAttribute(validMaxAttribute, ncFile);
 	}
 };
 
@@ -1485,7 +1546,7 @@ public:
 //REFERENCE_UNIT is the sci::Unit that is the reference unit for the dB
 //U is the data type - it will be a 1d or multi-d vector of Physicals
 template < class REFERENCE_UNIT>
-class AmfNcDbVariable : public sci::NcVariable<Decibel<REFERENCE_UNIT>>
+class AmfNcDbVariable : public sci::NcVariable<unitlessF::valueType>
 {
 public:
 
@@ -1493,30 +1554,36 @@ public:
 	typedef typename Decibel<REFERENCE_UNIT>::referencePhysical referencePhysical;
 	//Data must be passed in in linear units, not decibels!!!
 	template<size_t NDATADIMS, size_t NFLAGDIMS>
-	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::grid_view< REFERENCE_UNIT, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string &comment = sU(""))
-		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimension)
+	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::grid_view< REFERENCE_UNIT, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, bool isLinearData, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string &comment = sU(""))
+		:sci::NcVariable<unitlessF::valueType>(name, ncFile, dimension)
 	{
 		m_isDbZ = isDbZ;
 		m_outputReferenceUnit = outputReferenceUnit;
 		referencePhysical validMin;
 		referencePhysical validMax;
 		getMinMax(dataLinear, flags, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+		if(isLinearData)
+			setAttributesLinearData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+		else
+			setAttributesLogarithmicData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	template<sci::IsGrid DATA_GRID, sci::IsGrid FLAGS_GRID>
-	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, DATA_GRID dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, FLAGS_GRID flags, const sci::string &comment = sU(""))
-		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
+	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, DATA_GRID dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, bool isLinearData, FLAGS_GRID flags, const sci::string &comment = sU(""))
+		:sci::NcVariable<unitlessF::valueType>(name, ncFile, dimensions)
 	{
 		m_isDbZ = isDbZ;
 		m_outputReferenceUnit = outputReferenceUnit;
 		referencePhysical validMin;
 		referencePhysical validMax;
 		getMinMax(dataLinear, flags, validMin, validMax);
-		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+		if (isLinearData)
+			setAttributesLinearData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+		else
+			setAttributesLogarithmicData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	//template<size_t NDATADIMS, size_t NFLAGDIMS>
 	AmfNcDbVariable(const sci::string& name, const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const sci::string& longName, const sci::string& standardName)
-		:sci::NcVariable<Decibel<REFERENCE_UNIT>>(name, ncFile, dimensions)
+		:sci::NcVariable<unitlessF::valueType>(name, ncFile, dimensions)
 	{
 		/*m_isDbZ = isDbZ;
 		m_outputReferenceUnit = outputReferenceUnit;
@@ -1526,7 +1593,7 @@ public:
 		setAttributes(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);*/
 	}
 private:
-	void setAttributes(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, referencePhysical validMinLinear, referencePhysical validMaxLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
+	void setAttributesLinearData(const sci::OutputNcFile &ncFile, const sci::string &longName, const sci::string &standardName, referencePhysical validMinLinear, referencePhysical validMaxLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, const sci::string &comment)
 	{
 		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
 		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
@@ -1542,27 +1609,110 @@ private:
 		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
 		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
 		sci::NcAttribute commentAttribute(sU("comment"), comment);
-		sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(longNameAttribute, ncFile);
-		sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(unitsAttribute, ncFile);
+		sci::NcVariable<unitlessF::valueType>::addAttribute(longNameAttribute, ncFile);
+		sci::NcVariable<unitlessF::valueType>::addAttribute(unitsAttribute, ncFile);
 		if (m_outputReferenceUnit)
-			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(referenceUnitAttribute, ncFile);
-		sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(validMinAttribute, ncFile);
-		sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(validMaxAttribute, ncFile);
+			sci::NcVariable<unitlessF::valueType>::addAttribute(referenceUnitAttribute, ncFile);
+		sci::NcVariable<unitlessF::valueType>::addAttribute(validMinAttribute, ncFile);
+		sci::NcVariable<unitlessF::valueType>::addAttribute(validMaxAttribute, ncFile);
 		//addAttribute(typeAttribute, ncFile);
 		if (comment.length() > 0)
-			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(commentAttribute, ncFile);
+			sci::NcVariable<unitlessF::valueType>::addAttribute(commentAttribute, ncFile);
 		if (standardName.length() > 0)
-			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(standardNameAttribute, ncFile);
+			sci::NcVariable<unitlessF::valueType>::addAttribute(standardNameAttribute, ncFile);
 		if (hasFillValue)
-			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(fillValueAttribute, ncFile);
+			sci::NcVariable<unitlessF::valueType>::addAttribute(fillValueAttribute, ncFile);
 		if (coordinates.size() > 0)
-			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(coordinatesAttribute, ncFile);
+			sci::NcVariable<unitlessF::valueType>::addAttribute(coordinatesAttribute, ncFile);
 		if(cellMethods.size() > 0)
-			sci::NcVariable<Decibel<REFERENCE_UNIT>>::addAttribute(cellMethodsAttribute, ncFile);
+			sci::NcVariable<unitlessF::valueType>::addAttribute(cellMethodsAttribute, ncFile);
+	}
+	void setAttributesLogarithmicData(const sci::OutputNcFile& ncFile, const sci::string& longName, const sci::string& standardName, unitlessF validMinLogarithmic, unitlessF validMaxLogarithmic, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods, const sci::string& comment)
+	{
+		sci::NcAttribute longNameAttribute(sU("long_name"), longName);
+		sci::NcAttribute standardNameAttribute(sU("standard_name"), standardName);
+		sci::NcAttribute unitsAttribute(sU("units"), m_isDbZ ? sU("dBZ") : sU("dB"));
+		sci::string referenceUnit = referencePhysical::template getShortUnitString<sci::string>();
+		if (referenceUnit.length() == 0)
+			referenceUnit = sU("1");
+		sci::NcAttribute referenceUnitAttribute(sU("reference_unit"), referenceUnit);
+		sci::NcAttribute validMinAttribute(sU("valid_min"), validMinLogarithmic.value<unitlessF>());
+		sci::NcAttribute validMaxAttribute(sU("valid_max"), validMaxLogarithmic.value<unitlessF>());
+		//sci::NcAttribute typeAttribute(sU("type"), OutputAmfNcFile::getTypeName<Decibel<REFERENCE_UNIT>::valueType>());
+		sci::NcAttribute fillValueAttribute(sU("_FillValue"), OutputAmfNcFile::getFillValue< Decibel<REFERENCE_UNIT>::valueType>());
+		sci::NcAttribute coordinatesAttribute(sU("coordinates"), getCoordinatesAttributeText(coordinates));
+		sci::NcAttribute cellMethodsAttribute(sU("cell_methods"), getCellMethodsAttributeText(cellMethods));
+		sci::NcAttribute commentAttribute(sU("comment"), comment);
+		sci::NcVariable<unitlessF::valueType>::addAttribute(longNameAttribute, ncFile);
+		sci::NcVariable<unitlessF::valueType>::addAttribute(unitsAttribute, ncFile);
+		if (m_outputReferenceUnit)
+			sci::NcVariable<unitlessF::valueType>::addAttribute(referenceUnitAttribute, ncFile);
+		sci::NcVariable<unitlessF::valueType>::addAttribute(validMinAttribute, ncFile);
+		sci::NcVariable<unitlessF::valueType>::addAttribute(validMaxAttribute, ncFile);
+		//addAttribute(typeAttribute, ncFile);
+		if (comment.length() > 0)
+			sci::NcVariable<unitlessF::valueType>::addAttribute(commentAttribute, ncFile);
+		if (standardName.length() > 0)
+			sci::NcVariable<unitlessF::valueType>::addAttribute(standardNameAttribute, ncFile);
+		if (hasFillValue)
+			sci::NcVariable<unitlessF::valueType>::addAttribute(fillValueAttribute, ncFile);
+		if (coordinates.size() > 0)
+			sci::NcVariable<unitlessF::valueType>::addAttribute(coordinatesAttribute, ncFile);
+		if (cellMethods.size() > 0)
+			sci::NcVariable<unitlessF::valueType>::addAttribute(cellMethodsAttribute, ncFile);
 	}
 
 	bool m_isDbZ;
 	bool m_outputReferenceUnit;
+};
+
+template < class REFERENCE_UNIT>
+class AmfNcDbVariableFromLinearData : public AmfNcDbVariable<REFERENCE_UNIT>
+{
+public:
+	template<size_t NDATADIMS, size_t NFLAGDIMS>
+	AmfNcDbVariableFromLinearData(const sci::string& name, const sci::OutputNcFile& ncFile, const sci::NcDimension& dimension, const sci::string& longName, const sci::string& standardName, sci::grid_view< REFERENCE_UNIT, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods, bool isDbZ, bool outputReferenceUnit, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string& comment = sU(""))
+		:AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimension, longName, standardName, dataLinear, hasFillValue, coordinates, cellMethods, isDbZ, outputReferenceUnit, flags, true, comment)
+	{
+	}
+	template<sci::IsGrid DATA_GRID, sci::IsGrid FLAGS_GRID>
+	AmfNcDbVariableFromLinearData(const sci::string& name, const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const sci::string& longName, const sci::string& standardName, DATA_GRID dataLinear, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods, bool isDbZ, bool outputReferenceUnit, FLAGS_GRID flags, const sci::string& comment = sU(""))
+		: AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimensions, longName, standardName, dataLinear, hasFillValue, coordinates, cellMethods, isDbZ, outputReferenceUnit, flags, true, comment)
+	{
+	}
+	AmfNcDbVariableFromLinearData(const sci::string& name, const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const sci::string& longName, const sci::string& standardName)
+		:AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimensions, longName, standardName)
+	{
+	}
+	template <class DATA_TYPE>
+	static unitlessF::valueType transformForOutput(const DATA_TYPE& val)
+	{
+		return val == val ? Decibel<REFERENCE_UNIT>::linearToDecibel(val).value() : OutputAmfNcFile::getFillValue<DATA_TYPE::valueType>();
+	}
+};
+
+template < class REFERENCE_UNIT>
+class AmfNcDbVariableFromLogarithmicData : public AmfNcDbVariable<REFERENCE_UNIT>
+{
+public:
+	template<size_t NDATADIMS, size_t NFLAGDIMS>
+	AmfNcDbVariableFromLogarithmicData(const sci::string& name, const sci::OutputNcFile& ncFile, const sci::NcDimension& dimension, const sci::string& longName, const sci::string& standardName, sci::grid_view< unitlessF, NDATADIMS> dataLogarithmic, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods, bool isDbZ, bool outputReferenceUnit, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string& comment = sU(""))
+		:AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimension, longName, standardName, dataLogarithmic, hasFillValue, coordinates, cellMethods, isDbZ, outputReferenceUnit, false, flags, comment)
+	{
+	}
+	template<sci::IsGrid DATA_GRID, sci::IsGrid FLAGS_GRID>
+	AmfNcDbVariableFromLogarithmicData(const sci::string& name, const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const sci::string& longName, const sci::string& standardName, DATA_GRID dataLogarithmic, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods, bool isDbZ, bool outputReferenceUnit, FLAGS_GRID flags, const sci::string& comment = sU(""))
+		: AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimensions, longName, standardName, dataLogarithmic, hasFillValue, coordinates, cellMethods, isDbZ, outputReferenceUnit, false, flags, comment)
+	{
+	}
+	AmfNcDbVariableFromLogarithmicData(const sci::string& name, const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const sci::string& longName, const sci::string& standardName)
+		:AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimensions, longName, standardName)
+	{
+	}
+	static unitlessF::valueType transformForOutput(const unitlessF& val)
+	{
+		return val == val ? val.value<unitlessF>() : OutputAmfNcFile::getFillValue<unitlessF::valueType>();
+	}
 };
 
 class AmfNcTimeVariable : public AmfNcVariable<typename second::valueType>
@@ -1608,7 +1758,7 @@ class AmfNcLongitudeVariable : public AmfNcVariable<typename degreeF::valueType>
 {
 public:
 	template<sci::IsGrid GRID>
-	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const GRID &longitudes, FeatureType featureType, DeploymentMode deploymentMode)
+	AmfNcLongitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const GRID &longitudes, FeatureType featureType, DeploymentMode deploymentMode, PlatformType platformType)
 		:AmfNcVariable<typename degreeF::valueType>(
 			sU("longitude"),
 			ncFile, 
@@ -1616,8 +1766,8 @@ public:
 			sU("Longitude"),
 			sU("longitude"),
 			sU("degrees_east"),
-			sci::make_gridtransform_view(longitudes, PhysicalToValueTransform<degreeF>),
-			true,
+			platformType == PlatformType::stationary ? sci::GridData<degreeF::valueType,1>(0) : sci::make_gridtransform_view(longitudes, PhysicalToValueTransform<degreeF>),
+			platformType != PlatformType::stationary,
 			std::vector<sci::string>(0),
 			getLatLonCellMethod(featureType, deploymentMode),
 			sci::GridData<uint8_t,0>(1))
@@ -1634,7 +1784,7 @@ class AmfNcLatitudeVariable : public AmfNcVariable<typename degreeF::valueType>
 {
 public:
 	template<sci::IsGrid GRID>
-	AmfNcLatitudeVariable(const sci::OutputNcFile &ncFile, const sci::NcDimension& dimension, const GRID &latitudes, FeatureType featureType, DeploymentMode deploymentMode)
+	AmfNcLatitudeVariable(const sci::OutputNcFile& ncFile, const sci::NcDimension& dimension, const GRID& latitudes, FeatureType featureType, DeploymentMode deploymentMode, PlatformType platformType)
 		:AmfNcVariable<typename degreeF::valueType>(
 			sU("latitude"),
 			ncFile,
@@ -1642,11 +1792,11 @@ public:
 			sU("Latitude"),
 			sU("latitude"),
 			sU("degrees_north"),
-			sci::make_gridtransform_view(latitudes, PhysicalToValueTransform<degreeF>),
-			true,
+			platformType == PlatformType::stationary ? sci::GridData<degreeF::valueType, 1>(0) : sci::make_gridtransform_view(latitudes, PhysicalToValueTransform<degreeF>),
+			platformType != PlatformType::stationary,
 			std::vector<sci::string>(0),
 			getLatLonCellMethod(featureType, deploymentMode),
-			sci::GridData<uint8_t,0>(1))
+			sci::GridData<uint8_t, 0>(1))
 	{
 		addAttribute(sci::NcAttribute(sU("axis"), sU("Y")), ncFile);
 	}
@@ -1727,6 +1877,7 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	LAT_GRID latitudes,
 	LON_GRID longitudes,
 	const std::vector<sci::NcDimension*>& nonTimeDimensions,
+	sci::string comment,
 	const std::vector< sci::NcAttribute*>& globalAttributes,
 	bool incrementMajorVersion)
 {
@@ -1956,10 +2107,10 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	//Now construct the final filename
 	sci::ostringstream filenameStream;
 	filenameStream << baseFilename << sU("_") << versionString.str() << sU(".nc");
-	sci::string filename = filenameStream.str();
+	m_filename = filenameStream.str();
 
 	//create the new file
-	openWritable(filename, '_');
+	openWritable(m_filename, '_');
 	sci::string amfVersionString;
 	if (amfVersion == AmfVersion::v1_1_0)
 		amfVersionString = sU("1.1.0");
@@ -2034,6 +2185,11 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 		write(sci::NcAttribute(sU("amf_vocabularies_release"), sci::string(sU("https://github.com/ncasuk/AMF_CVs/releases/tag/v")) + amfVersionString));
 	write(sci::NcAttribute(sU("comment"), dataInfo.processingOptions.comment + sci::string(dataInfo.processingOptions.beta ? sU("\nBeta release - not to be used in published science.") : sU(""))));
 
+	if (comment.length() > 0)
+	{
+		write(sci::NcAttribute(sU("comment"), comment));
+	}
+
 	for (size_t i = 0; i < globalAttributes.size(); ++i)
 		write(*globalAttributes[i]);
 
@@ -2084,13 +2240,13 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	//for trajectories, the lat/lon depend on the time dimension, not the lat/lon dimensions (which aren't created)
 	if (dataInfo.featureType == FeatureType::trajectory)
 	{
-		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, m_timeDimension, m_longitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
-		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, m_timeDimension, m_latitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
+		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, m_timeDimension, m_longitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode, platform.getPlatformInfo().platformType));
+		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, m_timeDimension, m_latitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode, platform.getPlatformInfo().platformType));
 	}
 	else
 	{
-		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, m_longitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
-		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, m_latitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode));
+		m_longitudeVariable.reset(new AmfNcLongitudeVariable(*this, longitudeDimension, m_longitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode, platform.getPlatformInfo().platformType));
+		m_latitudeVariable.reset(new AmfNcLatitudeVariable(*this, latitudeDimension, m_latitudes, dataInfo.featureType, platform.getPlatformInfo().deploymentMode, platform.getPlatformInfo().platformType));
 	}
 
 	if (platform.getPlatformInfo().platformType == PlatformType::moving && !overriddenPlatformPosition)
@@ -2146,3 +2302,16 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	write(AmfNcTimeVariable(*this, m_timeDimension), secondsAfterEpoch);*/
 
 }
+
+/*template<size_t NDIMS>
+void OutputAmfNcFile::writeDbData(const AmfNcDbVariableFromLogarithmicData<unitlessF>& variable, const sci::GridData<unitlessF, NDIMS>& data)
+{
+	auto ncOutputView = sci::make_gridtransform_view(data, [](const unitlessF& val) { return AmfNcDbVariableFromLogarithmicData<unitlessF>::transformForOutput(val); });
+	//auto test = ncOutputView[0];
+	//unitlessF test2 = ncOutputView[0];
+	const sci::NcVariable<float>& var = variable;
+	sci::OutputNcFile::write(var, ncOutputView);
+}*/
+
+
+

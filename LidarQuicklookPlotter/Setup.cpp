@@ -549,18 +549,20 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 	sci::string deploymentMode;
 	sci::string locationFile;
 	sci::GridData<sci::string, 1> locationKeywords;
+	sci::string hatproRetrieval;
 	std::vector<nameVarPair<sci::string>> stringLinks
 	{ nameVarPair<sci::string>(sU("name"), &(name)),
 		nameVarPair<sci::string>(sU("type"), &(platformType)),
 		nameVarPair<sci::string>(sU("deploymentMode"), &(deploymentMode)),
-		nameVarPair<sci::string>(sU("locationFile"), &(locationFile))
+		nameVarPair<sci::string>(sU("locationFile"), &(locationFile)),
+		nameVarPair<sci::string>(sU("hatproRetrieval"), &(hatproRetrieval))
 	};
 
 	parseXmlNode(node, stringLinks.begin(), stringLinks.end());
 
 	for (auto iter = stringLinks.begin(); iter != stringLinks.end(); ++iter)
 	{
-		if (iter->m_name != sU("locationFile")) //not needed in all cases - we check this below
+		if (iter->m_name != sU("locationFile") && iter->m_name != sU("hatproRetrieval")) //not needed in all cases - we check this below
 			sci::assertThrow(iter->m_read, sci::err(sci::SERR_USER, 0, "missing parameter " + sci::nativeCodepage(iter->m_name) + " when parsing Platform Information."));
 	}
 
@@ -592,7 +594,7 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 			allRead &= iter->m_read;
 		sci::assertThrow(allRead, sci::err(sci::SERR_USER, 0, "Could not find the fixed positions and orientation when parsing a stationary platform information - require latitude_degree, longitude_degree, altitude_m, elevation_degree, azimuth_degree, roll_degree."));
 		if (deploymentMode == sU("land"))
-			return std::shared_ptr<Platform>(new StationaryPlatform(name, metreF(altitude_m), degreeF(latitude_degree), degreeF(longitude_degree), locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree)));
+			return std::shared_ptr<Platform>(new StationaryPlatform(name, metreF(altitude_m), degreeF(latitude_degree), degreeF(longitude_degree), locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree), hatproRetrieval));
 		else if (deploymentMode == sU("sea"))
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for stationary sea deployments"));
 		else if (deploymentMode == sU("air"))
@@ -646,9 +648,9 @@ std::shared_ptr<Platform> parsePlatformInfo(wxXmlNode *node, ProgressReporter &p
 		{
 			progressReporter << sU("Generating motion correction parameters for the platform.\n");
 			if (platformRelative)
-				return std::shared_ptr<Platform>(new ShipPlatformShipRelativeCorrected(name, metreF(altitude_m), times, latitudes, longitudes, locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree), courses, speeds, elevations, azimuths, rolls));
+				return std::shared_ptr<Platform>(new ShipPlatformShipRelativeCorrected(name, metreF(altitude_m), times, latitudes, longitudes, locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree), courses, speeds, elevations, azimuths, rolls, hatproRetrieval));
 			else
-				return std::shared_ptr<Platform>(new ShipPlatform(name, metreF(altitude_m), times, latitudes, longitudes, locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree), courses, speeds, elevations, azimuths, rolls));
+				return std::shared_ptr<Platform>(new ShipPlatform(name, metreF(altitude_m), times, latitudes, longitudes, locationKeywords, degreeF(elevation_degree), degreeF(azimuth_degree), degreeF(roll_degree), courses, speeds, elevations, azimuths, rolls, hatproRetrieval));
 		}
 		else if (deploymentMode == sU("land"))
 			sci::assertThrow(false, sci::err(sci::SERR_USER, 0, "The software is not yet set up for moving land deployments"));

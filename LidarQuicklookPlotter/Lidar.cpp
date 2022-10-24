@@ -785,7 +785,7 @@ void LidarScanningProcessor::writeToNc(const sci::string &directory, const Perso
 	&velocityResolutionAttribute, &nGatesAttribute, &gateLengthAttribute, &fftAttribute, &maxRangeAttribute};
 
 	OutputAmfNcFile file(AmfVersion::v1_1_0, directory, getInstrumentInfo(), author, processingSoftwareInfo, getCalibrationInfo(), dataInfo,
-		projectInfo, platform, sU("doppler lidar scan"), scanStartTimes, nonTimeDimensions, lidarGlobalAttributes);
+		projectInfo, platform, sU("doppler lidar scan"), scanStartTimes, nonTimeDimensions, sU(""), lidarGlobalAttributes);
 
 	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
 	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean }, {sU("sensor_azimuth_angle"), cm_point}, {sU("sensor_view_angle"), cm_point} };

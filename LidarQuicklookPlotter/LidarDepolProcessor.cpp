@@ -612,7 +612,7 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 	&velocityResolutionAttribute, &nGatesAttribute, &gateLengthAttribute, &fftAttribute, &maxRangeAttribute };
 
 	OutputAmfNcFile file(AmfVersion::v1_1_0, directory, m_copolarisedProcessor.getInstrumentInfo(), author, processingSoftwareInfo, m_copolarisedProcessor.getCalibrationInfo(), dataInfo,
-		projectInfo, platform, sU("Lidar depolarisation ratio"), averagedTime, nonTimeDimensions, lidarGlobalAttributes);
+		projectInfo, platform, sU("Lidar depolarisation ratio"), averagedTime, nonTimeDimensions, sU(""), lidarGlobalAttributes);
 
 	//this is what I think it should be, but CEDA want just time: mean, but left this here in case someone changes their mind
 	//std::vector<std::pair<sci::string, CellMethod>>cellMethodsData{ {sU("time"), cm_mean}, { sU("range"), cm_mean } };

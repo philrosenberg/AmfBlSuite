@@ -644,11 +644,123 @@ void readHatproOneDimensionPerFrequencyData(sci::string filename, bool hasRetrie
 	}
 }
 
-template<uint32_t expectedFileTypeId, class DATA_TYPE, class ANGLE_TYPE>
-void readHatproProfile(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<DATA_TYPE, 2>& data, sci::GridData<ANGLE_TYPE, 1>& elevation, sci::GridData<ANGLE_TYPE, 1>& azimuth,
-	sci::GridData<bool, 1>& rainFlag, sci::GridData<unsigned char, 1>& quality, sci::GridData<unsigned char, 1>& qualityExplanation, uint32_t& fileTypeId)
+template<uint32_t expectedFileTypeId, class DATA1_TYPE, class DATA2_TYPE, class ALTITUDE_TYPE>
+void readHatproProfile(sci::string filename, uint32_t &retrievalType, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<ALTITUDE_TYPE, 1> &altitudes, sci::GridData<DATA1_TYPE, 2>& data1,
+	sci::GridData<DATA2_TYPE, 2>& data2, sci::GridData<bool, 1>& rainFlag, sci::GridData<unsigned char, 1>& quality, sci::GridData<unsigned char, 1>& qualityExplanation, uint32_t& fileTypeId)
 {
+	try
+	{
+		std::fstream fin;
+		fin.open(sci::nativeUnicode(filename), std::ios::in | std::ios::binary);
+		sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Failed to open HATPRO ") + hatproFileTypes.at(expectedFileTypeId) + sU(" file ") + filename));
 
+		uint32_t nSamples;
+		uint32_t nAltitudes;
+		sci::GridData<uint32_t, 1> altitudesTemp;
+		float minData;
+		float maxData;
+		uint32_t timeType;
+
+		uint32_t timeTemp;
+		sci::GridData<float, 1> dataTemp;
+		uint8_t rainFlagTemp;
+
+		fin.read((char*)&fileTypeId, 4);
+		sci::assertThrow(fileTypeId == expectedFileTypeId, sci::err(sci::SERR_USER, 0, sU("File ") + filename + sU(" does not start with the ") + hatproFileTypes.at(expectedFileTypeId) + sU(" code.")));
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+		fin.read((char*)&nSamples, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+		fin.read((char*)&minData, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+		fin.read((char*)&maxData, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+		fin.read((char*)&timeType, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		sci::assertThrow(timeType == 1, sci::err(sci::SERR_USER, 0, sU("File ") + filename + sU(" is in local time, not UTC time. This software can only process UTC time data.")));
+
+		fin.read((char*)&retrievalType, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+		fin.read((char*)&nAltitudes, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+		altitudes.resize(nAltitudes);
+		altitudesTemp.resize(nAltitudes);
+
+		fin.read((char*)&altitudesTemp[0], nAltitudes * 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		for (size_t i = 0; i < altitudes.size(); ++i)
+			altitudes[i] = metreF(altitudesTemp[i]);
+
+		time.resize(nSamples);
+		data1.reshape({ nSamples, nAltitudes });
+		rainFlag.resize(nSamples);
+		quality.resize(nSamples);
+		qualityExplanation.resize(nSamples);
+		dataTemp.resize(nAltitudes);
+
+		for (size_t i = 0; i < nSamples; ++i)
+		{
+			fin.read((char*)&timeTemp, 4);
+			fin.read((char*)&rainFlagTemp, 1);
+			for (size_t j = 0; j < nAltitudes; ++j)
+				fin.read((char*)&dataTemp[j], 4);
+
+			time[i] = sci::UtcTime(2001, 1, 1, 0, 0, 0) + second(double(timeTemp));
+			rainFlag[i] = (rainFlagTemp & 0x01) > 0;
+			quality[i] = (rainFlagTemp & 0x06) >> 1;
+			qualityExplanation[i] = (rainFlagTemp & 0x18) >> 3;
+
+			if constexpr (expectedFileTypeId == hatproTpbId || expectedFileTypeId == hatproTpcId)
+				for (size_t j = 0; j < nAltitudes; ++j)
+					data1[i][j] = kelvinF(dataTemp[j]);
+			else if constexpr (expectedFileTypeId == hatproHpcNoRhId || expectedFileTypeId == hatproHpcWithRhId || expectedFileTypeId == hatproLprId)
+				for (size_t j = 0; j < nAltitudes; ++j)
+					data1[i][j] = gramPerMetreCubedF(dataTemp[j]);
+			else
+				static_assert(makeFalse<expectedFileTypeId>(), "Attempting to read a hatpro file with an unknown expected file type id.");
+		}
+		if constexpr (expectedFileTypeId == hatproHpcWithRhId)
+		{
+			fin.read((char*)&minData, 4);
+			sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+			fin.read((char*)&maxData, 4);
+			sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+
+			data2.reshape({ nSamples, nAltitudes });
+			for (size_t i = 0; i < nSamples; ++i)
+			{
+				fin.read((char*)&timeTemp, 4);
+				fin.read((char*)&rainFlagTemp, 1);
+				for (size_t j = 0; j < nAltitudes; ++j)
+					fin.read((char*)&dataTemp[j], 4);
+
+				time[i] = sci::UtcTime(2001, 1, 1, 0, 0, 0) + second(double(timeTemp));
+				for (size_t j = 0; j < nAltitudes; ++j)
+					data2[i][j] = percentF(dataTemp[j]);
+				rainFlag[i] = (rainFlagTemp & 0x01) > 0;
+				quality[i] = (rainFlagTemp & 0x06) >> 1;
+				qualityExplanation[i] = (rainFlagTemp & 0x18) >> 3;
+			}
+		}
+		sci::assertThrow(fin.good(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+	}
+	catch (...)
+	{
+
+		time.resize(0);
+		data1.reshape({ 0,0 });
+		data2.reshape({ 0,0 });
+		altitudes.resize(0);
+		rainFlag.resize(0);
+		fileTypeId = 0;
+		throw;
+	}
 }
 
 //might need old and new for this
@@ -694,18 +806,42 @@ void readHatproOlcData(sci::string filename, sci::GridData<sci::UtcTime, 1>& tim
 	readHatproOneDimensionPerFrequencyData<hatproOlcId>(filename, false, time, frequencies, olc, elevation, azimuth, rainFlag, fileTypeId);
 }
 
-template<class LWP_TYPE, class ANGLE_TYPE>
-void readHatproTpcData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<LWP_TYPE, 2>& tpc, sci::GridData<ANGLE_TYPE, 1>& elevation, sci::GridData<ANGLE_TYPE, 1>& azimuth,
+template<class DATA_TYPE, class ALTITUDE_TYPE>
+void readHatproTpcData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<ALTITUDE_TYPE, 1>& altitudes, sci::GridData<DATA_TYPE, 2>& tpb,
 	sci::GridData<bool, 1>& rainFlag, sci::GridData<unsigned char, 1>& quality, sci::GridData<unsigned char, 1>& qualityExplanation, uint32_t& fileTypeId)
 {
-	readHatproProfile<hatproTpcId>(filename, time, tpc, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+	uint32_t retrievalType;
+	sci::GridData<kelvinF, 2> dummy;
+	readHatproProfile<hatproTpcId>(filename, retrievalType, time, altitudes, tpb, dummy, rainFlag, quality, qualityExplanation, fileTypeId);
 }
 
-template<class LWP_TYPE, class ANGLE_TYPE>
-void readHatproTpbData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<LWP_TYPE, 2>& tpb, sci::GridData<ANGLE_TYPE, 1>& elevation, sci::GridData<ANGLE_TYPE, 1>& azimuth,
+template<class DATA_TYPE, class ALTITUDE_TYPE>
+void readHatproTpbData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<ALTITUDE_TYPE, 1>& altitudes, sci::GridData<DATA_TYPE, 2>& tpb,
 	sci::GridData<bool, 1>& rainFlag, sci::GridData<unsigned char, 1>& quality, sci::GridData<unsigned char, 1>& qualityExplanation, uint32_t& fileTypeId)
 {
-	readHatproProfile<hatproTpbId>(filename, time, tpb, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+	uint32_t retrievalType;
+	sci::GridData<kelvinF, 2> dummy;
+	readHatproProfile<hatproTpbId>(filename, retrievalType, time, altitudes, tpb, dummy, rainFlag, quality, qualityExplanation, fileTypeId);
+}
+
+template<class DATA_TYPE1, class DATA_TYPE2, class ALTITUDE_TYPE>
+void readHatproHpcData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<ALTITUDE_TYPE, 1>& altitudes, sci::GridData<DATA_TYPE1, 2>& absoluteHumidity,
+	sci::GridData<DATA_TYPE2, 2>& relativeHumidity, sci::GridData<bool, 1>& rainFlag, sci::GridData<unsigned char, 1>& quality, sci::GridData<unsigned char, 1>& qualityExplanation, uint32_t& fileTypeId)
+{
+	//try reading this assuming it will have the RH data in. If it doesn't the read code will throw due to a mismatching ID
+	//in which case try reading it assuming it doesn't have the RH data
+	uint32_t retrievalType;
+	bool read = true;
+	try
+	{
+		readHatproProfile<hatproHpcWithRhId>(filename, retrievalType, time, altitudes, absoluteHumidity, relativeHumidity, rainFlag, quality, qualityExplanation, fileTypeId);
+	}
+	catch (...)
+	{
+		read = false;
+	}
+	if(!read)
+		readHatproProfile<hatproHpcNoRhId>(filename, retrievalType, time, altitudes, absoluteHumidity, relativeHumidity, rainFlag, quality, qualityExplanation, fileTypeId);
 }
 
 //need to deal with with and without RH
@@ -808,11 +944,20 @@ public:
 			surfacePressureFlag.resize(nPoints, mwrGoodDataFlag);
 			surfaceRelativeHumidityFlag.resize(nPoints, mwrGoodDataFlag);
 		}
-		void createNcFlags(OutputAmfNcFile& file)
+		void createNcFlags(OutputAmfNcFile& file, bool isMetFile)
 		{
-			temperatureFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_surface_temperature"), mwrMetFlags, file, file.getTimeDimension()));
-			relativeHumidityFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_surface_relative_humidity"), mwrMetFlags, file, file.getTimeDimension()));
-			pressureFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_surface_pressure"), mwrMetFlags, file, file.getTimeDimension()));
+			if (isMetFile)
+			{
+				temperatureFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_temperature"), mwrMetFlags, file, file.getTimeDimension(), sU("Temperature")));
+				relativeHumidityFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_relative_humidity"), mwrMetFlags, file, file.getTimeDimension(), sU("Relative Humidity")));
+				pressureFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_pressure"), mwrMetFlags, file, file.getTimeDimension(), sU("Pressure")));
+			}
+			else
+			{
+				temperatureFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_surface_temperature"), mwrMetFlags, file, file.getTimeDimension(), sU("Surface Temperature")));
+				relativeHumidityFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_surface_relative_humidity"), mwrMetFlags, file, file.getTimeDimension(), sU("Surface Relative Humidity")));
+				pressureFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_surface_pressure"), mwrMetFlags, file, file.getTimeDimension(), sU("Surface Pressure")));
+			}
 		}
 		void writeToNetCdf(OutputAmfNcFile& file)
 		{
@@ -855,54 +1000,39 @@ public:
 			const sci::GridData<kelvinF, 1>& temperatureStabilityReceiver2)
 			: metFlags(status.size())
 		{
-			rainFlag.clear();
-			channelFailureFlags.clear();
-			temperatureReceiverStabilityFlag.clear();
-			relativeHumidityReceiverStabilityFlag.clear();
-
-
-			const size_t nPoints = status.size();
-
-
-			//set the rest of the flags
-			rainFlag.resize(nPoints, mwrRainGoodDataFlag);
-			for (size_t i = 0; i < rainFlag.size(); ++i)
-				if (rawRainFlag[i])
-					rainFlag[i] = mwrRainRainingFlag;
-
-			channelFailureFlags.resize(14, sci::GridData<uint8_t, 1>(nPoints));
-			sci::GridData<uint32_t, 1> statusFilters{ 0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000100, 0x00000200,
-				0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000 }; //note 0x0080 and 0x8000 are missing deliberately
-			for (size_t i = 0; i < 14; ++i)
-				for (size_t j = 0; j < nPoints; ++j)
-					channelFailureFlags[i][j] = (status[j] & statusFilters[i]) == 0 ? mwrChannelFailFlag : mwrChannelGoodDataFlag;
-
-			temperatureReceiverStabilityFlag.resize(nPoints, mwrStabilityGoodDataFlag);
-			for (size_t i = 0; i < temperatureReceiverStabilityFlag.size(); ++i)
-			{
-				if (temperatureStabilityReceiver1[i] > millikelvinF(50))
-					temperatureReceiverStabilityFlag[i] = mwrStabilityVeryVeryPoorFlag;
-				else if (temperatureStabilityReceiver1[i] > millikelvinF(10))
-					temperatureReceiverStabilityFlag[i] = mwrStabilityVeryPoorFlag;
-				else if (temperatureStabilityReceiver1[i] > millikelvinF(5))
-					temperatureReceiverStabilityFlag[i] = mwrStabilityPoorFlag;
-			}
-
-			relativeHumidityReceiverStabilityFlag.resize(nPoints, mwrStabilityGoodDataFlag);
-			for (size_t i = 0; i < relativeHumidityReceiverStabilityFlag.size(); ++i)
-			{
-				if (temperatureStabilityReceiver2[i] > millikelvinF(50))
-					relativeHumidityReceiverStabilityFlag[i] = mwrStabilityVeryVeryPoorFlag;
-				else if (temperatureStabilityReceiver2[i] > millikelvinF(10))
-					relativeHumidityReceiverStabilityFlag[i] = mwrStabilityVeryPoorFlag;
-				else if (temperatureStabilityReceiver2[i] > millikelvinF(5))
-					relativeHumidityReceiverStabilityFlag[i] = mwrStabilityPoorFlag;
-			}
+			init(rawRainFlag, status, temperatureStabilityReceiver1, temperatureStabilityReceiver2);
 		}
 
-		void createNcFlags(OutputAmfNcFile& file)
+		MetAndStabilityFlags(const sci::GridData<sci::UtcTime, 1> &neededTimes, const sci::GridData<sci::UtcTime, 1> & hkdTime, const sci::GridData<bool, 1>& rawRainFlag,
+			const sci::GridData<uint32_t, 1>& status,
+			const sci::GridData<kelvinF, 1>& temperatureStabilityReceiver1,
+			const sci::GridData<kelvinF, 1>& temperatureStabilityReceiver2)
+			: metFlags(neededTimes.size())
 		{
-			metFlags.createNcFlags(file);
+			//filter the housekeepingdata for the required times
+			//These are the status and stability data - the rain flag comes from the
+			//data file, so does not need filtering
+			sci::GridData<uint32_t, 1> filteredStatus(neededTimes.size(), mwrMissingDataFlag);
+			sci::GridData<kelvinF, 1> filteredTemperatureStabilityReceiver1(neededTimes.size());
+			sci::GridData<kelvinF, 1> filteredTemperatureStabilityReceiver2(neededTimes.size());
+			size_t hkdIndex = 0;
+			for (size_t i = 0; i < neededTimes.size(); ++i)
+			{
+				while (hkdIndex < hkdTime.size() && hkdTime[hkdIndex] < neededTimes[i])
+					++hkdIndex;
+				if (hkdIndex < hkdTime.size())
+				{
+					filteredStatus[i] = status[hkdIndex];
+					filteredTemperatureStabilityReceiver1[i] = temperatureStabilityReceiver1[hkdIndex];
+					filteredTemperatureStabilityReceiver2[i] = temperatureStabilityReceiver2[hkdIndex];
+				}
+			}
+			init(rawRainFlag, filteredStatus, filteredTemperatureStabilityReceiver1, filteredTemperatureStabilityReceiver2);
+		}
+
+		void createNcFlags(OutputAmfNcFile& file, bool isMetFile)
+		{
+			metFlags.createNcFlags(file, isMetFile);
 			rainFlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_surface_precipitation"), mwrRainFlags, file, file.getTimeDimension()));
 			ch1FlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_channel_1_failure"), mwrChannelFlags, file, file.getTimeDimension()));
 			ch2FlagVariable.reset(new AmfNcFlagVariable(sU("qc_flag_channel_2_failure"), mwrChannelFlags, file, file.getTimeDimension()));
@@ -982,6 +1112,57 @@ public:
 		}
 
 	private:
+
+		void init(const sci::GridData<bool, 1>& rawRainFlag,
+			const sci::GridData<uint32_t, 1>& status,
+			const sci::GridData<kelvinF, 1>& temperatureStabilityReceiver1,
+			const sci::GridData<kelvinF, 1>& temperatureStabilityReceiver2)
+		{
+			rainFlag.clear();
+			channelFailureFlags.clear();
+			temperatureReceiverStabilityFlag.clear();
+			relativeHumidityReceiverStabilityFlag.clear();
+			createdStabilityFlags = false;
+
+
+			const size_t nPoints = status.size();
+
+
+			//set the rest of the flags
+			rainFlag.resize(nPoints, mwrRainGoodDataFlag);
+			for (size_t i = 0; i < rainFlag.size(); ++i)
+				if (rawRainFlag[i])
+					rainFlag[i] = mwrRainRainingFlag;
+
+			channelFailureFlags.resize(14, sci::GridData<uint8_t, 1>(nPoints));
+			sci::GridData<uint32_t, 1> statusFilters{ 0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 0x00000020, 0x00000040, 0x00000100, 0x00000200,
+				0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000 }; //note 0x0080 and 0x8000 are missing deliberately
+			for (size_t i = 0; i < 14; ++i)
+				for (size_t j = 0; j < nPoints; ++j)
+					channelFailureFlags[i][j] = (status[j] & statusFilters[i]) == 0 ? mwrChannelFailFlag : mwrChannelGoodDataFlag;
+
+			temperatureReceiverStabilityFlag.resize(nPoints, mwrStabilityGoodDataFlag);
+			for (size_t i = 0; i < temperatureReceiverStabilityFlag.size(); ++i)
+			{
+				if (temperatureStabilityReceiver1[i] > millikelvinF(50))
+					temperatureReceiverStabilityFlag[i] = mwrStabilityVeryVeryPoorFlag;
+				else if (temperatureStabilityReceiver1[i] > millikelvinF(10))
+					temperatureReceiverStabilityFlag[i] = mwrStabilityVeryPoorFlag;
+				else if (temperatureStabilityReceiver1[i] > millikelvinF(5))
+					temperatureReceiverStabilityFlag[i] = mwrStabilityPoorFlag;
+			}
+
+			relativeHumidityReceiverStabilityFlag.resize(nPoints, mwrStabilityGoodDataFlag);
+			for (size_t i = 0; i < relativeHumidityReceiverStabilityFlag.size(); ++i)
+			{
+				if (temperatureStabilityReceiver2[i] > millikelvinF(50))
+					relativeHumidityReceiverStabilityFlag[i] = mwrStabilityVeryVeryPoorFlag;
+				else if (temperatureStabilityReceiver2[i] > millikelvinF(10))
+					relativeHumidityReceiverStabilityFlag[i] = mwrStabilityVeryPoorFlag;
+				else if (temperatureStabilityReceiver2[i] > millikelvinF(5))
+					relativeHumidityReceiverStabilityFlag[i] = mwrStabilityPoorFlag;
+			}
+		}
 		MetFlags metFlags;
 
 		sci::GridData<uint8_t, 1> rainFlag;
@@ -1087,7 +1268,7 @@ public:
 		dataInfo.featureType = FeatureType::timeSeriesPoint;
 		dataInfo.options = std::vector<sci::string>(0);
 		dataInfo.processingLevel = 1;
-		dataInfo.productName = sU("iwv lwp");
+		dataInfo.productName = productName;
 		dataInfo.processingOptions = processingOptions;
 
 		sci::GridData<secondF, 1> intervals(dataTime.size() - 1);
@@ -1112,6 +1293,18 @@ public:
 		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter);
 
 	void writeBrightnessTemperatureNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter);
+
+	void writeBoundaryLayerTemperatureProfileNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter);
+
+	void writeFullTroposphereTemperatureProfileNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter);
+
+	void writeMoistureProfileNc(const sci::string& directory, const PersonInfo& author,
 		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter);
 private:
@@ -1185,6 +1378,26 @@ private:
 	sci::GridData<degreeF, 1> m_atnElevation;
 	sci::GridData<degreeF, 1> m_atnAzimuth;
 	sci::GridData<bool, 1> m_atnRainFlag;
+
+	//Boundary layer temperature profile data
+	sci::GridData<sci::UtcTime, 1> m_tpbTime;
+	sci::GridData<metreF, 1> m_tpbAltitudes;
+	sci::GridData<kelvinF, 2> m_tpbTemperatures;
+	sci::GridData<bool, 1> m_tpbRainFlag;
+
+	//Troposphere temperature profile data
+	sci::GridData<sci::UtcTime, 1> m_tpcTime;
+	sci::GridData<metreF, 1> m_tpcAltitudes;
+	sci::GridData<kelvinF, 2> m_tpcTemperatures;
+	sci::GridData<bool, 1> m_tpcRainFlag;
+
+	//Moisture profile data
+	sci::GridData<sci::UtcTime, 1> m_hpcTime;
+	sci::GridData<metreF, 1> m_hpcAltitudes;
+	sci::GridData<gramPerMetreCubedF, 2> m_hpcAbsoluteHumidity;
+	sci::GridData<percentF, 2> m_hpcRelativeHumidity;
+	sci::GridData<bool, 1> m_hpcRainFlag;
+
 };
 
 template<class DATA_UNIT, size_t NDIMS>
@@ -1192,103 +1405,143 @@ static void MicrowaveRadiometerProcessor::padDataToMatchHkp(const sci::GridData<
 	sci::GridData<degreeF, 1>& elevation, sci::GridData<degreeF, 1>& azimuth, sci::GridData<bool, 1>& rainFlag, sci::GridData<unsigned char, 1>& quality,
 	sci::GridData<unsigned char, 1>& qualityExplanation, sci::GridData<uint8_t, 1> &flag)
 {
-	for (size_t i = 0; i < std::min(dataTime.size(), hkdTime.size()); ++i)
+	size_t hkdIndex = 0;
+	size_t dataIndex = 0;
+
+	sci::GridData<DATA_UNIT, NDIMS> resultData;
+	sci::GridData<degreeF, 1> resultElevation;
+	sci::GridData<degreeF, 1> resultAzimuth;
+	sci::GridData<bool, 1> resultRainFlag;
+	sci::GridData<unsigned char, 1> resultQuality;
+	sci::GridData<unsigned char, 1> resultQualityExplanation;
+	sci::GridData<uint8_t, 1> resultFlag;
+	resultData.reserve(hkdTime.size()*(data.size()/dataTime.size()));
+	resultElevation.reserve(hkdTime.size());
+	resultAzimuth.reserve(hkdTime.size());
+	resultRainFlag.reserve(hkdTime.size());
+	resultQuality.reserve(hkdTime.size());
+	resultQualityExplanation.reserve(hkdTime.size());
+	resultFlag.reserve(hkdTime.size());
+
+	std::array<size_t, NDIMS> dataShape = data.shape();
+	std::array<size_t, NDIMS-1> elementShape;
+	for (size_t i = 0; i < NDIMS - 1; ++i)
+		elementShape[i] = dataShape[i + 1];
+
+	std::array<size_t, NDIMS> finalShape = dataShape;
+	finalShape[0] = hkdTime.size();
+
+	while (hkdIndex < hkdTime.size() && dataIndex < dataTime.size())
 	{
-		if (dataTime[i] > hkdTime[i])
+		//skip any data which is before the current hkdTime
+		while (dataIndex < dataTime.size() && dataTime[dataIndex] < hkdTime[hkdIndex])
+			++dataIndex;
+		//if we got to the end of the data, break now rather than adding data
+		if (dataIndex == dataTime.size())
+			break;
+
+		//if we have identical times, copy the data
+		if (dataTime[dataIndex] == hkdTime[hkdIndex])
 		{
-			size_t j;
-			for (j = i; j < hkdTime.size(); ++j)
-				if (dataTime[i] <= hkdTime[j])
-					break;
-			if (j == hkdTime.size())
-			{
-				break;
-			}
+			if constexpr(NDIMS==1)
+				resultData.push_back(data[dataIndex]);
 			else
-			{
-				//if we found an exact match for our time, then pad with nans
-				//if we went past our time, then also nan out the curent point - there is no matching hkd time
-				size_t nToPad = j - i;
-				if (dataTime[i] < hkdTime[j])
-				{
-					--nToPad;
-					dataTime[i] = hkdTime[j];
-					data[i] = std::numeric_limits<DATA_UNIT>::quiet_NaN();
-					elevation[i] = std::numeric_limits<degreeF>::quiet_NaN();
-					azimuth[i] = std::numeric_limits<degreeF>::quiet_NaN();
-					rainFlag[i] = mwrRainMissingDataFlag;
-					quality[i] = mwrMissingDataFlag;
-					qualityExplanation[i] = 0;
-					flag[i] = mwrMissingDataFlag;
-				}
-				//now pad
-				if (nToPad > 0) //this can actually be zero if there was just one bad time and it is decremented above
-				{
-					dataTime.insert(i, hkdTime.subGrid(i, nToPad));
-					data.insert(i, nToPad, std::numeric_limits<DATA_UNIT>::quiet_NaN());
-					elevation.insert(i, nToPad, std::numeric_limits<degreeF>::quiet_NaN());
-					azimuth.insert(i, nToPad, std::numeric_limits<degreeF>::quiet_NaN());
-					rainFlag.insert(i, nToPad, mwrRainMissingDataFlag);
-					quality.insert(i, nToPad, mwrMissingDataFlag);
-					qualityExplanation.insert(i, nToPad, 0);
-					flag.insert(i, nToPad, mwrMissingDataFlag);
-				}
-			}
+				resultData.push_back(sci::GridData<DATA_UNIT, NDIMS - 1>(data[dataIndex]));
+			resultElevation.push_back(elevation[dataIndex]);
+			resultAzimuth.push_back(azimuth[dataIndex]);
+			resultRainFlag.push_back(rainFlag[dataIndex]);
+			resultQuality.push_back(quality[dataIndex]);
+			resultQualityExplanation.push_back(qualityExplanation[dataIndex]);
+			resultFlag.push_back(flag[dataIndex]);
+			++dataIndex;
+			++hkdIndex;
+		}
+		//if we don't have identical times then it means we have a hkd time that does not match any data time
+		else
+		{
+			if constexpr (NDIMS == 1)
+				resultData.push_back(std::numeric_limits<DATA_UNIT>::quiet_NaN());
+			else
+				resultData.push_back(sci::GridData<DATA_UNIT, NDIMS - 1>(elementShape, std::numeric_limits<DATA_UNIT>::quiet_NaN()));
+			resultElevation.push_back(std::numeric_limits<degreeF>::quiet_NaN());
+			resultAzimuth.push_back(std::numeric_limits<degreeF>::quiet_NaN());
+			resultRainFlag.push_back(mwrRainMissingDataFlag);
+			resultQuality.push_back(mwrMissingDataFlag);
+			resultQualityExplanation.push_back(0);
+			resultFlag.push_back(mwrMissingDataFlag);
+			++hkdIndex;//only increment hkdIndex, not data index as we haven't used the data element yet
 		}
 	}
-	if (dataTime.size() < hkdTime.size())
-	{
-		dataTime.insert(dataTime.size(), hkdTime.subGrid(dataTime.size(), hkdTime.size() - dataTime.size()));
-		data.resize(hkdTime.size(), std::numeric_limits<DATA_UNIT>::quiet_NaN());
-		elevation.resize(hkdTime.size(), std::numeric_limits<degreeF>::quiet_NaN());
-		azimuth.resize(hkdTime.size(), std::numeric_limits<degreeF>::quiet_NaN());
-		rainFlag.resize(hkdTime.size(), mwrRainMissingDataFlag);
-		quality.resize(hkdTime.size(), mwrMissingDataFlag);
-		qualityExplanation.resize(hkdTime.size(), 0);
-		flag.resize(hkdTime.size(), mwrMissingDataFlag);
-	}
+	
+	//pad any extra elements at the end of the data
+	resultData.reshape(finalShape, std::numeric_limits<DATA_UNIT>::quiet_NaN());
+	resultElevation.resize(hkdTime.size(), std::numeric_limits<degreeF>::quiet_NaN());
+	resultAzimuth.resize(hkdTime.size(), std::numeric_limits<degreeF>::quiet_NaN());
+	resultRainFlag.resize(hkdTime.size(), mwrRainMissingDataFlag);
+	resultQuality.resize(hkdTime.size(), mwrMissingDataFlag);
+	resultQualityExplanation.resize(hkdTime.size(), 0);
+	resultFlag.resize(hkdTime.size(), mwrMissingDataFlag);
+
+	dataTime = hkdTime;
+	data = std::move(resultData);
+	elevation = std::move(resultElevation);
+	azimuth = std::move(resultAzimuth);
+	rainFlag = std::move(resultRainFlag);
+	quality = std::move(resultQuality);
+	qualityExplanation = std::move(resultQualityExplanation);
+	flag = std::move(resultFlag);
 }
 
 template<class DATA_UNIT, size_t NDIMS>
 static void MicrowaveRadiometerProcessor::padDataToMatchHkp(const sci::GridData<sci::UtcTime, 1>& hkdTime, sci::GridData<sci::UtcTime, 1> dataTime, sci::GridData<DATA_UNIT, NDIMS>& data, DATA_UNIT padValue)
 {
-	for (size_t i = 0; i < std::min(dataTime.size(), hkdTime.size()); ++i)
+	size_t hkdIndex = 0;
+	size_t dataIndex = 0;
+
+	sci::GridData<DATA_UNIT, NDIMS> resultData;
+	resultData.reserve(hkdTime.size()*(data.size()/dataTime.size()));
+
+	std::array<size_t, NDIMS> dataShape = data.shape();
+	std::array<size_t, NDIMS-1> elementShape;
+	for (size_t i = 0; i < NDIMS - 1; ++i)
+		elementShape[i] = dataShape[i + 1];
+
+	std::array<size_t, NDIMS> finalShape = dataShape;
+	finalShape[0] = hkdTime.size();
+
+	while (hkdIndex < hkdTime.size() && dataIndex < dataTime.size())
 	{
-		if (dataTime[i] > hkdTime[i])
+		//skip any data which is before the current hkdTime
+		while (dataIndex < dataTime.size() && dataTime[dataIndex] < hkdTime[hkdIndex])
+			++dataIndex;
+		//if we got to the end of the data, break now rather than adding data
+		if (dataIndex == dataTime.size())
+			break;
+
+		//if we have identical times, copy the data
+		if (dataTime[dataIndex] == hkdTime[hkdIndex])
 		{
-			size_t j;
-			for (j = i; j < hkdTime.size(); ++j)
-				if (dataTime[i] <= hkdTime[j])
-					break;
-			if (j == hkdTime.size())
-			{
-				break;
-			}
+			if constexpr (NDIMS == 1)
+				resultData.push_back(data[dataIndex]);
 			else
-			{
-				//if we found an exact match for our time, then pad with nans
-				//if we went past our time, then also nan out the curent point - there is no matching hkd time
-				size_t nToPad = j - i;
-				if (dataTime[i] < hkdTime[j])
-				{
-					--nToPad;
-					dataTime[i] = hkdTime[j];
-					data[i] = padValue;
-				}
-				//now pad
-				if (nToPad > 0) //this can actually be zero if there was just one bad time and it is decremented above
-				{
-					dataTime.insert(i, hkdTime.subGrid(i, nToPad));
-					data.insert(i, nToPad, padValue);
-				}
-			}
+				resultData.push_back(sci::GridData<DATA_UNIT, NDIMS - 1>(data[dataIndex]));
+			++dataIndex;
+			++hkdIndex;
+		}
+		//if we don't have identical times then it means we have a hkd time that does not match any data time
+		else
+		{
+			if constexpr (NDIMS == 1)
+				resultData.push_back(padValue);
+			else
+				resultData.push_back(sci::GridData<DATA_UNIT, NDIMS - 1>(elementShape, padValue));
+			++hkdIndex;//only increment hkdIndex, not data index as we haven't used the data element yet
 		}
 	}
-	if (dataTime.size() < hkdTime.size())
-	{
-		dataTime.insert(dataTime.size(), hkdTime.subGrid(dataTime.size(), hkdTime.size() - dataTime.size()));
-		auto shape = data.shape();
-		shape[0] = hkdTime.size();
-		data.reshape(shape, padValue);
-	}
+	
+	//pad any extra elements at the end of the data
+	resultData.reshape(finalShape, std::numeric_limits<DATA_UNIT>::quiet_NaN());
+
+	dataTime = hkdTime;
+	data = std::move(resultData);
 }
