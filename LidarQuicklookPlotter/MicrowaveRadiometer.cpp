@@ -89,6 +89,8 @@ void appendData2dInFirstDimension(sci::GridData<T, 2>& destination, const sci::G
 
 void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, const Platform& platform, ProgressReporter& progressReporter, bool clear)
 {
+	progressReporter << "Reading file " << inputFilename << "\n";
+
 	if (clear)
 	{
 		m_hasData = false;
@@ -231,6 +233,8 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		readHatproTpcData(inputFilename, time, altitudes, temperatures, rainFlag, quality, qualityExplanation, fileTypeId);
 	else if (extension == sU("HPC"))
 		readHatproHpcData(inputFilename, time, altitudes, absoluteHumidity, relativeHumidity, rainFlag, quality, qualityExplanation, fileTypeId);
+	else
+		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Unexpected extension. Read aborted.")));
 
 	if (fileTypeId == hatproLwpId)
 	{
@@ -266,6 +270,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		m_temperatureStabilityReceiver1.insert(m_temperatureStabilityReceiver1.size(), temperatureStabilityReceiver1);
 		m_temperatureStabilityReceiver2.insert(m_temperatureStabilityReceiver2.size(), temperatureStabilityReceiver2);
 		m_status.insert(m_status.size(), status);
+		m_remainingMemory.insert(m_remainingMemory.size(), remainingMemory);
 		m_hasData = true;
 	}
 	else if (fileTypeId == hatproMetId || fileTypeId == hatproMetNewId)
@@ -377,16 +382,27 @@ void MicrowaveRadiometerProcessor::writeToNc(const sci::string& directory, const
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
 	//ensure the data is sorted by time and that the flags a
+	progressReporter << "Checking data order of LWP data\n";
 	sci::sortBy(m_lwpTime, std::make_tuple(&m_lwp, &m_lwpElevation, &m_lwpAzimuth, &m_lwpRainFlag, &m_lwpQuality, &m_lwpQualityExplanation));
-	sci::sortBy(m_iwvTime, std::make_tuple(&m_iwv, &m_iwvElevation, &m_iwvAzimuth, &m_iwvRainFlag, &m_iwvQuality, &m_lwpQualityExplanation));
-	sci::sortBy(m_hkdTime, std::make_tuple(&m_iwv, &m_latitude, &m_longitude, &m_ambientTarget1Temperature, &m_ambientTarget2Temperature,
+	progressReporter << "Checking data order of IWV data\n";
+	sci::sortBy(m_iwvTime, std::make_tuple(&m_iwv, &m_iwvElevation, &m_iwvAzimuth, &m_iwvRainFlag, &m_iwvQuality, &m_iwvQualityExplanation));
+	progressReporter << "Checking data order of HKD data\n";
+	sci::sortBy(m_hkdTime, std::make_tuple(&m_latitude, &m_longitude, &m_ambientTarget1Temperature, &m_ambientTarget2Temperature,
 		&m_humidityProfilerTemperature, &m_temperatureProfilerTemperature, &m_temperatureStabilityReceiver1, &m_temperatureStabilityReceiver2,
-		&m_remainingMemory));
+		&m_status, &m_remainingMemory));
+	progressReporter << "Checking data order of MET data\n";
+	sci::sortBy(m_metTime, std::make_tuple(&m_enviromentTemperature, &m_enviromentPressure, &m_enviromentRelativeHumidity));
+	progressReporter << "Checking data order of STA data\n";
 	sci::sortBy(m_staTime, std::make_tuple(&m_staRainFlag, &m_liftedIndex, &m_kModifiedIndex, &m_totalTotalsIndex, &m_kIndex, &m_showalterIndex, &m_cape));
+	progressReporter << "Checking data order of BRT data\n";
 	sci::sortBy(m_brtTime, std::make_tuple(&m_brightnessTemperature, &m_brtElevation, &m_brtAzimuth, &m_brtRainFlag));
+	progressReporter << "Checking data order of ATN data\n";
 	sci::sortBy(m_atnTime, std::make_tuple(&m_attenuation, &m_atnElevation, &m_atnAzimuth, &m_atnRainFlag));
+	progressReporter << "Checking data order of TPB data\n";
 	sci::sortBy(m_tpbTime, std::make_tuple(&m_tpbTemperatures, &m_tpbRainFlag));
+	progressReporter << "Checking data order of TPC data\n";
 	sci::sortBy(m_tpcTime, std::make_tuple(&m_tpcTemperatures, &m_tpcRainFlag));
+	progressReporter << "Checking data order of HPC data\n";
 	sci::sortBy(m_hpcTime, std::make_tuple(&m_hpcAbsoluteHumidity, &m_hpcRelativeHumidity, &m_hpcRainFlag));
 
 	writeIwvLwpNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
@@ -402,6 +418,13 @@ void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, c
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
+	if (m_lwpTime.size() == 0 && m_iwvTime.size() == 0)
+	{
+		progressReporter << "No IWV/LWP data to write.\n";
+		return;
+	}
+	progressReporter << "Writing IWV/LWP data file\n";
+
 	DataInfo dataInfo = buildDataInfo(sU("iwv lwp"), m_lwpTime, processingOptions);
 
 	//assign amf version based on if we are moving or not.
@@ -410,26 +433,32 @@ void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, c
 
 
 	//check that the iwv and lwp data are the same size or that one is missing entirely so we can omit it
-	sci::assertThrow(m_iwv.size() == 0 || m_lwp.size() == 0 || m_iwv.size() == m_lwp.size(), sci::err(sci::SERR_USER, 0, sU("IWV and LWP files have missmatch in data length.")));
+	//sci::assertThrow(m_iwv.size() == 0 || m_lwp.size() == 0 || m_iwv.size() == m_lwp.size(), sci::err(sci::SERR_USER, 0, sU("IWV and LWP files have missmatch in data length.")));
 
-	for(size_t i=0; i< m_iwv.size(); ++i)
-		sci::assertThrow(m_iwvTime[i] == m_lwpTime[i], sci::err(sci::SERR_USER, 0, sU("IWV and LWP files have missmatched times.")));
 
 	//convert the hatpro flags into amof flags
 	sci::GridData<uint8_t, 1> lwpFlag = buildAmfFlagFromHatproQualityAndNanBadData(m_lwpQuality, m_lwpQualityExplanation, m_lwp);
 	sci::GridData<uint8_t, 1> iwvFlag = buildAmfFlagFromHatproQualityAndNanBadData(m_iwvQuality, m_iwvQualityExplanation, m_iwv);
 
 	//pad the data so it matches the housekeeping data
-	padDataToMatchHkp(m_hkdTime, m_iwvTime, m_iwv, m_iwvElevation, m_iwvAzimuth, m_iwvRainFlag, m_iwvQuality, m_iwvQualityExplanation, iwvFlag);
-	padDataToMatchHkp(m_hkdTime, m_lwpTime, m_lwp, m_lwpElevation, m_lwpAzimuth, m_lwpRainFlag, m_lwpQuality, m_lwpQualityExplanation, lwpFlag);
+	if(m_iwvTime.size() > 0)
+		padDataToMatchHkp(m_hkdTime, m_iwvTime, m_iwv, m_iwvElevation, m_iwvAzimuth, m_iwvRainFlag, m_iwvQuality, m_iwvQualityExplanation, iwvFlag);
+	if(m_lwpTime.size() > 0)
+		padDataToMatchHkp(m_hkdTime, m_lwpTime, m_lwp, m_lwpElevation, m_lwpAzimuth, m_lwpRainFlag, m_lwpQuality, m_lwpQualityExplanation, lwpFlag);
+
+	if(m_iwvTime.size() > 0 && m_lwpTime.size() > 0)
+		for(size_t i=0; i< m_iwv.size(); ++i)
+			sci::assertThrow(m_iwvTime[i] == m_lwpTime[i], sci::err(sci::SERR_USER, 0, sU("IWV and LWP files have missmatched times.")));
+
+	sci::GridData<sci::UtcTime, 1>& time = m_iwvTime.size() > 0 ? m_iwvTime : m_lwpTime;
 
 	//get attitudes corrected for platform attitude
 	sci::GridData<degreeF, 1> correctedElevations(m_lwpTime.size());
 	sci::GridData<degreeF, 1> correctedAzimuths(m_lwpTime.size());
-	for (size_t i = 0; i < m_lwpTime.size(); ++i)
+	for (size_t i = 0; i < time.size(); ++i)
 	{
-		sci::UtcTime startTime = i > 0 ? m_lwpTime[i - 1] : m_lwpTime[0] - (m_lwpTime[1] - m_lwpTime[0]);
-		platform.correctDirection(startTime, m_lwpTime[i], m_lwpAzimuth[i], m_lwpElevation[i], correctedAzimuths[i], correctedElevations[i]);
+		sci::UtcTime startTime = i > 0 ? time[i - 1] : time[0] - (time[1] - time[0]);
+		platform.correctDirection(startTime, time[i], m_lwpAzimuth[i], m_lwpElevation[i], correctedAzimuths[i], correctedElevations[i]);
 
 	}
 	
@@ -441,7 +470,7 @@ void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, c
 	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
 	OutputAmfNcFile file(amfVersion, directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
 		projectInfo, platform, sU("hatpro microwave radiometer intergrated water vapour and liquid water path retrieval"),
-		m_iwv.size() > 0 ? m_iwvTime : m_lwpTime, std::vector<sci::NcDimension*>(), sU("Retrievals: IWV_") + platform.getHatproRetrieval() + sU("LWP_") + platform.getHatproRetrieval());
+		time, std::vector<sci::NcDimension*>(), sU("Retrievals: IWV_") + platform.getHatproRetrieval() + sU("LWP_") + platform.getHatproRetrieval());
 
 	std::unique_ptr<AmfNcVariable<kilogramPerMetreSquaredF>> iwvVariable(nullptr);
 	std::unique_ptr<AmfNcVariable<gramPerMetreSquaredF>> lwpVariable(nullptr);
@@ -455,7 +484,7 @@ void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, c
 	{
 		file.close();
 		wxRemoveFile(sci::nativeUnicode(file.getFileName()));
-		progressReporter << "Removed file " << file.getFileName() << "as it contained no useful data.\n";
+		progressReporter << "Removed file " << file.getFileName() << " as it contained no useful data.\n";
 		return;
 	}
 
@@ -475,7 +504,14 @@ void MicrowaveRadiometerProcessor::writeSurfaceMetNc(const sci::string& director
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
-	DataInfo dataInfo = buildDataInfo(sU("surface met"), m_lwpTime, processingOptions);
+	if (m_metTime.size() == 0)
+	{
+		progressReporter << "No meteorology data to write.\n";
+		return;
+	}
+	progressReporter << "Writing meteorology data file\n";
+
+	DataInfo dataInfo = buildDataInfo(sU("surface met"), m_metTime, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -511,11 +547,18 @@ void MicrowaveRadiometerProcessor::writeStabilityNc(const sci::string& directory
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
+	if (m_staTime.size() == 0)
+	{
+		progressReporter << "No stability data to write.\n";
+		return;
+	}
+	progressReporter << "Writing stability data file\n";
+
 	if (m_liftedIndex.size() == 0 && m_kModifiedIndex.size() == 0 && m_totalTotalsIndex.size() == 0 && m_kIndex.size() == 0
 		&& m_showalterIndex.size() == 0 && m_cape.size() == 0)
 		return;
 
-	DataInfo dataInfo = buildDataInfo(sU("stability indices"), m_lwpTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("stability indices"), m_staTime, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -576,9 +619,16 @@ void MicrowaveRadiometerProcessor::writeBrightnessTemperatureNc(const sci::strin
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
+	if (m_brtTime.size() == 0)
+	{
+		progressReporter << "No brightness temperature data to write.\n";
+		return;
+	}
+	progressReporter << "Writing brightness temperature data file\n";
+
 	sci::assertThrow(m_brtFrequencies.size() == m_atnFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("BRT and ATN data have a different number of frequencies")));
 
-	DataInfo dataInfo = buildDataInfo(sU("brightness temperature"), m_lwpTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("brightness temperature"), m_brtTime, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -620,9 +670,16 @@ void MicrowaveRadiometerProcessor::writeBoundaryLayerTemperatureProfileNc(const 
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
+	if (m_tpbTime.size() == 0)
+	{
+		progressReporter << "No BL temperature profile data to write.\n";
+		return;
+	}
+	progressReporter << "Writing BL temperature profile data file\n";
+
 	sci::assertThrow(m_brtFrequencies.size() == m_atnFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("BRT and ATN data have a different number of frequencies")));
 
-	DataInfo dataInfo = buildDataInfo(sU("boundary layer temperature profiles"), m_lwpTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("boundary layer temperature profiles"), m_tpbTime, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	//AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -679,7 +736,14 @@ void MicrowaveRadiometerProcessor::writeFullTroposphereTemperatureProfileNc(cons
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
-	DataInfo dataInfo = buildDataInfo(sU("full troposphere temperature profiles"), m_lwpTime, processingOptions);
+	if (m_tpcTime.size() == 0)
+	{
+		progressReporter << "No troposphere temperature profile data to write.\n";
+		return;
+	}
+	progressReporter << "Writing tropospher temperature profile data file\n";
+
+	DataInfo dataInfo = buildDataInfo(sU("full troposphere temperature profiles"), m_tpcTime, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	//AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -736,7 +800,14 @@ void MicrowaveRadiometerProcessor::writeMoistureProfileNc(const sci::string& dir
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
-	DataInfo dataInfo = buildDataInfo(sU("moisture profiles"), m_lwpTime, processingOptions);
+	if (m_hpcTime.size() == 0)
+	{
+		progressReporter << "No moisture profile data to write.\n";
+		return;
+	}
+	progressReporter << "Writing moisture profile data file\n";
+
+	DataInfo dataInfo = buildDataInfo(sU("moisture profiles"), m_hpcTime, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	//AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
