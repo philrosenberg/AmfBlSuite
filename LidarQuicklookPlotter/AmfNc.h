@@ -1554,32 +1554,42 @@ public:
 	typedef typename Decibel<REFERENCE_UNIT>::referencePhysical referencePhysical;
 	//Data must be passed in in linear units, not decibels!!!
 	template<size_t NDATADIMS, size_t NFLAGDIMS>
-	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::grid_view< REFERENCE_UNIT, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, bool isLinearData, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string &comment = sU(""))
+	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const sci::NcDimension &dimension, const sci::string &longName, const sci::string &standardName, sci::grid_view< REFERENCE_UNIT, NDATADIMS> data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, bool isLinearData, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string &comment = sU(""))
 		:sci::NcVariable<unitlessF::valueType>(name, ncFile, dimension)
 	{
 		m_isDbZ = isDbZ;
 		m_outputReferenceUnit = outputReferenceUnit;
 		referencePhysical validMin;
 		referencePhysical validMax;
-		getMinMax(dataLinear, flags, validMin, validMax);
+		getMinMax(data, flags, validMin, validMax);
 		if(isLinearData)
 			setAttributesLinearData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 		else
 			setAttributesLogarithmicData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
 	}
 	template<sci::IsGrid DATA_GRID, sci::IsGrid FLAGS_GRID>
-	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, DATA_GRID dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, bool isLinearData, FLAGS_GRID flags, const sci::string &comment = sU(""))
+	AmfNcDbVariable(const sci::string &name, const sci::OutputNcFile &ncFile, const std::vector<sci::NcDimension *> &dimensions, const sci::string &longName, const sci::string &standardName, DATA_GRID data, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, bool isLinearData, FLAGS_GRID flags, const sci::string &comment = sU(""))
 		:sci::NcVariable<unitlessF::valueType>(name, ncFile, dimensions)
 	{
 		m_isDbZ = isDbZ;
 		m_outputReferenceUnit = outputReferenceUnit;
-		referencePhysical validMin;
-		referencePhysical validMax;
-		getMinMax(dataLinear, flags, validMin, validMax);
+		typename DATA_GRID::value_type validMin;
+		typename DATA_GRID::value_type validMax;
+		getMinMax(data, flags, validMin, validMax);
 		if (isLinearData)
-			setAttributesLinearData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+		{
+			if constexpr (DATA_GRID::value_type::template compatibleWith<referencePhysical>())
+				setAttributesLinearData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+			else
+				sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Passed an incompatible type as linear data into a AmfNcDbVariable constructor")));
+		}
 		else
-			setAttributesLogarithmicData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+		{
+			if constexpr (DATA_GRID::value_type::unit::isUnitless())
+				setAttributesLogarithmicData(ncFile, longName, standardName, validMin, validMax, hasFillValue, coordinates, cellMethods, comment);
+			else
+				sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Passed a non-unitless type as logarithmic data into a AmfNcDbVariable constructor")));
+		}
 	}
 	//template<size_t NDATADIMS, size_t NFLAGDIMS>
 	AmfNcDbVariable(const sci::string& name, const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const sci::string& longName, const sci::string& standardName)
@@ -1672,12 +1682,12 @@ class AmfNcDbVariableFromLinearData : public AmfNcDbVariable<REFERENCE_UNIT>
 public:
 	template<size_t NDATADIMS, size_t NFLAGDIMS>
 	AmfNcDbVariableFromLinearData(const sci::string& name, const sci::OutputNcFile& ncFile, const sci::NcDimension& dimension, const sci::string& longName, const sci::string& standardName, sci::grid_view< REFERENCE_UNIT, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods, bool isDbZ, bool outputReferenceUnit, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string& comment = sU(""))
-		:AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimension, longName, standardName, dataLinear, hasFillValue, coordinates, cellMethods, isDbZ, outputReferenceUnit, flags, true, comment)
+		:AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimension, longName, standardName, dataLinear, hasFillValue, coordinates, cellMethods, isDbZ, outputReferenceUnit, true, flags, comment)
 	{
 	}
 	template<sci::IsGrid DATA_GRID, sci::IsGrid FLAGS_GRID>
 	AmfNcDbVariableFromLinearData(const sci::string& name, const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const sci::string& longName, const sci::string& standardName, DATA_GRID dataLinear, bool hasFillValue, const std::vector<sci::string>& coordinates, const std::vector<std::pair<sci::string, CellMethod>>& cellMethods, bool isDbZ, bool outputReferenceUnit, FLAGS_GRID flags, const sci::string& comment = sU(""))
-		: AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimensions, longName, standardName, dataLinear, hasFillValue, coordinates, cellMethods, isDbZ, outputReferenceUnit, flags, true, comment)
+		: AmfNcDbVariable<REFERENCE_UNIT>(name, ncFile, dimensions, longName, standardName, dataLinear, hasFillValue, coordinates, cellMethods, isDbZ, outputReferenceUnit, true, flags, comment)
 	{
 	}
 	AmfNcDbVariableFromLinearData(const sci::string& name, const sci::OutputNcFile& ncFile, const std::vector<sci::NcDimension*>& dimensions, const sci::string& longName, const sci::string& standardName)
@@ -1685,9 +1695,9 @@ public:
 	{
 	}
 	template <class DATA_TYPE>
-	static unitlessF::valueType transformForOutput(const DATA_TYPE& val)
+	static DATA_TYPE::valueType transformForOutput(const DATA_TYPE& val)
 	{
-		return val == val ? Decibel<REFERENCE_UNIT>::linearToDecibel(val).value() : OutputAmfNcFile::getFillValue<DATA_TYPE::valueType>();
+		return val == val ? Decibel<REFERENCE_UNIT>::linearToDecibel(val).value<sci::Unitless>() : OutputAmfNcFile::getFillValue<DATA_TYPE::valueType>();
 	}
 };
 

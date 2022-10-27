@@ -1,6 +1,8 @@
 #pragma once
 #include "InstrumentProcessor.h"
 #include"AmfNc.h"
+#include<svector/array.h>
+#include<strstream>
 
 enum MicroRainRadarProfileType
 {
@@ -16,48 +18,67 @@ public:
 	sci::UtcTime getTime() const { return m_time; }
 	second getAveragingTime() const { return m_averagingTime; }
 	percentF getValidFraction() const { return m_validFraction; }
-	std::vector<metreF> getRanges() const { return m_ranges; }
-	std::vector<unitlessF> getPathIntegratedAttenuation() const { return m_pathIntegratedAttenuation; }
-	std::vector<reflectivityF> getReflectivity() const { return m_reflectivity; }
-	std::vector< reflectivityF> getReflectivityAttenuationCorrected() const { return m_reflectivityAttenuationCorrected; }
-	std::vector<millimetrePerHourF> getRainRate() const { return m_rainRate; }
-	std::vector<gramPerMetreCubedF> getLiquidWaterContent() const { return m_liquidWaterContent; }
-	std::vector<metrePerSecondF> getFallVeocity() const { return m_fallVelocity; }
-	std::vector<std::vector<perMetreF>> getSpectralReflectivities() { return m_spectralReflectivities; }
-	std::vector<std::vector<millimetreF>> getDropDiameters() { return m_dropDiameters; }
-	std::vector<std::vector<perMetreCubedPerMillimetreF>> getNumberDistribution() { return m_numberDistribution; }
+	const sci::GridData<metreF, 1> &getRanges() const { return m_ranges; }
+	const sci::GridData<unitlessF, 1> &getPathIntegratedAttenuation() const { return m_pathIntegratedAttenuation; }
+	const sci::GridData<reflectivityF, 1> &getReflectivity() const { return m_reflectivity; }
+	const sci::GridData< reflectivityF, 1> &getReflectivityAttenuationCorrected() const { return m_reflectivityAttenuationCorrected; }
+	const sci::GridData<millimetrePerHourF, 1> &getRainRate() const { return m_rainRate; }
+	const sci::GridData<gramPerMetreCubedF, 1> &getLiquidWaterContent() const { return m_liquidWaterContent; }
+	const sci::GridData<metrePerSecondF, 1> &getFallVeocity() const { return m_fallVelocity; }
+	const sci::GridData<perMetreF, 2> &getSpectralReflectivities() { return m_spectralReflectivities; }
+	const sci::GridData<millimetreF, 2> &getDropDiameters() { return m_dropDiameters; }
+	const sci::GridData<perMetreCubedPerMillimetreF, 2> &getNumberDistribution() { return m_numberDistribution; }
 private:
 
 	template<class T>
-	std::vector<T> readDataLine(std::istream &stream, std::string expectedPrefix)
+	sci::GridData<T, 1> readDataLine(std::istream &stream, std::string expectedPrefix)
 	{
 		std::string line;
 		std::getline(stream, line);
-		sci::assertThrow(line.length() == 220, sci::err(sci::SERR_USER, 0, sU("Micro rain radar data line found with the wrong length.")));
+		//all lines should have 220 characters, but i have occasionally found crazy TF lines that don't follow the correct pattern
+		sci::assertThrow(line.length() == 220 || expectedPrefix =="TF ", sci::err(sci::SERR_USER, 0, sU("Micro rain radar data line found with the wrong length.")));
 		sci::assertThrow(line.substr(0, 3) == expectedPrefix, sci::err(sci::SERR_USER, 0, sU("Micro rain radar data line found with an unexpected prefix.")));
 
-		std::vector<T> result(31);
-		for (size_t i = 0; i < result.size(); ++i)
+		sci::GridData<T, 1> result(31);
+		if (expectedPrefix == "TF ")
 		{
-			bool empty = true;
-			for (size_t j = 0; j < 7; ++j)
-				empty = empty && line[3 + i * 7 + j] == ' ';
-			if (empty)
-				result[i] = std::numeric_limits<T>::quiet_NaN();
-			else
-				result[i] = T((typename T::valueType)atof(line.substr(3 + i * 7, 7).c_str()));
+			//all lines should have fixed width of 7 characters per value.
+			//TF values should all be between 1 and zero. They are actually output
+			//with a delimiting space then 4 digits after the point. This should be
+			//the same as 7 characters fixed width. However, occasionally something
+			//goes a bit haywire and we get values outside the range 0-1 breaking
+			//the fixed width. Hence for TF lines we use the delimiter the read in
+			//using the << operator instead.
+			std::istringstream tfLineStream(line.substr(3));
+			for (size_t i = 0; i < result.size(); ++i)
+				tfLineStream >> result[i];
+		}
+		else
+		{
+			//the lines should all be fixed width with 7 characters
+			//per value and a 3 character identifier to start the line
+			for (size_t i = 0; i < result.size(); ++i)
+			{
+				bool empty = true;
+				for (size_t j = 0; j < 7; ++j)
+					empty = empty && line[3 + i * 7 + j] == ' ';
+				if (empty)
+					result[i] = std::numeric_limits<T>::quiet_NaN();
+				else
+					result[i] = T((typename T::valueType)atof(line.substr(3 + i * 7, 7).c_str()));
+			}
 		}
 		return result;
 	}
 	template<class T>
-	std::vector<T> readAndUndbDataLine(std::istream &stream, std::string expectedPrefix)
+	sci::GridData<T, 1> readAndUndbDataLine(std::istream &stream, std::string expectedPrefix)
 	{
 		std::string line;
 		std::getline(stream, line);
 		sci::assertThrow(line.length() == 220, sci::err(sci::SERR_USER, 0, sU("Micro rain radar data line found with the wrong length.")));
 		sci::assertThrow(line.substr(0, 3) == expectedPrefix, sci::err(sci::SERR_USER, 0, sU("Micro rain radar data line found with an unexpected prefix.")));
 
-		std::vector<T> result(31);
+		sci::GridData<T, 1> result(31);
 		for (size_t i = 0; i < result.size(); ++i)
 		{
 			bool empty = true;
@@ -85,17 +106,17 @@ private:
 	MicroRainRadarProfileType m_profileType;
 
 	//Height dependent parameters
-	std::vector<metreF> m_ranges;
-	std::vector<unitlessF> m_transferFunction;
-	std::vector <std::vector<perMetreF>> m_spectralReflectivities;
-	std::vector<std::vector<millimetreF>> m_dropDiameters;
-	std::vector<std::vector<perMetreCubedPerMillimetreF>> m_numberDistribution;
-	std::vector<unitlessF> m_pathIntegratedAttenuation;
-	std::vector<reflectivityF> m_reflectivity;
-	std::vector< reflectivityF> m_reflectivityAttenuationCorrected;
-	std::vector<millimetrePerHourF> m_rainRate;
-	std::vector<gramPerMetreCubedF> m_liquidWaterContent;
-	std::vector<metrePerSecondF> m_fallVelocity;
+	sci::GridData<metreF, 1> m_ranges;
+	sci::GridData<unitlessF, 1> m_transferFunction;
+	sci::GridData<perMetreF, 2> m_spectralReflectivities;
+	sci::GridData<millimetreF, 2> m_dropDiameters;
+	sci::GridData<perMetreCubedPerMillimetreF, 2> m_numberDistribution;
+	sci::GridData<unitlessF, 1> m_pathIntegratedAttenuation;
+	sci::GridData<reflectivityF, 1> m_reflectivity;
+	sci::GridData< reflectivityF, 1> m_reflectivityAttenuationCorrected;
+	sci::GridData<millimetrePerHourF, 1> m_rainRate;
+	sci::GridData<gramPerMetreCubedF, 1> m_liquidWaterContent;
+	sci::GridData<metrePerSecondF, 1> m_fallVelocity;
 };
 
 class MicroRainRadarProcessor : public InstrumentProcessor

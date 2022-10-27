@@ -55,7 +55,7 @@ public:
 	static sci::Physical<sci::Unitless, valueType> linearToDecibel(sci::Physical<U, valueType> value)
 	{
 		using unitless = sci::Physical<sci::Unitless, valueType>;
-		return sci::log10(value) * unitless(10.0);
+		return sci::log10(value/sci::Physical< REFERENCE_UNIT::unit, valueType>(1)) * unitless(10.0);
 		//return sci::Physical<sci::Unitless, valueType>(std::log10(value.value<typename REFERENCE_UNIT::unit>())*valueType(10.0));
 	}
 	typedef sci::Physical<typename REFERENCE_UNIT::unit, valueType> referencePhysical;
