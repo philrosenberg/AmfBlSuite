@@ -289,7 +289,15 @@ void mainFrame::process()
 		bool open = logOut.is_open();
 		sci::assertThrow(logOut.is_open(), sci::err(sci::SERR_USER, 0, sU("Could not open log file ")+ m_processingOptions.logFileName));
 		logOutPtr = &logOut;
-		(*m_progressReporter) << sU("Set log file to ") << m_processingOptions.logFileName << sU("\n\n");
+		(*m_progressReporter) << sU("Log file set to ") << m_processingOptions.logFileName << sU("\n");
+		(*m_progressReporter) << sU("Search directory set to ") << m_processingOptions.inputDirectory << sU("\n");
+		(*m_progressReporter) << sU("Time range set to ") << sci::fromCodepage(m_processingOptions.startTime.getIso8601String()) << " - "
+			<< sci::fromCodepage(m_processingOptions.endTime.getIso8601String()) << sU("\n");
+		if(m_processingOptions.onlyProcessNewFiles)
+			(*m_progressReporter) << sU("Only previously unprocessed files will be processed\n");
+		else
+			(*m_progressReporter) << sU("Previously processed files will be reprocessed\n");
+
 		(*m_progressReporter) << sU("Beginning processing at") << sci::fromCodepage(sci::UtcTime::now().getIso8601String()) << sU("\n\n");
 	}
 	ProgressReporterStreamSetter<std::ostream> logFileSetter(m_progressReporter.get(), logOutPtr);

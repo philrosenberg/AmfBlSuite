@@ -696,9 +696,14 @@ void setup(sci::string setupFilename, sci::string infoFilename, ProgressReporter
 		//the item they want to use.
 		wxXmlNode *node;
 		if (child->HasAttribute(sci::nativeUnicode(sU("type"))) && child->HasAttribute(sci::nativeUnicode(sU("id"))))
-			node = findNode(sci::fromWxString(child->GetAttribute(sci::nativeUnicode(sU("type")))),
-				sci::fromWxString(child->GetAttribute(sci::nativeUnicode(sU("id")))),
-				infoNode);
+		{
+			sci::string type = sci::fromWxString(child->GetAttribute(sci::nativeUnicode(sU("type"))));
+			sci::string id = sci::fromWxString(child->GetAttribute(sci::nativeUnicode(sU("id"))));
+			node = findNode(type, id ,infoNode);
+			sci::stringstream message;
+			message << "Could not find node with type=\"" << type << "\" and id=\"" << id << "\" in info.xml. This node is requested in " << setupFilename << " at line " <<child->GetLineNumber();
+			sci::assertThrow(node, sci::err(sci::SERR_USER, 0, message.str()));
+		}
 		else
 			node = child;
 		if (child->GetName() == sci::nativeUnicode(sU("author")))

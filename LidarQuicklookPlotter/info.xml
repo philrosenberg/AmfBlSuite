@@ -20,6 +20,12 @@
     <orcidUrl>https://orcid.org/0000-0002-1708-2431</orcidUrl>
     <institution>National Centre for Atmospheric Science (NCAS)</institution>
   </person>
+  <person id="4">
+    <name>Ryan Neely III</name>
+    <email>ryan.neely@ncas.ac.uk</email>
+    <orcidUrl>https://orcid.org/0000-0003-4560-4812</orcidUrl>
+    <institution>National Centre for Atmospheric Science (NCAS)</institution>
+  </person>
   
   <!--Projects-->
   <project id="1">
@@ -32,6 +38,11 @@
     <!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
     <principalInvestigator type="amfEntity/person" id="3"></principalInvestigator>
   </project>
+	<project id="3">
+		<name>Convection, Cirrus and Tropical Tropopause Layer Over the Indian Ocean (CONCIRTO)</name>
+		<!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
+		<principalInvestigator type="amfEntity/person" id="4"></principalInvestigator>
+	</project>
   
   <!--Platforms-->
   <!--Note that the different platforms have slightly different structures or meanings
@@ -111,8 +122,9 @@
     <platformRelative>false</platformRelative>
   </platform>
   
+	<!-- FIRS aerosol container roof -->
   <platform id="5">
-    <name>FIRS aerosol container roof MRR mount point</name>
+    <name>FIRS</name>
     <type>stationary</type>
     <deploymentMode>land</deploymentMode>
     <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->
@@ -129,8 +141,9 @@
     <locationKeyword>FIRS Botanical Garden</locationKeyword>
   </platform>
 
+	<!-- FIRS lawn where the lidar was situated-->
   <platform id="6">
-    <name>FIRS lawn</name>
+    <name>FIRS</name>
     <type>stationary</type>
     <deploymentMode>land</deploymentMode>
     <!--AltitudeMetres is the altitude on the geoid, i.e. height above mean sea level-->
@@ -163,6 +176,22 @@
     <locationKeyword>Norway</locationKeyword>
     <locationFile>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\MocchaLidarMotion.nc</locationFile>
     <platformRelative>false</platformRelative>
+  </platform>
+
+  <!--Reunion Island CONCIRTO location-->
+  <platform id="8">
+    <name>Observatoire du Maido</name>
+    <type>stationary</type>
+    <deploymentMode>land</deploymentMode>
+	<latitudeDegree>-21.080</latitudeDegree>
+	<longitudeDegree>55.383</longitudeDegree>
+    <altitudeMetres>2165</altitudeMetres>
+    <elevationDegree>0</elevationDegree>
+    <azimuthDegree>0</azimuthDegree>
+    <rollDegree>0</rollDegree>
+    <locationKeyword>La Reunion</locationKeyword>
+    <locationKeyword>France</locationKeyword>
+    <locationKeyword>Indian Ocean</locationKeyword>
   </platform>
   
   <!--Instruments-->
