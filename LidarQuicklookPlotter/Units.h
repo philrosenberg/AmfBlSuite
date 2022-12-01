@@ -39,6 +39,7 @@ typedef sci::Physical<sci::MultipliedUnit<sci::Gram<>, sci::Metre<-2>>, float> g
 typedef sci::Physical<sci::MultipliedUnit<sci::Kilogram<>, sci::Metre<-2>>, float> kilogramPerMetreSquaredF;
 typedef sci::Physical<sci::DividedUnit<sci::Joule<>, sci::Kilogram<>>, float> joulePerKilogramF;
 typedef sci::Physical<sci::Second<-1, 0>, float> perSecondF;
+typedef sci::Physical<sci::MultipliedUnit<sci::Metre<2>, sci::Second<-2>>, float> metreSquaredPerSecondSquaredF;
 
 
 template<class REFERENCE_UNIT>

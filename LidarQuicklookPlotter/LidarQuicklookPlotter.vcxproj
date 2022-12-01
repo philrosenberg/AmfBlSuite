@@ -164,6 +164,7 @@
     <ClCompile Include="Campbell.cpp" />
     <ClCompile Include="ceilometer.cpp" />
     <ClCompile Include="FolderChangesLister.cpp" />
+    <ClCompile Include="Gallion.cpp" />
     <ClCompile Include="HplHeader.cpp" />
     <ClCompile Include="HplProfile.cpp" />
     <ClCompile Include="Lidar.cpp" />
@@ -188,6 +189,7 @@
     <ClInclude Include="Ceilometer.h" />
     <ClInclude Include="CellMethods.h" />
     <ClInclude Include="FolderChangesLister.h" />
+    <ClInclude Include="Gallion.h" />
     <ClInclude Include="InstrumentProcessor.h" />
     <ClInclude Include="Lidar.h" />
     <ClInclude Include="MetConversions.h" />
