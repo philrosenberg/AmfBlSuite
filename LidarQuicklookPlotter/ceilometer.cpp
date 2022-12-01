@@ -533,7 +533,6 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 		const size_t displayInterval = 120;
 		sci::string firstBatchDate;
 		sci::string timeDate;
-		size_t nRead = 0;
 		while (!fin.eof())
 		{
 			bool badTimeDate = false;
@@ -577,12 +576,12 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 				//to be to discard the first entry.
 
 				//If we have more than one entry already then I'm not sure what to do. For now abort processing this file..
-				if (nRead == 1 && m_allData.back().getTime() > getCeilometerTime(timeDate))
+				if (m_allData.size() == 1 && m_allData.back().getTime() > getCeilometerTime(timeDate))
 				{
 					m_allData.pop_back();
 					progressReporter << sU("The second entry in the file has a timestamp earlier than the first. This may be due to a logging glitch. The first entry will be deleted.\n");
 				}
-				else if (nRead > 1 && m_allData.back().getTime() > getCeilometerTime(timeDate))
+				else if (m_allData.size() > 1 && m_allData.back().getTime() > getCeilometerTime(timeDate))
 				{
 					sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Time jumps backwards in this file, it cannot be processed.")));
 				}
@@ -619,7 +618,6 @@ void CeilometerProcessor::readData(const sci::string &inputFilename, ProgressRep
 			else
 				progressReporter << sU("Found a profile with an incorrectly formatted time/date. This profile will be ignored.\n");
 
-			++nRead;
 		}
 		if (m_allData.size() % displayInterval != displayInterval - 1)
 			progressReporter << firstBatchDate << sU("-") << timeDate << sU("(") << (m_allData.size() % displayInterval) + 1 << sU(" profiles)\n");
