@@ -329,10 +329,10 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		if (m_profiles[i].getValidFraction() < percentF(50))
-			for(size_t j=0; j<maxRanges; ++i)
+			for(size_t j=0; j<maxRanges; ++j)
 				flags[i][j] = microRainRadarQualityBelowFiftyPercentFlag;
 		else if (m_profiles[i].getValidFraction() < percentF(100))
-			for (size_t j = 0; j < maxRanges; ++i)
+			for (size_t j = 0; j < maxRanges; ++j)
 				flags[i][j] = microRainRadarQualityBelowOnehundredPercentFlag;
 
 		for (size_t j = 0; j < maxRanges; ++j)
