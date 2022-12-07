@@ -129,15 +129,18 @@ private:
 	HplHeader m_firstHeaderHpl;
 	bool m_hasData;
 	std::vector<sci::string> m_inputFilenames;
-	void formatDataForOutput(const HplHeader& header, const std::vector<CampbellCeilometerProfile>& profiles,
-		InstrumentInfo& ceilometerInfo, CalibrationInfo& ceilometerCalibrationInfo,
-		DataInfo& dataInfo, std::vector<sci::UtcTime>& times, std::vector<std::vector<metreF>>& altitudesAboveInstrument,
-		std::vector<std::vector<perSteradianPerMetreF>> &backscatter,
-		std::vector<metreF> &cloudBase1, std::vector<metreF> &cloudBase2, std::vector<metreF> &cloudBase3,
-		std::vector<metreF> &cloudBase4, std::vector<percentF> &laserEnergies, std::vector<kelvinF> &laserTemperatures,
-		std::vector<unitlessF> &pulseQuantities, std::vector<degreeF> &tiltAngles, std::vector<percentF> &scales,
-		std::vector<percentF> &windowTransmissions, std::vector<millivoltF>& windowContaminations, std::vector<millivoltF> &backgrounds, std::vector<perSteradianF> &sums,
-		std::vector<uint8_t> &profileFlags, std::vector<std::vector<uint8_t>> &gateFlags, std::vector<uint8_t>& cloudBaseFlags);
+	void formatDataForOutput(const HplHeader& header,
+		const std::vector<CampbellCeilometerProfile>& profiles,
+		InstrumentInfo& ceilometerInfo,
+		CalibrationInfo& ceilometerCalibrationInfo,
+		DataInfo& dataInfo, sci::GridData<sci::UtcTime, 1>& times,
+		sci::GridData<metreF, 2>& altitudesAboveInstrument,
+		sci::GridData<perSteradianPerMetreF, 2>& backscatter,
+		sci::GridData<metreF, 1>& cloudBase1, sci::GridData<metreF, 1>& cloudBase2, sci::GridData<metreF, 1>& cloudBase3,
+		sci::GridData<metreF, 1>& cloudBase4, sci::GridData<percentF, 1>& laserEnergies, sci::GridData<kelvinF, 1>& laserTemperatures,
+		sci::GridData<unitlessF, 1>& pulseQuantities, sci::GridData<degreeF, 1>& tiltAngles, sci::GridData<percentF, 1>& scales,
+		sci::GridData<percentF, 1>& windowTransmissions, sci::GridData<millivoltF, 1>& windowContaminations, sci::GridData<millivoltF, 1>& backgrounds, sci::GridData<perSteradianF, 1>& sums,
+		sci::GridData<uint8_t, 1>& profileFlags, sci::GridData<uint8_t, 2>& gateFlags, sci::GridData<uint8_t, 1>& cloudBaseFlags);
 	CalibrationInfo m_calibrationInfo;
 	InstrumentInfo m_instrumentInfo;
 	sci::string m_ceilometerOsVersion;

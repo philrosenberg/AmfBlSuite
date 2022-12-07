@@ -1227,11 +1227,11 @@ void getMinMax(const DATA_GRID &data, const FLAGS_GRID &flags, T& min, T& max)
 		//flags has fewer dimensions than data, we have to work through flags slower than data
 		const size_t dimsDiff = DATA_GRID::ndims - FLAGS_GRID::ndims;
 		const size_t dimToWatch = DATA_GRID::ndims - 1 - dimsDiff;
-		size_t stride = data.getStride()[dimToWatch];
+		size_t stride = data.getStride<dimToWatch>();
 
 		auto iterData = data.begin();
 		auto iterFlags = flags.begin();
-		size_t index;
+		size_t index = 0;
 		for (; iterData != data.end(); ++iterData, ++index)
 		{
 			if (*iterFlags ==1 && *iterData == *iterData)
