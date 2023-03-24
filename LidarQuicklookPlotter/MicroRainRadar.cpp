@@ -357,7 +357,7 @@ void MicroRainRadarProcessor::writeToNc(const sci::string &directory, const Pers
 	//Output the one D parameters
 
 	std::vector<sci::NcDimension*> nonTimeDimensions1D;
-	sci::NcDimension altitudeDimension1d(sU("altitudes"), altitudes[0].size());
+	sci::NcDimension altitudeDimension1d(sU("altitude"), altitudes[0].size());
 	sci::NcDimension indexDimension(sU("index"), altitudes[0].size());
 	if (amfVersion == AmfVersion::v1_1_0)
 		nonTimeDimensions1D.push_back(&indexDimension);
