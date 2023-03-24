@@ -1346,17 +1346,22 @@ public:
 private:
 	void initialise(const std::vector<std::pair<uint8_t, sci::string>>& flagDefinitions, const sci::OutputNcFile& ncFile, sci::string longNameSuffix)
 	{
-		sci::stringstream  flagValues;
+		//split the values and definitions into their own variables. The descriptions should have their
+		//spaces replaces with underscores and be separated by spaces
+		std::vector<uint8_t> flagValues;
 		sci::stringstream flagDescriptions;
 		for (size_t i = 0; i < flagDefinitions.size(); ++i)
 		{
 			if (i != 0)
 			{
-				flagValues << sU(",");
-				flagDescriptions << sU("\n");
+				flagDescriptions << sU(" ");
 			}
-			flagValues << (int)flagDefinitions[i].first << sU("b");
-			flagDescriptions << flagDefinitions[i].second;
+			sci::string thisFlagDefinition = flagDefinitions[i].second;
+			for (auto& c : thisFlagDefinition)
+				if (c == sU(' '))
+					c = sU('_');
+			flagValues.push_back(flagDefinitions[i].first);
+			flagDescriptions << thisFlagDefinition;
 		}
 		sci::string flagDescriptionsString = flagDescriptions.str();
 		//Swap spaces for underscores and make lower case
@@ -1372,7 +1377,7 @@ private:
 			addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag")), ncFile);
 		else
 			addAttribute(sci::NcAttribute(sU("long_name"), sU("Data Quality Flag: ") + longNameSuffix), ncFile);
-		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues.str()), ncFile);
+		addAttribute(sci::NcAttribute(sU("flag_values"), flagValues), ncFile);
 		addAttribute(sci::NcAttribute(sU("flag_meanings"), flagDescriptionsString), ncFile);
 		//addAttribute(sci::NcAttribute(sU("type"), OutputAmfNcFile::getTypeName<uint8_t>()), ncFile);
 		addAttribute(sci::NcAttribute(sU("units"), sU("1")), ncFile);
@@ -2165,7 +2170,7 @@ void OutputAmfNcFile::initialise(AmfVersion amfVersion,
 	write(sci::NcAttribute(sU("platform_type"), g_platformTypeStrings.find(platform.getPlatformInfo().platformType)->second));
 	write(sci::NcAttribute(sU("deployment_mode"), g_deploymentModeStrings.find(platform.getPlatformInfo().deploymentMode)->second));
 	write(sci::NcAttribute(sU("title"), title));
-	write(sci::NcAttribute(sU("feature_type"), g_featureTypeStrings.find(dataInfo.featureType)->second));
+	write(sci::NcAttribute(sU("featureType"), g_featureTypeStrings.find(dataInfo.featureType)->second));
 	write(sci::NcAttribute(sU("time_coverage_start"), getFormattedDateTime(dataInfo.startTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("time_coverage_end"), getFormattedDateTime(dataInfo.endTime, sU("-"), sU(":"), sU("T"))));
 	write(sci::NcAttribute(sU("geospacial_bounds"), getBoundsString(m_latitudes, m_longitudes)));
