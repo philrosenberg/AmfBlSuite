@@ -5,7 +5,7 @@ IMPLEMENT_APP(MyApp);
 
 bool MyApp::OnInit()
 {
-	wxString settingsFile = "processingSettings.xml";
+	wxString settingsFile = "processingSettingsExample.xml";
 	if (argc == 2)
 	{
 		settingsFile = wxString(argv[1]);
