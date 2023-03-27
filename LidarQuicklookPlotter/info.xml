@@ -32,6 +32,12 @@
     <orcidUrl>https://orcid.org/0000-0002-3815-4756</orcidUrl>
     <institution>Imperial College London</institution>
   </person>
+	<person id="6">
+		<name>Heather Guy</name>
+		<email>heather.guy@ncas.ac.uk</email>
+		<orcidUrl>https://orcid.org/0000-0003-3525-0766</orcidUrl>
+		<institution>Imperial College London</institution>
+	</person>
   
   <!--Projects-->
   <project id="1">
@@ -53,6 +59,11 @@
 		<name>Cloud REconstruction – A Training and Evaluation dataset (CREATE)</name>
 		<!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
 		<principalInvestigator type="amfEntity/person" id="5"></principalInvestigator>
+	</project>
+	<project id="5">
+		<name>Atmospheric rivers and the onset of sea ice melt (ARTofMELT)</name>
+		<!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
+		<principalInvestigator type="amfEntity/person" id="2"></principalInvestigator>
 	</project>
   
   <!--Platforms-->
