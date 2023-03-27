@@ -225,28 +225,41 @@ void mainFrame::stop()
 
 void mainFrame::OnCheckDataTimer(wxTimerEvent& event)
 {
-	//if this started during a yield then trigger a timer to try again after a second
-	wxEventLoopBase* eventLoop = wxEventLoopBase::GetActive();
-
-	if (eventLoop && eventLoop->IsYielding())
+	try
 	{
-		m_instantCheckTimer->StartOnce(1000);
-		return;
+		//if this started during a yield then trigger a timer to try again after a second
+		wxEventLoopBase* eventLoop = wxEventLoopBase::GetActive();
+
+		if (eventLoop && eventLoop->IsYielding())
+		{
+			m_instantCheckTimer->StartOnce(1000);
+			return;
+		}
+		if (m_plotting || m_progressReporter->shouldStop())
+			return;
+		process();
+
+
+		//Tell the user we are done for now
+		if (m_progressReporter->shouldStop())
+			m_logText->AppendText("Stopped\n\n");
+		else if (m_processingOptions.checkForNewFiles)
+			(*m_progressReporter) << sU("Processed all files found. Waiting approx 10 mins to check again.\n\n");
+		else
+		{
+			(*m_progressReporter) << sU("Processed all files found. Processing complete.\n\n");
+			stop();
+		}
 	}
-	if (m_plotting || m_progressReporter->shouldStop())
-		return;
-	process();
-
-
-	//Tell the user we are done for now
-	if (m_progressReporter->shouldStop())
-		m_logText->AppendText("Stopped\n\n");
-	else if (m_processingOptions.checkForNewFiles)
-		(*m_progressReporter) << sU("Processed all files found. Waiting approx 10 mins to check again.\n\n");
-	else
+	catch (sci::err err)
 	{
-		(*m_progressReporter) << sU("Processed all files found. Processing complete.\n\n");
-		stop();
+		ErrorSetter setter(m_progressReporter.get());
+		(*m_progressReporter) << err.getErrorCategory() << ":" << err.getErrorCode() << " " << err.getErrorMessage() << "\n";
+	}
+	catch (std::exception err)
+	{
+		ErrorSetter setter(m_progressReporter.get());
+		(*m_progressReporter) << err.what() << "\n";
 	}
 }
 
@@ -287,6 +300,9 @@ void mainFrame::process()
 	{
 		logOut.open(sci::nativeUnicode(m_processingOptions.logFileName), std::ios::app);
 		bool open = logOut.is_open();
+		wxString logDirectory = wxPathOnly(sci::nativeUnicode(m_processingOptions.logFileName));
+		if(!wxDirExists(logDirectory))
+			wxMkDir(logDirectory);
 		sci::assertThrow(logOut.is_open(), sci::err(sci::SERR_USER, 0, sU("Could not open log file ")+ m_processingOptions.logFileName));
 		logOutPtr = &logOut;
 		(*m_progressReporter) << sU("Log file set to ") << m_processingOptions.logFileName << sU("\n");
