@@ -425,7 +425,7 @@ void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, c
 	}
 	progressReporter << "Writing IWV/LWP data file\n";
 
-	DataInfo dataInfo = buildDataInfo(sU("iwv lwp"), m_lwpTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("iwv lwp"), m_lwpTime, FeatureType::timeSeries, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -511,7 +511,7 @@ void MicrowaveRadiometerProcessor::writeSurfaceMetNc(const sci::string& director
 	}
 	progressReporter << "Writing meteorology data file\n";
 
-	DataInfo dataInfo = buildDataInfo(sU("surface met"), m_metTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("surface met"), m_metTime, FeatureType::timeSeries, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -558,7 +558,7 @@ void MicrowaveRadiometerProcessor::writeStabilityNc(const sci::string& directory
 		&& m_showalterIndex.size() == 0 && m_cape.size() == 0)
 		return;
 
-	DataInfo dataInfo = buildDataInfo(sU("stability indices"), m_staTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("stability indices"), m_staTime, FeatureType::timeSeries, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -628,7 +628,7 @@ void MicrowaveRadiometerProcessor::writeBrightnessTemperatureNc(const sci::strin
 
 	sci::assertThrow(m_brtFrequencies.size() == m_atnFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("BRT and ATN data have a different number of frequencies")));
 
-	DataInfo dataInfo = buildDataInfo(sU("brightness temperature"), m_brtTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("brightness temperature"), m_brtTime, FeatureType::timeSeries, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -679,7 +679,7 @@ void MicrowaveRadiometerProcessor::writeBoundaryLayerTemperatureProfileNc(const 
 
 	sci::assertThrow(m_brtFrequencies.size() == m_atnFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("BRT and ATN data have a different number of frequencies")));
 
-	DataInfo dataInfo = buildDataInfo(sU("boundary layer temperature profiles"), m_tpbTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("boundary layer temperature profiles"), m_tpbTime, FeatureType::timeSeriesProfile, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	//AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -743,7 +743,7 @@ void MicrowaveRadiometerProcessor::writeFullTroposphereTemperatureProfileNc(cons
 	}
 	progressReporter << "Writing tropospher temperature profile data file\n";
 
-	DataInfo dataInfo = buildDataInfo(sU("full troposphere temperature profiles"), m_tpcTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("full troposphere temperature profiles"), m_tpcTime, FeatureType::timeSeriesProfile, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	//AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
@@ -807,7 +807,7 @@ void MicrowaveRadiometerProcessor::writeMoistureProfileNc(const sci::string& dir
 	}
 	progressReporter << "Writing moisture profile data file\n";
 
-	DataInfo dataInfo = buildDataInfo(sU("moisture profiles"), m_hpcTime, processingOptions);
+	DataInfo dataInfo = buildDataInfo(sU("moisture profiles"), m_hpcTime, FeatureType::timeSeriesProfile, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	//AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;

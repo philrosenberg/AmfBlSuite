@@ -232,6 +232,23 @@
 		<locationKeyword>UK</locationKeyword>
 		<locationKeyword>United Kingdom of Great Britain and Northern Ireland</locationKeyword>
 	</platform>
+
+	<!--Lab at imperial for CREATE project-->
+	<platform id="10">
+		<name>Dummy location</name>
+		<type>stationary</type>
+		<deploymentMode>sea</deploymentMode>
+		<latitudeDegree>0</latitudeDegree>
+		<longitudeDegree>0</longitudeDegree>
+		<altitudeMetres>0</altitudeMetres>
+		<elevationDegree>0</elevationDegree>
+		<azimuthDegree>0</azimuthDegree>
+		<rollDegree>0</rollDegree>
+		<locationKeyword>London</locationKeyword>
+		<locationKeyword>England</locationKeyword>
+		<locationKeyword>UK</locationKeyword>
+		<locationKeyword>United Kingdom of Great Britain and Northern Ireland</locationKeyword>
+	</platform>
   
   <!--Instruments-->
   <instrument id="1">

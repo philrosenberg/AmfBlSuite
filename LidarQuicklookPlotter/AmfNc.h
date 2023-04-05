@@ -77,11 +77,20 @@ struct CalibrationInfo
 
 enum class FeatureType
 {
-	timeSeriesPoint,
+	point,
+	timeSeries,
 	trajectory,
-	timeSeriesProfile
+	profile,
+	timeSeriesProfile,
+	trajectoryProfile
 };
-const std::map<FeatureType, sci::string> g_featureTypeStrings{ {FeatureType::timeSeriesPoint, sU("timeSeriesPoint")}, {FeatureType::trajectory, sU("trajectory")}, {FeatureType::timeSeriesProfile, sU("timeSeriesProfile"}) };
+const std::map<FeatureType, sci::string> g_featureTypeStrings{ 
+	{FeatureType::point, sU("point")},
+	{FeatureType::timeSeries, sU("timeSeries")},
+	{FeatureType::trajectory, sU("trajectory")},
+	{FeatureType::profile, sU("profile")},
+	{FeatureType::timeSeriesProfile, sU("timeSeriesProfile"}),
+	{FeatureType::trajectoryProfile, sU("trajectoryProfile")} };
 
 struct DataInfo
 {

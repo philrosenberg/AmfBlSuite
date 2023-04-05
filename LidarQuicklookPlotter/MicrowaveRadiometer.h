@@ -1255,7 +1255,7 @@ public:
 		}
 	}
 
-	static DataInfo buildDataInfo(sci::string productName, const sci::GridData<sci::UtcTime, 1> &dataTime, const ProcessingOptions& processingOptions)
+	static DataInfo buildDataInfo(sci::string productName, const sci::GridData<sci::UtcTime, 1> &dataTime, FeatureType featureType, const ProcessingOptions& processingOptions)
 	{
 		sci::assertThrow(dataTime.size() > 1, sci::err(sci::SERR_USER, 0, sU("Tried to process Hatpro data with fewer than 2 data points.")));
 		DataInfo dataInfo;
@@ -1265,7 +1265,7 @@ public:
 		dataInfo.startTime = dataTime[0];
 		dataInfo.endTime = dataTime.back();
 
-		dataInfo.featureType = FeatureType::timeSeriesPoint;
+		dataInfo.featureType = featureType;
 		dataInfo.options = std::vector<sci::string>(0);
 		dataInfo.processingLevel = 1;
 		dataInfo.productName = productName;
