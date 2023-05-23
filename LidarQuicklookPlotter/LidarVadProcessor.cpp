@@ -176,6 +176,7 @@ void ConicalScanningProcessor::plotDataPlan(const sci::string &outputFilename, m
 
 void ConicalScanningProcessor::plotDataCone(const sci::string &outputFilename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
+	/*
 	splotframe *window = new splotframe(parent, true);
 	WindowCleaner cleaner(window);
 	window->SetClientSize(1000, 2000);
@@ -194,6 +195,7 @@ void ConicalScanningProcessor::plotDataCone(const sci::string &outputFilename, m
 	plotDataCone(degreeF(270.0), maxRange, plot);
 
 	createDirectoryAndWritePlot(window, outputFilename, 1000, 2000, progressReporter);
+	*/
 }
 
 void ConicalScanningProcessor::plotDataCone(degreeF viewAzimuth, metreF maxRange, splot2d * plot)

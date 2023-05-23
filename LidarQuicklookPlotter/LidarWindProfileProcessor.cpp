@@ -177,6 +177,7 @@ void LidarWindProfileProcessor::readData(const std::vector<sci::string> &inputFi
 
 void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent)
 {
+	/*
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		std::vector<sci::Physical<sci::Metre<>, double>> heightsDouble;
@@ -246,6 +247,7 @@ void LidarWindProfileProcessor::plotData(const sci::string &outputFilename, cons
 		}
 	}
 	return;
+	*/
 }
 
 void LidarWindProfileProcessor::writeToNc(const sci::string &directory, const PersonInfo &author,

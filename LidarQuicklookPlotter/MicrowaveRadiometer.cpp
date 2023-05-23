@@ -2,7 +2,8 @@
 #include"ProgressReporter.h"
 
 MicrowaveRadiometerProcessor::MicrowaveRadiometerProcessor(const InstrumentInfo& instrumentInfo, const CalibrationInfo& calibrationInfo)
-	: InstrumentProcessor(sU("[/\\\\]Y....[/\\\\]M..[/\\\\]D..[/\\\\]........\\.(LWP|IWV|HKD|STA|BRT|MET|ATN|TPC|TPB|HPC)$"))
+	//: InstrumentProcessor(sU("[/\\\\]Y....[/\\\\]M..[/\\\\]D..[/\\\\]........\\.(LWP|IWV|HKD|STA|BRT|MET|ATN|TPC|TPB|HPC)$"))
+	: InstrumentProcessor(sU("[/\\\\].*.(LWP|IWV|HKD|STA|BRT|MET|ATN|TPC|TPB|HPC)$"))
 	//: InstrumentProcessor(sU("[/\\\\]Y....[/\\\\]M..[/\\\\]D..[/\\\\]........\\.LWP$"))
 {
 	m_hasData = false;
@@ -193,6 +194,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 	sci::GridData<kelvinF, 1> enviromentTemperature;
 	sci::GridData<hectoPascalF, 1> enviromentPressure;
 	sci::GridData<unitlessF, 1> enviromentRelativeHumidity;
+	sci::GridData<float, 2>environmentOtherSensors;
 	sci::GridData<kelvinF, 1> liftedIndex;
 	sci::GridData<kelvinF, 1> kModifiedIndex;
 	sci::GridData<kelvinF, 1> totalTotalsIndex;
@@ -220,7 +222,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 	else if (extension == sU("LWP"))
 		readHatproLwpData(inputFilename, time, water, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
 	else if (extension == sU("MET"))
-		readHatproMetData(inputFilename, time, enviromentTemperature, enviromentRelativeHumidity, enviromentPressure, rainFlag, fileTypeId);
+		readHatproMetData(inputFilename, time, enviromentTemperature, enviromentRelativeHumidity, enviromentPressure, environmentOtherSensors, rainFlag, fileTypeId);
 	else if (extension == sU("STA"))
 		readHatproStaData(inputFilename, time, liftedIndex, kModifiedIndex, totalTotalsIndex, kIndex, showalterIndex, cape, rainFlag, fileTypeId);
 	else if (extension == sU("BRT"))
@@ -236,7 +238,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 	else
 		sci::assertThrow(false, sci::err(sci::SERR_USER, 0, sU("Unexpected extension. Read aborted.")));
 
-	if (fileTypeId == hatproLwpId)
+	if (fileTypeId == hatproLwpV1Id || fileTypeId == hatproLwpV2Id)
 	{
 		m_lwpTime.insert(m_lwpTime.size(), time);
 		m_lwp.insert(m_lwp.size(), water);
@@ -247,7 +249,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		m_lwpQualityExplanation.insert(m_lwpQualityExplanation.size(), qualityExplanation);
 		m_hasData = true;
 	}
-	else if (fileTypeId == hatproIwvId)
+	else if (fileTypeId == hatproIwvV1Id || fileTypeId == hatproIwvV2Id)
 	{
 		m_iwvTime.insert(m_iwvTime.size(), time);
 		m_iwv.insert(m_iwv.size(), water);
@@ -275,6 +277,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 	}
 	else if (fileTypeId == hatproMetId || fileTypeId == hatproMetNewId)
 	{
+		//note, we don't currently do anything with the "additional sensor" data
 		m_metTime.insert(m_metTime.size(), time);
 		m_enviromentTemperature.insert(m_enviromentTemperature.size(), enviromentTemperature);
 		m_enviromentPressure.insert(m_enviromentPressure.size(), enviromentPressure);
@@ -293,7 +296,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		m_cape.insert(m_cape.size(), cape);
 		m_hasData = true;
 	}
-	else if (fileTypeId == hatproBrtId)
+	else if (fileTypeId == hatproBrtV1Id || fileTypeId == hatproBrtV2Id)
 	{
 		m_brtTime.insert(m_brtTime.size(), time);
 		appendData2dInFirstDimension(m_brightnessTemperature, brightnessTemperature);
@@ -310,7 +313,7 @@ void MicrowaveRadiometerProcessor::readData(const sci::string& inputFilename, co
 		m_brtRainFlag.insert(m_brtRainFlag.size(), rainFlag);
 		m_hasData = true;
 	}
-	else if (fileTypeId == hatproAtnId)
+	else if (fileTypeId == hatproAtnV1Id || fileTypeId == hatproAtnV2Id)
 	{
 		m_atnTime.insert(m_atnTime.size(), time);
 		appendData2dInFirstDimension(m_attenuation, attenuation);

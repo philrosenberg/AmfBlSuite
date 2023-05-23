@@ -268,6 +268,7 @@ sci::GridData<metreF, 1> LidarBackscatterDopplerProcessor::getGateCentres(size_t
 
 void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::string &extraDescriptor, wxWindow *parent, HplHeader hplHeader)
 {
+	/*
 	*window = new splotframe(parent, true);
 	(*window)->SetClientSize(1000, 1000);
 
@@ -282,6 +283,7 @@ void PlotableLidar::setupCanvas(splotframe **window, splot2d **plot, const sci::
 
 	splotlegend *legend = (*window)->addlegend(0.86, 0.25, 0.13, 0.65, wxColour(0, 0, 0), 0);
 	legend->addentry(sU(""), g_lidarColourscale, false, false, 0.05, 0.3, 15, sU(""), 0, 0.05, wxColour(0, 0, 0), 128, false, 150, false);
+	*/
 }
 
 template<class T>

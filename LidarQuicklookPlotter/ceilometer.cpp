@@ -374,6 +374,7 @@ void CeilometerProcessor::writeToNc(const HplHeader& header, const std::vector<C
 
 		DataInfo cloudBaseDataInfo = dataInfo;
 		cloudBaseDataInfo.productName = sU("cloud-base");
+		cloudBaseDataInfo.featureType = FeatureType::timeSeries;
 		sci::NcDimension layerIndexDimension(sU("layer_index"), 4);
 		std::vector<sci::NcDimension*> nonTimeDimensions;
 		nonTimeDimensions.push_back(&layerIndexDimension);
@@ -656,6 +657,7 @@ void CeilometerProcessor::plotData(const sci::string &outputFilename, const std:
 
 void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const std::vector<CampbellCeilometerProfile> &profiles, sci::string filename, metreF maxRange, ProgressReporter &progressReporter, wxWindow *parent)
 {
+	/*
 	splotframe *window;
 	splot2d *plot;
 	setupCanvas(&window, &plot, sU(""), parent, header);
@@ -731,6 +733,7 @@ void CeilometerProcessor::plotCeilometerProfiles(const HplHeader &header, const 
 		plot->setmaxy(sci::physicalsToValues<metreF>(maxRange));
 
 	createDirectoryAndWritePlot(window, filename, 1000, 1000, progressReporter);
+	*/
 }
 
 std::vector<std::vector<sci::string>> CeilometerProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const

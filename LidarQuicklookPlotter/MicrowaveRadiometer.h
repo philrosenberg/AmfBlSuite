@@ -120,10 +120,14 @@ inline degreeF hatproDecodeElevation(float hatproAngle)
 		return degreeF(hatproAngle - 1000.0f * std::floor(hatproAngle / 1000.0f));
 }
 
-const uint32_t hatproLwpId = 934501978;
-const uint32_t hatproIwvId = 594811068;
-const uint32_t hatproAtnId = 7757564;
-const uint32_t hatproBrtId = 666666;
+const uint32_t hatproLwpV1Id = 934501978;
+const uint32_t hatproLwpV2Id = 934501000;
+const uint32_t hatproIwvV1Id = 594811068;
+const uint32_t hatproIwvV2Id = 594811000;
+const uint32_t hatproAtnV1Id = 7757564;
+const uint32_t hatproAtnV2Id = 7757000;
+const uint32_t hatproBrtV1Id = 666666;
+const uint32_t hatproBrtV2Id = 666000;
 const uint32_t hatproMetId = 599658943;
 const uint32_t hatproMetNewId = 599658944;
 const uint32_t hatproOlcId = 955874342;
@@ -145,10 +149,14 @@ const uint32_t hatproHkdId = 837854832;
 
 const std::map<uint32_t, sci::string> hatproFileTypes
 {
-	{hatproLwpId, sU("LWP")},
-	{hatproIwvId, sU("IWV")},
-	{hatproAtnId, sU("ATN")},
-	{hatproBrtId, sU("BRT")},
+	{hatproLwpV1Id, sU("LWP (v1)")},
+	{hatproLwpV2Id, sU("LWP (v2)")},
+	{hatproIwvV1Id, sU("IWV (v1)")},
+	{hatproIwvV2Id, sU("IWV (v2)")},
+	{hatproAtnV1Id, sU("ATN (v1)")},
+	{hatproAtnV2Id, sU("ATN (v2)")},
+	{hatproBrtV1Id, sU("BRT (v1)")},
+	{hatproBrtV2Id, sU("BRT (v2)")},
 	{hatproMetId, sU("MET")},
 	{hatproOlcId, sU("OLC")},
 	{hatproTpcId, sU("TPC")},
@@ -266,14 +274,14 @@ inline void readHatproHkdFile(sci::string filename, sci::GridData<sci::UtcTime, 
 }
 
 inline void readHatproMetData(const sci::string & filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<kelvinF, 1> &temperature, sci::GridData<unitlessF, 1> &relativeHumidity,
-	sci::GridData<hectoPascalF, 1> &pressure,  sci::GridData<bool,1> rainFlag, uint32_t& fileTypeId)
+	sci::GridData<hectoPascalF, 1> &pressure, sci::GridData<float,2> &additionalSensorData,  sci::GridData<bool,1> rainFlag, uint32_t& fileTypeId)
 {
 
 	try
 	{
 		std::fstream fin;
 		fin.open(sci::nativeUnicode(filename), std::ios::in | std::ios::binary);
-		sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Failed to open HATPRO LWP file ") + filename));
+		sci::assertThrow(fin.is_open(), sci::err(sci::SERR_USER, 0, sU("Failed to open HATPRO MET file ") + filename));
 
 		uint32_t nSamples;
 		uint32_t timeType;
@@ -309,18 +317,28 @@ inline void readHatproMetData(const sci::string & filename, sci::GridData<sci::U
 		fin.read((char*)&maxRelativeHumidity, 4);
 		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
 
-
-		fin.read((char*)&timeType, 4);
-		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
-		sci::assertThrow(timeType == 1, sci::err(sci::SERR_USER, 0, sU("File ") + filename + sU(" is in local time, not UTC time. This software can only process UTC time data.")));
-
-		int nAdditionalSensors = 0;
+		size_t nAdditionalSensors = 0;
 		if (additionalSensorCode & 0x1)
 			++nAdditionalSensors;
 		if (additionalSensorCode & 0x2)
 			++nAdditionalSensors;
 		if (additionalSensorCode & 0x4)
 			++nAdditionalSensors;
+
+		std::vector<float> minAdditionalSensorValues(nAdditionalSensors);
+		std::vector<float> maxAdditionalSensorValues(nAdditionalSensors);
+
+		for (size_t i = 0; i < nAdditionalSensors; ++i)
+		{
+			fin.read((char*)&(minAdditionalSensorValues[i]), 4);
+			sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+			fin.read((char*)&(maxAdditionalSensorValues[i]), 4);
+			sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		}
+
+		fin.read((char*)&timeType, 4);
+		sci::assertThrow(fin.good() && !fin.eof(), sci::err(sci::SERR_USER, 0, sU("Found unexpected end of file or bad read in file ") + filename));
+		sci::assertThrow(timeType == 1, sci::err(sci::SERR_USER, 0, sU("File ") + filename + sU(" is in local time, not UTC time. This software can only process UTC time data.")));
 
 		//read the data
 
@@ -329,11 +347,11 @@ inline void readHatproMetData(const sci::string & filename, sci::GridData<sci::U
 		temperature.resize(nSamples, std::numeric_limits<kelvinF>::quiet_NaN());
 		relativeHumidity.resize(nSamples, std::numeric_limits<unitlessF>::quiet_NaN());
 		pressure.resize(nSamples, std::numeric_limits<hectoPascalF>::quiet_NaN());
+		additionalSensorData.reshape({ nAdditionalSensors, nSamples });
 		
 		uint32_t timeTemp;
 		percentF relativeHumidityTemp;
 		uint8_t rainFlagTemp;
-		float extraTemp;
 		for (size_t i = 0; i < nSamples; ++i)
 		{
 			fin.read((char*)&timeTemp, 4);
@@ -344,8 +362,8 @@ inline void readHatproMetData(const sci::string & filename, sci::GridData<sci::U
 			fin.read((char*)&temperature[i], 4);
 			fin.read((char*)&relativeHumidityTemp, 4);
 			relativeHumidity[i] = relativeHumidityTemp;
-			for(size_t i=0; i<nAdditionalSensors; ++i)
-				fin.read((char*)&extraTemp, 4);
+			for(size_t j=0; j<nAdditionalSensors; ++j)
+				fin.read((char*)&(additionalSensorData[j][i]), 4);
 		}
 	}
 	catch (...)
@@ -414,9 +432,9 @@ void readHatproOneDimensionalData(sci::string filename, sci::GridData<sci::UtcTi
 			quality[i] = (rainFlagTemp & 0x06) >> 1;
 			qualityExplanation[i] = (rainFlagTemp & 0x18) >> 3;
 
-			if constexpr (expectedFileTypeId == hatproLwpId)
+			if constexpr (expectedFileTypeId == hatproLwpV1Id || expectedFileTypeId == hatproLwpV2Id)
 				data[i] = gramPerMetreSquaredF(dataTemp);
-			else if constexpr (expectedFileTypeId == hatproIwvId)
+			else if constexpr (expectedFileTypeId == hatproIwvV1Id || expectedFileTypeId == hatproIwvV2Id)
 				data[i] = kilogramPerMetreSquaredF(dataTemp);
 			else
 				static_assert(makeFalse<expectedFileTypeId>(), "Attempting to read a hatpro file with an unknown expected file type id.");
@@ -615,10 +633,10 @@ void readHatproOneDimensionPerFrequencyData(sci::string filename, bool hasRetrie
 			time[i] = sci::UtcTime(2001, 1, 1, 0, 0, 0) + second(double(timeTemp));
 			rainFlag[i] = (rainFlagTemp & 0x01) > 0;
 
-			if constexpr (expectedFileTypeId == hatproBrtId || expectedFileTypeId == hatproOlcId)
+			if constexpr (expectedFileTypeId == hatproBrtV1Id || expectedFileTypeId == hatproBrtV2Id || expectedFileTypeId == hatproOlcId)
 				for(size_t j=0; j<nFrequencies; ++j)
 					data[i][j] = kelvinF(dataTemp[j]);
-			else if constexpr (expectedFileTypeId == hatproAtnId)
+			else if constexpr (expectedFileTypeId == hatproAtnV1Id || expectedFileTypeId == hatproAtnV2Id)
 				for (size_t j = 0; j < nFrequencies; ++j)
 					data[i][j] = unitlessF(dataTemp[j]);
 			else if constexpr (expectedFileTypeId == hatproIrtNewId)
@@ -775,28 +793,84 @@ template<class LWP_TYPE, class ANGLE_TYPE>
 void readHatproIwvData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<LWP_TYPE, 1>& iwv, sci::GridData<ANGLE_TYPE, 1>& elevation, sci::GridData<ANGLE_TYPE, 1>& azimuth,
 	sci::GridData<bool, 1>& rainFlag, sci::GridData<unsigned char, 1>& quality, sci::GridData<unsigned char, 1>& qualityExplanation, uint32_t &fileTypeId)
 {
-	readHatproOneDimensionalData<hatproIwvId>(filename, time, iwv, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+	try
+	{
+		readHatproOneDimensionalData<hatproIwvV1Id>(filename, time, iwv, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+	}
+	catch (sci::err err)
+	{
+		try
+		{
+			readHatproOneDimensionalData<hatproIwvV2Id>(filename, time, iwv, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+		}
+		catch (sci::err err2)
+		{
+			throw(sci::err(err2.getErrorCategory(), err2.getErrorCode(), sU("Failed to read either version of IWV file. The two errors when assuming the two versions were - v1:") + err.getErrorMessage() + sU(" v2:") + err2.getErrorMessage()));
+		}
+	}
 }
 
 template<class LWP_TYPE, class ANGLE_TYPE>
 void readHatproLwpData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<LWP_TYPE, 1>& lwp, sci::GridData<ANGLE_TYPE, 1>& elevation, sci::GridData<ANGLE_TYPE, 1>& azimuth,
 	sci::GridData<bool, 1>& rainFlag, sci::GridData<unsigned char, 1>& quality, sci::GridData<unsigned char, 1>& qualityExplanation, uint32_t& fileTypeId)
 {
-	readHatproOneDimensionalData<hatproLwpId>(filename, time, lwp, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+	try
+	{
+		readHatproOneDimensionalData<hatproLwpV1Id>(filename, time, lwp, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+	}
+	catch (sci::err err)
+	{
+		try
+		{
+			readHatproOneDimensionalData<hatproLwpV2Id>(filename, time, lwp, elevation, azimuth, rainFlag, quality, qualityExplanation, fileTypeId);
+		}
+		catch (sci::err err2)
+		{
+			throw(sci::err(err2.getErrorCategory(), err2.getErrorCode(), sU("Failed to read either version of LWP file. The two errors when assuming the two versions were - v1:") + err.getErrorMessage() + sU(" v2:") + err2.getErrorMessage()));
+		}
+	}
 }
 
 template<class FREQUENCY_TYPE, class LWP_TYPE, class ANGLE_TYPE>
 void readHatproAtnData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<FREQUENCY_TYPE, 1>& frequencies, sci::GridData<LWP_TYPE, 2>& atn, sci::GridData<ANGLE_TYPE, 1>& elevation, sci::GridData<ANGLE_TYPE, 1>& azimuth,
 	sci::GridData<bool, 1>& rainFlag, uint32_t& fileTypeId)
 {
-	readHatproOneDimensionPerFrequencyData<hatproAtnId>(filename, true, time, frequencies, atn, elevation, azimuth, rainFlag, fileTypeId);
+	try
+	{
+		readHatproOneDimensionPerFrequencyData<hatproAtnV1Id>(filename, true, time, frequencies, atn, elevation, azimuth, rainFlag, fileTypeId);
+	}
+	catch (sci::err err)
+	{
+		try
+		{
+			readHatproOneDimensionPerFrequencyData<hatproAtnV2Id>(filename, true, time, frequencies, atn, elevation, azimuth, rainFlag, fileTypeId);
+		}
+		catch (sci::err err2)
+		{
+			throw(sci::err(err2.getErrorCategory(), err2.getErrorCode(), sU("Failed to read either version of ATN file. The two errors when assuming the two versions were - v1:") + err.getErrorMessage() + sU(" v2:") + err2.getErrorMessage()));
+		}
+	}
 }
 
 template<class FREQUENCY_TYPE, class LWP_TYPE, class ANGLE_TYPE>
 void readHatproBrtData(sci::string filename, sci::GridData<sci::UtcTime, 1>& time, sci::GridData<FREQUENCY_TYPE, 1>& frequencies, sci::GridData<LWP_TYPE, 2>& brt, sci::GridData<ANGLE_TYPE, 1>& elevation, sci::GridData<ANGLE_TYPE, 1>& azimuth,
 	sci::GridData<bool, 1>& rainFlag, uint32_t& fileTypeId)
 {
-	readHatproOneDimensionPerFrequencyData<hatproBrtId>(filename, false, time, frequencies, brt, elevation, azimuth, rainFlag, fileTypeId);
+	try
+	{
+		readHatproOneDimensionPerFrequencyData<hatproBrtV1Id>(filename, false, time, frequencies, brt, elevation, azimuth, rainFlag, fileTypeId);
+	}
+	catch (sci::err err)
+	{
+		try
+		{
+			readHatproOneDimensionPerFrequencyData<hatproBrtV2Id>(filename, false, time, frequencies, brt, elevation, azimuth, rainFlag, fileTypeId);
+		}
+		catch (sci::err err2)
+		{
+			throw(sci::err(err2.getErrorCategory(), err2.getErrorCode(), sU("Failed to read either version of BRT file. The two errors when assuming the two versions were - v1:") + err.getErrorMessage() + sU(" v2:") + err2.getErrorMessage()));
+		}
+	}
 }
 
 template<class FREQUENCY_TYPE, class LWP_TYPE, class ANGLE_TYPE>
