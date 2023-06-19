@@ -2,41 +2,47 @@
   <!--This file contains data that is used to describe projects, platforms data authors, etc for use in AMF netcdf files-->
   
   <!--People-->
-  <person id="1">
+  <person id="PhilRosenberg">
     <name>Phil Rosenberg</name>
     <email>p.d.rosenberg@leeds.ac.uk</email>
     <orcidUrl>https://orcid.org/0000-0002-6920-0559</orcidUrl>
     <institution>National Centre for Atmospheric Science (NCAS)</institution>
   </person>
-  <person id="2">
+  <person id="IanBrooks">
     <name>Ian Brooks</name>
     <email>i.m.brooks@leeds.ac.uk</email>
     <orcidUrl>https://orcid.org/0000-0002-5051-1322</orcidUrl>
     <institution>University of Leeds</institution>
   </person>
-  <person id="3">
+  <person id="HugoRicketts">
     <name>Hugo Ricketts</name>
     <email>h.ricketts@manchester.ac.uk</email>
     <orcidUrl>https://orcid.org/0000-0002-1708-2431</orcidUrl>
     <institution>National Centre for Atmospheric Science (NCAS)</institution>
   </person>
-  <person id="4">
+  <person id="RyanNeely">
     <name>Ryan Neely III</name>
     <email>ryan.neely@ncas.ac.uk</email>
     <orcidUrl>https://orcid.org/0000-0003-4560-4812</orcidUrl>
     <institution>National Centre for Atmospheric Science (NCAS)</institution>
   </person>
-  <person id="5">
+  <person id="EdGryspeerdt">
     <name>Edward Gryspeerdt</name>
     <email>e.gryspeerdt@imperial.ac.uk</email>
     <orcidUrl>https://orcid.org/0000-0002-3815-4756</orcidUrl>
     <institution>Imperial College London</institution>
   </person>
-	<person id="6">
+	<person id="HeatherGuy">
 		<name>Heather Guy</name>
 		<email>heather.guy@ncas.ac.uk</email>
 		<orcidUrl>https://orcid.org/0000-0003-3525-0766</orcidUrl>
-		<institution>Imperial College London</institution>
+		<institution>university of Leeds</institution>
+	</person>
+	<person id="ChrisWalden">
+		<name>Christopher J Walden</name>
+		<email>chris.walden@ncas.ac.uk</email>
+		<orcidUrl>https://orcid.org/0000-0002-5718-466X</orcidUrl>
+		<institution>National Centre for Atmospheric Science (NCAS)</institution>
 	</person>
   
   <!--Projects-->
@@ -249,6 +255,23 @@
 		<locationKeyword>UK</locationKeyword>
 		<locationKeyword>United Kingdom of Great Britain and Northern Ireland</locationKeyword>
 	</platform>
+	<!-- chilbolton -->
+	<platform id="CAO_HATPRO_SITE">
+		<name>CAO</name>
+		<type>stationary</type>
+		<deploymentMode>land</deploymentMode>
+		<latitudeDegree>51.1447</latitudeDegree>
+		<longitudeDegree>-1.4382</longitudeDegree>
+		<altitudeMetres>87</altitudeMetres>
+		<elevationDegree>0</elevationDegree>
+		<azimuthDegree>0</azimuthDegree>
+		<rollDegree>0</rollDegree>
+		<locationKeyword>Chilbolton</locationKeyword>
+		<locationKeyword>Chilbolton Atmospheric Observatory</locationKeyword>
+		<locationKeyword>England</locationKeyword>
+		<locationKeyword>UK</locationKeyword>
+		<locationKeyword>United Kingdom of Great Britain and Northern Ireland</locationKeyword>
+	</platform>
   
   <!--Instruments-->
   <instrument id="1">
@@ -310,6 +333,26 @@
     <operatingSoftware>RPG-HATPRO</operatingSoftware>
     <operatingSoftwareVersion>v8.48</operatingSoftwareVersion>
   </instrument>
+
+	<instrument id="HATPRO2">
+		<name>ncas scanning radiometer 2</name>
+		<description>NCAS Scanning Microwave Radiometer unit 2</description>
+		<manufacturer>RPG</manufacturer>
+		<model>HATPRO-G5</model>
+		<serial>30123</serial>
+		<operatingSoftware>RPG-HATPRO</operatingSoftware>
+		<operatingSoftwareVersion>v9.18</operatingSoftwareVersion>
+	</instrument>
+
+	<instrument id="HATPRO3">
+		<name>ncas scanning radiometer 3</name>
+		<description>NCAS Scanning Microwave Radiometer unit 3</description>
+		<manufacturer>RPG</manufacturer>
+		<model>HATPRO-G5</model>
+		<serial>30136</serial>
+		<operatingSoftware>RPG-HATPRO</operatingSoftware>
+		<operatingSoftwareVersion>v9.47</operatingSoftwareVersion>
+	</instrument>
   
   <!--Calibration Info-->
   <calibrationInfo id ="1">
@@ -376,6 +419,19 @@
       <hour>0</hour>
       <minute>0</minute>
       <second>0</second>
+    </certificationDate>
+    <certificateUrl>Not available</certificateUrl>
+  </calibrationInfo>
+	  
+  <calibrationInfo id ="HATPRO2_20240542_Cal">
+    <calibrationDescription>Calibrated using liquid nitrogen</calibrationDescription>
+    <certificationDate>
+      <year>2023</year>
+      <month>5</month>
+      <day>24</day>
+      <hour>16</hour>
+      <minute>06</minute>
+      <second>32</second>
     </certificationDate>
     <certificateUrl>Not available</certificateUrl>
   </calibrationInfo>
