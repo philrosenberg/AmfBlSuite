@@ -873,7 +873,7 @@ void MicrowaveRadiometerProcessor::writeMoistureProfileNc(const sci::string& dir
 std::vector<std::vector<sci::string>> MicrowaveRadiometerProcessor::groupInputFilesbyOutputFiles(const std::vector<sci::string>& newFiles, const std::vector<sci::string>& allFiles) const
 {
 	std::vector<std::vector<sci::string>> result;
-	for (auto& a : newFiles)
+	for (auto& a : allFiles)
 	{
 		bool include = false;
 		//check if a new file exists on the for the day of the file, if so we want this file
