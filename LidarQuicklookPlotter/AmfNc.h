@@ -52,6 +52,7 @@ struct ProcessingOptions
 	bool onlyProcessNewFiles;
 	bool generateQuicklooks;
 	bool generateNetCdf;
+	bool closeOnCompletion;
 };
 
 struct ProcessingSoftwareInfo

@@ -221,6 +221,8 @@ void mainFrame::stop()
 		m_logText->AppendText("Stopping...\n");
 	else
 		m_logText->AppendText("Stopped\n\n");
+	if (m_processingOptions.closeOnCompletion)
+		this->Close();
 }
 
 void mainFrame::OnCheckDataTimer(wxTimerEvent& event)

@@ -404,7 +404,8 @@ ProcessingOptions parseProcessingOptions(wxXmlNode *node)
 		nameVarPair<bool>(sU("onlyProcessNewFiles"), &(result.onlyProcessNewFiles)),
 		nameVarPair<bool>(sU("beta"), &(result.beta)),
 		nameVarPair<bool>(sU("generateQuicklooks"), &(result.generateQuicklooks)),
-		nameVarPair<bool>(sU("generateNetCdf"), &(result.generateNetCdf))
+		nameVarPair<bool>(sU("generateNetCdf"), &(result.generateNetCdf)),
+		nameVarPair<bool>(sU("closeOnCompletion"), &(result.closeOnCompletion))
 	};
 
 	parseXmlNode(node, textLinks.begin(), textLinks.end());
