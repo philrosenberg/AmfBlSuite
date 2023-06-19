@@ -511,16 +511,16 @@ void mainFrame::readDataThenPlotThenNc(const FolderChangesLister &plotChangesLis
 						(*m_progressReporter) << sU("Operation halted at user request.\n");
 						break;
 					}
-
-					//remember which files have been plotted
-					for (size_t j = 0; j < dayFileSets[i].size(); ++j)
-						ncChangesLister.updateSnapshotFile(dayFileSets[i][j], checkedForChangesTime);
 				}
 				else
 				{
 					WarningSetter setter(m_progressReporter.get());
 					(*m_progressReporter) << sU("No valid data found for this day, not netcdf will be written\n\n");
 				}
+
+				//whether the data files contained data or not, remember which files have been processed
+				for (size_t j = 0; j < dayFileSets[i].size(); ++j)
+					ncChangesLister.updateSnapshotFile(dayFileSets[i][j], checkedForChangesTime);
 			}
 			catch (sci::err err)
 			{
