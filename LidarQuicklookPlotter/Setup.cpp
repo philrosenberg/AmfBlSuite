@@ -238,7 +238,7 @@ void parseXmlNode(wxXmlNode *node, ITER begin, ITER end)
 				nodeName = nodeName + sU(" at line ") + sci::fromWxString(lineNumber);
 				sci::assertThrow(textNode != nullptr, sci::err(sci::SERR_USER, 0, sU("Could not parse xml data in node ") + nodeName + sU(", the node does not have content.")));
 				sci::assertThrow(textNode->GetType() == wxXML_TEXT_NODE, sci::err(sci::SERR_USER, 0, sU("Could not parse xml data in node ") + nodeName + sU(", the content is not text.")));
-				*(iter->m_var) = textToValue<std::remove_pointer<decltype(iter->m_var)>::type>(sci::fromWxString(textNode->GetContent()));
+				*(iter->m_var) = textToValue<typename std::remove_pointer<decltype(iter->m_var)>::type>(sci::fromWxString(textNode->GetContent()));
 				iter->m_read = true;
 			}
 		}
@@ -270,7 +270,7 @@ void parseXmlNode(wxXmlNode *node, const sci::string &name, CONTAINER &values, b
 			nodeName = nodeName + sU(" at line ") + sci::fromWxString(lineNumber);
 			sci::assertThrow(textNode != nullptr, sci::err(sci::SERR_USER, 0, sU("Could not parse xml data in node ") + nodeName + sU(", the node does not have content.")));
 			sci::assertThrow(textNode->GetType() == wxXML_TEXT_NODE, sci::err(sci::SERR_USER, 0, sU("Could not parse xml data in node ") + nodeName + sU(", the content is not text.")));
-			values.push_back(textToValue<CONTAINER::value_type>(sci::fromWxString(textNode->GetContent())));
+			values.push_back(textToValue<typename CONTAINER::value_type>(sci::fromWxString(textNode->GetContent())));
 			read = true;
 		}
 		child = child->GetNext();

@@ -730,7 +730,7 @@ private:
 			min = mean;
 			max = mean;
 			stdev = T(0);
-			rate = std::numeric_limits<std::remove_reference<decltype(rate)>::type>::quiet_NaN();
+			rate = std::numeric_limits<std::remove_reference_t<decltype(rate)>>::quiet_NaN();
 		}
 		size_t startLowerIndex = std::min(findLowerIndex(startTime, true), m_times.size() - 1);
 		size_t endLowerIndex = findLowerIndex(endTime, false);
