@@ -70,45 +70,48 @@ std::vector<sci::string> FolderChangesLister::getChanges(const std::vector<std::
 	//we put them in a map to make searching fast and easy
 	std::fstream fin;
 	fin.open(sci::nativeUnicode(getSnapshotFile()), std::ios::in);
-	std::string line; //utf8
-	std::getline(fin, line);
-	size_t lineNumber = 1; //for debugging purposes, it will be optimised out in release builds
-	while (!fin.eof())
+	if (fin.is_open())
 	{
-		if (line.length() > 19)
+		std::string line; //utf8
+		std::getline(fin, line);
+		size_t lineNumber = 1; //for debugging purposes, it will be optimised out in release builds
+		while (!fin.eof() && !fin.bad() && !fin.fail())
 		{
-			//split the line into a filename and a date/time
-			sci::string filename = sci::fromUtf8(line.substr(0, line.length() - 20));
-			std::string timeString = line.substr(line.length() - 19);
-			//replace the date/time separators with spaces
-			for (size_t i = 0; i < timeString.length(); ++i)
-				if (timeString[i] == '-' || timeString[i] == ':' || timeString[i] == 'T')
-					timeString[i] = ' ';
-			//read in time from the time string
-			int hour;
-			int minute;
-			int second;
-			int year;
-			int month;
-			int dayOfMonth;
-			std::istringstream strm(timeString);
-			strm >> year >> month >> dayOfMonth >> hour >> minute >> second;
-			sci::UtcTime time(year, month, dayOfMonth, hour, minute, second);
+			if (line.length() > 19)
+			{
+				//split the line into a filename and a date/time
+				sci::string filename = sci::fromUtf8(line.substr(0, line.length() - 20));
+				std::string timeString = line.substr(line.length() - 19);
+				//replace the date/time separators with spaces
+				for (size_t i = 0; i < timeString.length(); ++i)
+					if (timeString[i] == '-' || timeString[i] == ':' || timeString[i] == 'T')
+						timeString[i] = ' ';
+				//read in time from the time string
+				int hour;
+				int minute;
+				int second;
+				int year;
+				int month;
+				int dayOfMonth;
+				std::istringstream strm(timeString);
+				strm >> year >> month >> dayOfMonth >> hour >> minute >> second;
+				sci::UtcTime time(year, month, dayOfMonth, hour, minute, second);
 
-			//record the filename and time
-			lastProcessedTimeMap[filename] = time;
+				//record the filename and time
+				lastProcessedTimeMap[filename] = time;
 
-			//get the next line
-			//line.clear(); //clear the line in case getline fails, then we have a zero length line and exit the loop
-			std::getline(fin, line);
-			++lineNumber;
+				//get the next line
+				//line.clear(); //clear the line in case getline fails, then we have a zero length line and exit the loop
+				std::getline(fin, line);
+				++lineNumber;
+			}
+			else
+			{
+				std::getline(fin, line);
+			}
 		}
-		else
-		{
-			std::getline(fin, line);
-		}
+		fin.close();
 	}
-	fin.close();
 
 	//check the map to see if the files found exist in the map and if they do, if their
 	//processed date is before their modified date. 
