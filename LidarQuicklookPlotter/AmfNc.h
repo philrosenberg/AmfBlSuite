@@ -53,6 +53,7 @@ struct ProcessingOptions
 	bool generateQuicklooks;
 	bool generateNetCdf;
 	bool closeOnCompletion;
+	second waitTime;
 };
 
 struct ProcessingSoftwareInfo

@@ -206,7 +206,7 @@ void mainFrame::start()
 	}
 	m_progressReporter->setShouldStop(false);
 	m_logText->AppendText("Starting\n\n");
-	m_checkForNewDataTimer->Start(600000);//Use this timer to check for new data every 5 mins
+	m_checkForNewDataTimer->Start(m_processingOptions.waitTime.value<sci::Second<1, -3>>());//Use this timer to check for new data as needed
 	m_instantCheckTimer->StartOnce(1);//Use this timer to check for new data now
 
 }
@@ -246,7 +246,7 @@ void mainFrame::OnCheckDataTimer(wxTimerEvent& event)
 		if (m_progressReporter->shouldStop())
 			m_logText->AppendText("Stopped\n\n");
 		else if (m_processingOptions.checkForNewFiles)
-			(*m_progressReporter) << sU("Processed all files found. Waiting approx 10 mins to check again.\n\n");
+			(*m_progressReporter) << sU("Processed all files found. New data will be checked for every ") << m_processingOptions.waitTime << sU(".\n\n");
 		else
 		{
 			(*m_progressReporter) << sU("Processed all files found. Processing complete.\n\n");

@@ -416,6 +416,12 @@ ProcessingOptions parseProcessingOptions(wxXmlNode *node)
 	parseXmlNode(node, sU("startTime"), result.startTime, readStartTime);
 	parseXmlNode(node, sU("endTime"), result.endTime, readEndTime);
 
+	double waitSeconds;
+	std::vector<nameVarPair<double>> numberLinks { nameVarPair<double>(sU("waitSeconds"), &waitSeconds) };
+	parseXmlNode(node, numberLinks.begin(), numberLinks.end());
+	result.waitTime = second(waitSeconds);
+
+
 	for (auto iter = textLinks.begin(); iter != textLinks.end(); ++iter)
 	{
 		//coment and logFile are optional
