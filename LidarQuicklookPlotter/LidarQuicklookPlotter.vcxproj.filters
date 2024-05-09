@@ -84,6 +84,9 @@
     <ClCompile Include="Gallion.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meanWindProfileOutput.cpp">
+      <Filter>Source Files\Lidar</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app.h">
@@ -147,6 +150,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Gallion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meanWindProfileOutput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

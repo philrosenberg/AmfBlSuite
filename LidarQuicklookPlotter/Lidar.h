@@ -100,7 +100,7 @@ public:
 		sci::assertThrow(m_hplHeaders.size() == 1, sci::err(sci::SERR_USER, 0, "Attempt to set up a lidar plot for data with either 0 or >1 header. Need exactly one header (i.e. one file) to set up a quicklook plot."));
 		PlotableLidar::setupCanvas(window, plot, extraDescriptor, parent, m_hplHeaders[0]);
 	}
-	const HplHeader &getHeaderForProfile(size_t profileIndex) { return m_hplHeaders[m_headerIndex[profileIndex]]; }
+	const HplHeader &getHeaderForProfile(size_t profileIndex) const { return m_hplHeaders[m_headerIndex[profileIndex]]; }
 	size_t getNGates(size_t profile) const { return m_profiles[profile].nGates(); }
 	size_t getMaxGates() const
 	{
@@ -310,20 +310,14 @@ public:
 	virtual std::vector<sci::string> getProcessingOptions() const override { return { sU("user 5") }; }
 };
 
-class LidarWindProfileProcessor : public HplFileLidar
+
+class WindProfileProcessor
 {
 public:
-	LidarWindProfileProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) :HplFileLidar(sU("Processed_Wind_Profile"), false, false), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo) {}
-	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
-	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
-	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
-		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
-		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
-	virtual bool hasData() const override { return m_hasData; }
-	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
-	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }
-private:
-	bool m_hasData;
+	virtual void writeToNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter,
+		const InstrumentInfo& instrumentInfo, const CalibrationInfo& calibrationInfo) const;
 	struct Profile
 	{
 		Profile(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) : m_VadProcessor(instrumentInfo, calibrationInfo) {}
@@ -337,6 +331,25 @@ private:
 		LidarWindVadProcessor m_VadProcessor; // have a separate Wind VAD processor for each profile
 		std::vector<uint8_t> m_windFlags;
 	};
+protected:
+	std::vector<Profile> m_profiles;
+};
+
+
+class LidarWindProfileProcessor : public HplFileLidar, public WindProfileProcessor
+{
+public:
+	LidarWindProfileProcessor(InstrumentInfo instrumentInfo, CalibrationInfo calibrationInfo) :HplFileLidar(sU("Processed_Wind_Profile"), false, false), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo) {}
+	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform &platform, ProgressReporter &progressReporter) override;
+	virtual void plotData(const sci::string &outputFilename, const std::vector<metreF> maxRanges, ProgressReporter &progressReporter, wxWindow *parent) override;
+	virtual void writeToNc(const sci::string &directory, const PersonInfo &author,
+		const ProcessingSoftwareInfo &processingSoftwareInfo, const ProjectInfo &projectInfo,
+		const Platform &platform, const ProcessingOptions &processingOptions, ProgressReporter &progressReporter) override;
+	virtual bool hasData() const override { return m_hasData; }
+	InstrumentInfo getInstrumentInfo() const { return m_instrumentInfo; }
+	CalibrationInfo getCalibrationInfo() const { return m_calibrationInfo; }
+private:
+	bool m_hasData;
 	std::vector<Profile> m_profiles;
 	const InstrumentInfo m_instrumentInfo;
 	const CalibrationInfo m_calibrationInfo;

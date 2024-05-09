@@ -176,6 +176,7 @@
     <ClCompile Include="LidarVadProcessor.cpp" />
     <ClCompile Include="LidarWindProfileProcessor.cpp" />
     <ClCompile Include="mainFrame.cpp" />
+    <ClCompile Include="meanWindProfileOutput.cpp" />
     <ClCompile Include="MicroRainRadar.cpp" />
     <ClCompile Include="MicrowaveRadiometer.cpp" />
     <ClCompile Include="Plotting.cpp" />
@@ -193,6 +194,7 @@
     <ClInclude Include="Gallion.h" />
     <ClInclude Include="InstrumentProcessor.h" />
     <ClInclude Include="Lidar.h" />
+    <ClInclude Include="meanWindProfileOutput.h" />
     <ClInclude Include="MetConversions.h" />
     <ClInclude Include="MicroRainRadar.h" />
     <ClInclude Include="MicrowaveRadiometer.h" />

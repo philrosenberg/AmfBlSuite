@@ -1,5 +1,44 @@
 #pragma once
 #include"AmfNc.h"
+#include"Lidar.h"
+
+class GalionWindProfileProcessor : public WindProfileProcessor, public InstrumentProcessor
+{
+public:
+	GalionWindProfileProcessor(sci::string fileSearchRegEx, const InstrumentInfo &instrumentInfo, const CalibrationInfo &calibrationInfo)
+		:InstrumentProcessor(fileSearchRegEx), m_hasData(false), m_instrumentInfo(instrumentInfo), m_calibrationInfo(calibrationInfo)
+	{
+	}
+	virtual void readData(const std::vector<sci::string> &inputFilenames, const Platform & platform, ProgressReporter & progressReporter);
+	virtual void plotData(const sci::string& baseOutputFilename, const std::vector<metreF> maxRanges, ProgressReporter& progressReporter, wxWindow* parent)
+	{
+	}
+	virtual void writeToNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
+	{
+		WindProfileProcessor::writeToNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter, m_instrumentInfo, m_calibrationInfo);
+	}
+	virtual bool hasData() const
+	{
+		return m_hasData;
+	}
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const = 0;
+	virtual std::vector<std::vector<sci::string>> groupInputFilesbyOutputFiles(const std::vector<sci::string> &newFiles, const std::vector<sci::string> &allFiles) const = 0;
+	virtual sci::string getName() const
+	{
+		return sU("Galion Wind Lidar Processor");
+	}
+	void readWindProfile(const sci::string& filename, std::vector<Profile>& profiles, sci::GridData<sci::UtcTime, 2>& times,
+		sci::GridData<metrePerSecondF, 2>& horizontalWindSpeeds, sci::GridData<metrePerSecondF, 2>& verticalWindSpeeds, sci::GridData<degreeF, 2>& windDirections,
+		sci::GridData<metreSquaredPerSecondSquaredF, 2>& goodnessOfFits, sci::GridData<metreSquaredPerSecondSquaredF, 2>& minimumPowerIntensities, sci::GridData<metreSquaredPerSecondSquaredF, 2>& meanPowerIntensities,
+		sci::GridData<metrePerSecondF, 2>& neSpeeds, sci::GridData<metrePerSecondF, 2>& esSpeeds, sci::GridData<metrePerSecondF, 2>& swSpeeds, sci::GridData<metrePerSecondF, 2>& wnSpeeds, ProgressReporter& progressReporter);
+private:
+	InstrumentInfo m_instrumentInfo;
+	CalibrationInfo m_calibrationInfo;
+	bool m_hasData;
+};
+
 void readWindProfile(const sci::string& filename, sci::GridData<sci::UtcTime, 2>& times, sci::GridData<metreF, 1>& heights,
 	sci::GridData<metrePerSecondF, 2>& horizontalWindSpeeds, sci::GridData<metrePerSecondF, 2>& verticalWindSpeeds, sci::GridData<degreeF, 2>& windDirections,
 	sci::GridData<metreSquaredPerSecondSquaredF, 2>& goodnessOfFits, sci::GridData<metreSquaredPerSecondSquaredF, 2>& minimumPowerIntensities, sci::GridData<metreSquaredPerSecondSquaredF, 2>& meanPowerIntensities,
