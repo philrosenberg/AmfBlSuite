@@ -69,7 +69,7 @@
 	<project id="5">
 		<name>Atmospheric rivers and the onset of sea ice melt (ARTofMELT)</name>
 		<!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
-		<principalInvestigator type="amfEntity/person" id="2"></principalInvestigator>
+		<principalInvestigator type="amfEntity/person" id="IanBrooks"></principalInvestigator>
 	</project>
   
   <!--Platforms-->
