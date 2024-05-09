@@ -411,10 +411,12 @@ void MicrowaveRadiometerProcessor::writeToNc(const sci::string& directory, const
 	writeIwvLwpNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
 	writeSurfaceMetNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
 	writeStabilityNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
-	writeBrightnessTemperatureNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
 	writeBoundaryLayerTemperatureProfileNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
 	writeFullTroposphereTemperatureProfileNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
 	writeMoistureProfileNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
+	//do this last as it does some extra error checking that can throw if brightness temperature and attenuation have different numbers of frequencies.
+	//by doing it last it avoids an error here stopping the other files being written
+	writeBrightnessTemperatureNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter);
 }
 
 void MicrowaveRadiometerProcessor::writeIwvLwpNc(const sci::string& directory, const PersonInfo& author,
@@ -622,50 +624,57 @@ void MicrowaveRadiometerProcessor::writeBrightnessTemperatureNc(const sci::strin
 	const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
-	if (m_brtTime.size() == 0)
+	if (m_brtTime.size() == 0 && m_atnTime.size() == 0)
 	{
-		progressReporter << "No brightness temperature data to write.\n";
+		progressReporter << "No brightness temperature or attenuation data to write.\n";
 		return;
 	}
-	progressReporter << "Writing brightness temperature data file\n";
+	progressReporter << "Writing brightness temperature and attenuation data file\n";
 
-	sci::assertThrow(m_brtFrequencies.size() == m_atnFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("BRT and ATN data have a different number of frequencies")));
+	sci::assertThrow(m_brtFrequencies.size() == m_atnFrequencies.size() || m_brtFrequencies.size() == 0 || m_atnFrequencies.size() == 0, sci::err(sci::SERR_USER, 0, sU("BRT and ATN data have a different number of frequencies")));
 
-	DataInfo dataInfo = buildDataInfo(sU("brightness temperature"), m_brtTime, FeatureType::timeSeries, processingOptions);
+
+	sci::GridData<sci::UtcTime, 1>& time = m_brtTime.size() > 0 ? m_brtTime : m_atnTime;
+	sci::GridData<bool, 1>& rainFlag = m_brtTime.size() > 0 ? m_brtRainFlag : m_atnRainFlag;
+	sci::GridData<perSecondF, 1>& frequencies = m_brtTime.size() > 0 ? m_brtFrequencies : m_atnFrequencies;
+
+	DataInfo dataInfo = buildDataInfo(sU("brightness temperature"), time, FeatureType::timeSeries, processingOptions);
 
 	//assign amf version based on if we are moving or not.
 	AmfVersion amfVersion = platform.getPlatformInfo().platformType == PlatformType::moving ? AmfVersion::v1_1_0 : AmfVersion::v2_0_0;
 
-	MetAndStabilityFlags metAndStabilityflags(m_brtTime, m_hkdTime, m_brtRainFlag, m_status, m_temperatureStabilityReceiver1,
-		m_temperatureStabilityReceiver2);
+	MetAndStabilityFlags metAndStabilityflags(time, m_hkdTime, rainFlag,
+		m_status, m_temperatureStabilityReceiver1, m_temperatureStabilityReceiver2);
 	sci::GridData<uint8_t, 1> minMaxFilter = metAndStabilityflags.getFilter();
 
 	std::vector<sci::string> coordinates{ sU("latitude"), sU("longitude") };
 	std::vector<std::pair<sci::string, CellMethod>>cellMethods{ {sU("time"), CellMethod::mean} };
 	std::vector<sci::NcDimension*> nonTimeDimensions;
-	sci::NcDimension frequencyDimension(sU("radiation_frequency"), m_brtFrequencies.size());
+	sci::NcDimension frequencyDimension(sU("radiation_frequency"),frequencies.size()); //this will allow one of the frequency sizes to be 0 
 	nonTimeDimensions.push_back(&frequencyDimension);
 	OutputAmfNcFile file(amfVersion, directory, m_instrumentInfo, author, processingSoftwareInfo, m_calibrationInfo, dataInfo,
-		projectInfo, platform, sU("hatpro brightness temperature data"), m_brtTime, nonTimeDimensions, sU("Retrieval: ATN_") + platform.getHatproRetrieval());
+		projectInfo, platform, sU("hatpro brightness temperature data"), time, nonTimeDimensions, sU("Retrieval: ATN_") + platform.getHatproRetrieval());
 
 	std::unique_ptr<AmfNcVariable<perSecondF>> frequencyVariable(nullptr);
 	std::unique_ptr<AmfNcVariable<kelvinF>> brightnessTemperatureVariable(nullptr);
 	std::unique_ptr<AmfNcDbVariableFromLogarithmicData<unitlessF>> attenuationVariable(nullptr);
 
-	frequencyVariable.reset(new AmfNcVariable<perSecondF>(sU("radiation_frequency"), file, frequencyDimension, sU("Receiver Channel Centre Frequency"), sU("radiation_frequency"), m_brtFrequencies, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
-	brightnessTemperatureVariable.reset(new AmfNcVariable<kelvinF>(sU("brightness_temperature"), file, { &file.getTimeDimension(), &frequencyDimension }, sU("Brightness Temperature"), sU("brightness_temperatue"), m_brightnessTemperature, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
-	//                                                         (const sci::string & name,     const sci::OutputNcFile & ncFile, const std::vector<sci::NcDimension*> &dimensions, const sci::string & longName,  const sci::string & standardName, sci::grid_view< REFERENCE_UNIT, NDATADIMS> dataLinear, bool hasFillValue, const std::vector<sci::string> &coordinates, const std::vector<std::pair<sci::string, CellMethod>> &cellMethods, bool isDbZ, bool outputReferenceUnit, sci::grid_view< uint8_t, NFLAGDIMS> flags, const sci::string & comment = sU(""))
-	attenuationVariable.reset(new AmfNcDbVariableFromLogarithmicData<unitlessF>(sU("atmospheric_attenuation"), file, { &file.getTimeDimension(), &frequencyDimension }, sU("Atmospheric Attenuation"), sU(""), m_attenuation, true, coordinates, cellMethods, false, false, sci::GridData<uint8_t, 0>(1), sU("")));
-	//attenuationVariable.reset(new AmfNcDbVariable<unitlessF>(sU("atmospheric_attenuation"), file, {&file.getTimeDimension(), &frequencyDimension }, sU("Atmospheric Attenuation"), sU(""), m_attenuation);
+	frequencyVariable.reset(new AmfNcVariable<perSecondF>(sU("radiation_frequency"), file, frequencyDimension, sU("Receiver Channel Centre Frequency"), sU("radiation_frequency"), frequencies, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
+	if (m_brtTime.size() > 0)
+		brightnessTemperatureVariable.reset(new AmfNcVariable<kelvinF>(sU("brightness_temperature"), file, { &file.getTimeDimension(), &frequencyDimension }, sU("Brightness Temperature"), sU("brightness_temperatue"), m_brightnessTemperature, true, coordinates, cellMethods, sci::GridData<uint8_t, 0>(1), sU("")));
+	if(m_atnTime.size() > 0)
+		attenuationVariable.reset(new AmfNcDbVariableFromLogarithmicData<unitlessF>(sU("atmospheric_attenuation"), file, { &file.getTimeDimension(), &frequencyDimension }, sU("Atmospheric Attenuation"), sU(""), m_attenuation, true, coordinates, cellMethods, false, false, sci::GridData<uint8_t, 0>(1), sU("")));
 	
 	metAndStabilityflags.createNcFlags(file, false);
 
 
 	file.writeTimeAndLocationData(platform);
 
-	file.write(*frequencyVariable, m_brtFrequencies);
-	file.write(*brightnessTemperatureVariable, m_brightnessTemperature);
-	file.write(*attenuationVariable, m_attenuation);
+	file.write(*frequencyVariable, frequencies);
+	if (m_brtTime.size() > 0)
+		file.write(*brightnessTemperatureVariable, m_brightnessTemperature);
+	if(m_atnFrequencies.size() > 0)
+		file.write(*attenuationVariable, m_attenuation);
 	metAndStabilityflags.writeToNetCdf(file);
 }
 
@@ -679,8 +688,6 @@ void MicrowaveRadiometerProcessor::writeBoundaryLayerTemperatureProfileNc(const 
 		return;
 	}
 	progressReporter << "Writing BL temperature profile data file\n";
-
-	sci::assertThrow(m_brtFrequencies.size() == m_atnFrequencies.size(), sci::err(sci::SERR_USER, 0, sU("BRT and ATN data have a different number of frequencies")));
 
 	DataInfo dataInfo = buildDataInfo(sU("boundary layer temperature profiles"), m_tpbTime, FeatureType::timeSeriesProfile, processingOptions);
 
@@ -909,11 +916,37 @@ std::vector<std::vector<sci::string>> MicrowaveRadiometerProcessor::groupInputFi
 
 bool MicrowaveRadiometerProcessor::fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const
 {
-	sci::UtcTime fileStart(std::atoi(sci::nativeCodepage(fileName.substr(fileName.length() - 12, 2)).c_str()) + 2000,
-		std::atoi(sci::nativeCodepage(fileName.substr(fileName.length() - 10, 2)).c_str()),
-		std::atoi(sci::nativeCodepage(fileName.substr(fileName.length() - 8, 2)).c_str()),
-		std::atoi(sci::nativeCodepage(fileName.substr(fileName.length() - 6, 2)).c_str()),
-		0, 0.0);
-	sci::UtcTime fileEnd = fileStart + second(60.0 * 60.0 - 0.0000001);
+	sci::string originalFileName = fileName; // save this for error reporting
+
+	//strip to just the file part without the extension
+	if (fileName.find_last_of(sU("/")) != sci::string::npos)
+		fileName = fileName.substr(fileName.find_last_of(sU("/")) + 1);
+	if (fileName.find_last_of(sU("\\")) != sci::string::npos)
+		fileName = fileName.substr(fileName.find_last_of(sU("\\")) + 1);
+	if (fileName.find_first_of(sU(".")) != sci::string::npos)
+		fileName = fileName.substr(0, fileName.find_first_of(sU(".")));
+
+	//I've seen two types of file - those with hours which are one hour long and those without hours which are whole days long
+	sci::UtcTime fileStart;
+	sci::UtcTime fileEnd;
+	if (fileName.length() == 6)
+	{
+		fileStart = sci::UtcTime(std::atoi(sci::nativeCodepage(fileName.substr(0, 2)).c_str()) + 2000,
+			std::atoi(sci::nativeCodepage(fileName.substr(2, 2)).c_str()),
+			std::atoi(sci::nativeCodepage(fileName.substr(4, 2)).c_str()),
+			0, 0, 0.0);
+		fileEnd = fileStart + second(60.0 * 60.0 * 24.0 - 0.0000001);
+	}
+	else if (fileName.length() == 8)
+	{
+		fileStart = sci::UtcTime(std::atoi(sci::nativeCodepage(fileName.substr(0, 2)).c_str()) + 2000,
+			std::atoi(sci::nativeCodepage(fileName.substr(2, 2)).c_str()),
+			std::atoi(sci::nativeCodepage(fileName.substr(4, 2)).c_str()),
+			std::atoi(sci::nativeCodepage(fileName.substr(6, 2)).c_str()),
+			0, 0.0);
+		fileEnd = fileStart + second(60.0 * 60.0 - 0.0000001);
+	}
+	else
+		assertThrow(false, sci::err(sci::SERR_USER, 0, sU("The file ") + originalFileName + sU(" does not match the filename format YYMMDD.EXT nor YYMMDDHH.EXT needed to determine the date and time of generation.")));
 	return (fileStart<endTime && fileEnd > startTime);
 }

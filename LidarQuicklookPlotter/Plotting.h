@@ -30,6 +30,7 @@ private:
 	wxWindow *m_window;
 };
 
+/*
 class CubehelixColourscale : public splotcolourscale
 {
 public:
@@ -78,8 +79,8 @@ public:
 		//fout.close();
 		return colours;
 	}
-};
+};*/
 
 //const splotcolourscale g_lidarColourscale(std::vector<double>{1e-8, 1e-3}, std::vector<rgbcolour>{rgbcolour(1.0, 0.0, 0.0), rgbcolour(0.0, 0.0, 1.0)}, true, false);
 //const CubehelixColourscale g_lidarColourscale(sci::pow(10.0, sci::indexvector<double>(101) / 100.0*5.0 - 8.0), 0, -540.0, 0.0, 1.0, 1.0, 1.0, true, false);
-const CubehelixColourscale g_lidarColourscale(1e-8, 1e-3, 101, 180., 540.0, 1.0, 0.0, 1.0, 1.0, true, false);
+const CubehelixColourscale g_lidarColourscale(1e-8, 1e-3, 101, 180., 540.0, 1.0, 0.0, 1.0, 1.0, true, false, false, false, false);

@@ -411,8 +411,12 @@ void LidarDepolProcessor::writeToNc(const sci::string& directory, const PersonIn
 				coSum += backscattersCo[i];
 				crossSumRaw += backscattersCross[i] / rangesCross[i] / rangesCross[i];
 				coSumRaw += backscattersCo[i] / rangesCo[i] /rangesCo[i];
-				crossNoiseSumSquared += sci::pow<2>((backscattersCross[i] / rangesCross[i] / rangesCross[i]) / (snrPlusOneCross[i] - unitlessF(1.0f)));
-				coNoiseSumSquared += sci::pow<2>((backscattersCo[i] / rangesCo[i] / rangesCo[i]) / (snrPlusOneCo[i] - unitlessF(1.0f)));
+				for(size_t j=0; j<crossNoiseSumSquared.shape()[0]; ++j)
+					for(size_t k=0; k<crossNoiseSumSquared.shape()[1]; ++k)
+						crossNoiseSumSquared[j][k] += sci::pow<2>((backscattersCross[i][j][k] / rangesCross[i][j][k] / rangesCross[i][j][k]) / (snrPlusOneCross[i][j][k] - unitlessF(1.0f)));
+				for (size_t j = 0; j < coNoiseSumSquared.shape()[0]; ++j)
+					for (size_t k = 0; k < coNoiseSumSquared.shape()[1]; ++k)
+						coNoiseSumSquared[j][k] += sci::pow<2>((backscattersCo[i][j][k] / rangesCo[i][j][k] / rangesCo[i][j][k]) / (snrPlusOneCo[i][j][k] - unitlessF(1.0f)));
 				//track the worst flag over the averaging period
 				for (size_t j = 0; j < worstFlagCo.shape()[0]; ++j)
 					for (size_t k = 0; k < worstFlagCo.shape()[1]; ++k)

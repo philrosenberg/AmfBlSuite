@@ -12,6 +12,7 @@
 #include<ranges>
 #include"CellMethods.h"
 #include<svector/ArrayManipulation.h>
+#include<svector/Statistics.h>
 
 struct HplHeader;
 class HplProfile;

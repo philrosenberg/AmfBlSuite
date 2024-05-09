@@ -68,7 +68,7 @@ void readWindProfile(const sci::string& filename, sci::GridData<sci::UtcTime, 2>
 	fin.seekg(0, std::ios::beg);
 	std::getline(fin, line); //read the header line, we still don't need it.
 	size_t nProfiles = 0;
-	while (!fin.eof())
+	while (!fin.eof() && !fin.bad() && !fin.fail())
 	{
 		++nProfiles;
 		times.reshape({ nProfiles,nHeights }, std::numeric_limits<sci::UtcTime>::quiet_NaN());
