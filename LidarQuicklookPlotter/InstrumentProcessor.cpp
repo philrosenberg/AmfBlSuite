@@ -122,6 +122,7 @@ std::vector<sci::string> InstrumentProcessor::selectRelevantFilesUsingRegEx(cons
 #include"MicroRainRadar.h"
 #include"Sondes.h"
 #include"MicrowaveRadiometer.h"
+#include"Gallion.h"
 std::shared_ptr<InstrumentProcessor> getProcessorByName(sci::string name, InstrumentInfo &instrumentInfo, CalibrationInfo &calibrationInfo)
 {
 	if (name == sU("LidarCopolarisedStareProcessor"))
@@ -156,6 +157,8 @@ std::shared_ptr<InstrumentProcessor> getProcessorByName(sci::string name, Instru
 		return std::shared_ptr<InstrumentProcessor>(new SondeProcessor(instrumentInfo, calibrationInfo));
 	if (name == sU("MicrowaveRadiometerProcessor"))
 		return std::shared_ptr<InstrumentProcessor>(new MicrowaveRadiometerProcessor(instrumentInfo, calibrationInfo));
+	if (name == sU("GalionAdvancedProcessor"))
+		return std::shared_ptr<InstrumentProcessor>(new GalionAdvancedProcessor(instrumentInfo, calibrationInfo));
 
 	throw(sci::err(sci::SERR_USER, 0, sU("Invalid processor name: ") + name));
 }

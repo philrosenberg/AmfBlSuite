@@ -1,13 +1,13 @@
 <processingSettings version="1">
   <!--This file contains the settings for a run of the processing software-->
-  <author type ="amfEntity/person" id="1"></author>
+  <author type ="amfEntity/person" id="PhilRosenberg"></author>
   <project type="amfEntity/project" id="1"></project>
   <platform type="amfEntity/platform" id="3"></platform>
-  <processor>
+ <!-- <processor>
     <name>MicrowaveRadiometerProcessor</name>
     <instrument type="amfEntity/instrument" id="6"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="5">></calibrationInfo>
-  </processor>
+  </processor>-->
   <!--<processor>
     <name>LidarDepolarisationProcessor</name>
     <instrument type="amfEntity/instrument" id="1"></instrument>
@@ -83,44 +83,29 @@
     <instrument type="amfEntity/instrument" id="2"></instrument>
     <calibrationInfo type="amfEntity/calibrationInfo" id="2">></calibrationInfo>
   </processor>-->
+	<processor>
+		<name>GalionAdvancedProcessor</name>
+		<instrument type="amfEntity/instrument" id="1"></instrument>
+		<calibrationInfo type="amfEntity/calibrationInfo" id="2">></calibrationInfo>
+	</processor>-->
 
-  <comment>This is a test file</comment>
-  <!-- <inputDirectory>Z:\a96\MOCCHA\raw\</inputDirectory>-->
-  <!--<inputDirectory>C:\Users\Phil\OneDrive - University of Leeds\Documents\AMOF Projects\MOCCHA\DayTest</inputDirectory>-->
-  <inputDirectory>C:\Temp\Raw</inputDirectory>
-  <!--<inputDirectory>D:\MOCCHA\HALO_lidar\</inputDirectory>-->
-  <!--<inputDirectory>C:\Users\earpros\OneDrive - University of Leeds\Documents\MOCCHA\ncas-ceil-1\</inputDirectory>-->
-  <outputDirectory>C:\Temp\Processed</outputDirectory>
+	<comment>This is a test file</comment>
+  <inputDirectory>D:\AMMSS2024\gallion_lidar_ammss</inputDirectory>
+  <outputDirectory>D:\AMMSS2024\gallion_lidar_ammss</outputDirectory>
   <beta>true</beta>
   <reasonForProcessing>Test run of processing code</reasonForProcessing>
-  <!--<startTime>
-    <year>2018</year>
-    <month>7</month>
-    <day>11</day>
-    <hour>0</hour>
-    <minute>0</minute>
-    <second>0</second>
-  </startTime>
-  <endTime>
-    <year>2018</year>
-    <month>8</month>
-    <day>6</day>
-    <hour>23</hour>
-    <minute>59</minute>
-    <second>59.999</second>
-  </endTime>-->
   <startTime>
-    <year>2018</year>
-    <month>8</month>
+    <year>2010</year>
+    <month>1</month>
     <day>1</day>
     <hour>0</hour>
     <minute>0</minute>
     <second>0</second>
   </startTime>
   <endTime>
-    <year>2018</year>
-    <month>8</month>
-    <day>9</day>
+    <year>3000</year>
+    <month>1</month>
+    <day>1</day>
     <hour>1</hour>
     <minute>59</minute>
     <second>59.99</second>
@@ -130,4 +115,5 @@
   <onlyProcessNewFiles>false</onlyProcessNewFiles>
   <generateQuicklooks>false</generateQuicklooks>
   <generateNetCdf>true</generateNetCdf>
+  <closeOnCompletion>false</closeOnCompletion>
 </processingSettings>

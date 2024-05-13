@@ -225,6 +225,20 @@ public:
 
 		::correctDirection(measuredX, measuredY, measuredZ, sinInstrumentElevation, sinInstrumentAzimuth, sinInstrumentRoll, cosInstrumentElevation, cosInstrumentAzimuth, cosInstrumentRoll, correctedX, correctedY, correctedZ);
 	}
+	template<class T>
+	void correctVelocityVector(sci::UtcTime startTime, sci::UtcTime endTime, degreeF correctedAzimuth, degreeF correctedElevation, T magnitude, T& correctedMagnitude) const
+	{
+		metrePerSecondF instrumentU;
+		metrePerSecondF instrumentV;
+		metrePerSecondF instrumentW;
+		getInstrumentVelocity(startTime, endTime, instrumentU, instrumentV, instrumentW);
+		metrePerSecondF uComponent = instrumentU * sci::sin(correctedElevation)*sci::sin(correctedAzimuth);
+		metrePerSecondF vComponent = instrumentV * sci::sin(correctedElevation)*sci::cos(correctedAzimuth);
+		metrePerSecondF wComponent = instrumentW * sci::cos(correctedElevation);
+		correctedMagnitude = magnitude + uComponent + vComponent + wComponent;
+
+
+	}
 	virtual void getInstrumentVelocity(sci::UtcTime startTime, sci::UtcTime endTime, metrePerSecondF &eastwardVelocity, metrePerSecondF &northwardVelocity, metrePerSecondF &upwardVelocity) const = 0;
 	virtual void getInstrumentTrigAttitudesForDirectionCorrection(sci::UtcTime startTime, sci::UtcTime endTime, unitlessF &sinInstrumentElevation, unitlessF &sinInstrumentAzimuth, unitlessF &sinInstrumentRoll, unitlessF &cosInstrumentElevation, unitlessF &cosInstrumentAzimuth, unitlessF &cosInstrumentRoll) const = 0;
 	virtual void getLocation(sci::UtcTime startTime, sci::UtcTime endTime, degreeF &latitude, degreeF &longitude, metreF &altitude) const = 0;
@@ -246,6 +260,12 @@ public:
 	virtual void getInstrumentAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const = 0;
 	virtual void getPlatformAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const = 0;
 	virtual bool getFixedAltitude() const = 0;
+	virtual bool getFixedPosition() const = 0;
+	virtual bool getFixedAttitude() const = 0;
+	virtual bool getFixed() const
+	{
+		return getFixedAltitude() && getFixedPosition() && getFixedAttitude();
+	}
 private:
 	PlatformInfo m_platformInfo;
 	sci::string m_hatproRetrieval;
@@ -260,6 +280,9 @@ public:
 		m_latitude = latitude;
 		m_longitude = longitude;
 		m_altitude = altitude;
+		m_elevation = instrumentElevation;
+		m_azimuth = instrumentAzimuth;
+		m_roll = instrumentRoll;
 		m_sinInstrumentElevation = sci::sin(instrumentElevation);
 		m_sinInstrumentAzimuth = sci::sin(instrumentAzimuth);
 		m_sinInstrumentRoll = sci::sin(instrumentRoll);
@@ -302,15 +325,31 @@ public:
 	}
 	virtual void getPlatformAttitudes(sci::UtcTime startTime, sci::UtcTime endTime, AttitudeAverage &elevation, AttitudeAverage &azimuth, AttitudeAverage &roll) const override
 	{
-		elevation.m_mean = std::numeric_limits<degreeF>::quiet_NaN();
-		elevation.m_min = std::numeric_limits<degreeF>::quiet_NaN();
-		elevation.m_max = std::numeric_limits<degreeF>::quiet_NaN();
-		elevation.m_stdev = std::numeric_limits<degreeF>::quiet_NaN();
-		azimuth = elevation;
-		roll = elevation;
+		elevation.m_mean = m_elevation;
+		elevation.m_min = m_elevation;
+		elevation.m_max = m_elevation;
+		elevation.m_stdev = degreeF(0);
+
+		azimuth.m_mean = m_azimuth;
+		azimuth.m_min = m_azimuth;
+		azimuth.m_max = m_azimuth;
+		elevation.m_stdev = degreeF(0);
+
+		roll.m_mean = m_roll;
+		roll.m_min = m_roll;
+		roll.m_max = m_roll;
+		roll.m_stdev = degreeF(0);
 
 	}
 	virtual bool getFixedAltitude() const override
+	{
+		return true;
+	}
+	virtual bool getFixedPosition() const override
+	{
+		return true;
+	}
+	virtual bool getFixedAttitude() const override
 	{
 		return true;
 	}
@@ -665,6 +704,14 @@ public:
 	virtual bool getFixedAltitude() const override
 	{
 		return true;
+	}
+	virtual bool getFixedPosition() const override
+	{
+		return false;
+	}
+	virtual bool getFixedAttitude() const override
+	{
+		return false;
 	}
 private:
 	sci::GridData<sci::UtcTime, 1> m_times;

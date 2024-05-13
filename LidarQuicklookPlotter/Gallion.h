@@ -39,7 +39,7 @@ private:
 	bool m_hasData;
 };
 
-void readWindProfile(const sci::string& filename, sci::GridData<sci::UtcTime, 2>& times, sci::GridData<metreF, 1>& heights,
+inline void readWindProfile(const sci::string& filename, sci::GridData<sci::UtcTime, 2>& times, sci::GridData<metreF, 1>& heights,
 	sci::GridData<metrePerSecondF, 2>& horizontalWindSpeeds, sci::GridData<metrePerSecondF, 2>& verticalWindSpeeds, sci::GridData<degreeF, 2>& windDirections,
 	sci::GridData<metreSquaredPerSecondSquaredF, 2>& goodnessOfFits, sci::GridData<metreSquaredPerSecondSquaredF, 2>& minimumPowerIntensities, sci::GridData<metreSquaredPerSecondSquaredF, 2>& meanPowerIntensities,
 	sci::GridData<metrePerSecondF, 2>& neSpeeds, sci::GridData<metrePerSecondF, 2>& esSpeeds, sci::GridData<metrePerSecondF, 2>& swSpeeds, sci::GridData<metrePerSecondF, 2>& wnSpeeds)
@@ -148,3 +148,69 @@ void readWindProfile(const sci::string& filename, sci::GridData<sci::UtcTime, 2>
 		}
 	}
 }
+
+class GalionAdvancedProcessor : public InstrumentProcessor
+{
+public:
+	GalionAdvancedProcessor(const InstrumentInfo& instrumentInfo, const CalibrationInfo& calibrationInfo)
+		:InstrumentProcessor(sU("[/ \\\\^]......_........_66\\.scn"))
+	{
+		m_hasData = false;
+		m_instrumentInfo = instrumentInfo;
+		m_calibrationInfo = calibrationInfo;
+	}
+	virtual void readData(const std::vector<sci::string>& inputFilenames, const Platform& platform, ProgressReporter& progressReporter) override;
+	virtual void plotData(const sci::string& baseOutputFilename, const std::vector<metreF> maxRanges, ProgressReporter& progressReporter, wxWindow* parent) override
+	{
+	}
+	virtual void writeToNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter) override;
+
+	void writeWindProfilesToNc(const sci::string& directory, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter,
+		const InstrumentInfo& instrumentInfo, const CalibrationInfo& calibrationInfo) const;
+
+	void writeScanToNc(const sci::string& directory, size_t scanIndex, const PersonInfo& author,
+		const ProcessingSoftwareInfo& processingSoftwareInfo, const ProjectInfo& projectInfo,
+		const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter,
+		const InstrumentInfo &instrumentInfo, const CalibrationInfo& calibrationInfo) const;
+
+	virtual bool hasData() const override
+	{
+		return m_hasData;
+	}
+	virtual bool fileCoversTimePeriod(sci::string fileName, sci::UtcTime startTime, sci::UtcTime endTime) const override;
+	virtual sci::string getName() const
+	{
+		return sU("Galion Wind Lidar Advanced Processor");
+	}
+	virtual std::vector<std::vector<sci::string>> groupInputFilesbyOutputFiles(const std::vector<sci::string>& newFiles, const std::vector<sci::string>& allFiles) const override
+	{
+		return InstrumentProcessor::groupInputFilesbyOutputFiles(newFiles, allFiles, 7, 6);
+	}
+	struct Profile
+	{
+		sci::UtcTime time;
+		degreeF azimuth;
+		degreeF elevation;
+		degreeF pitch;
+		degreeF roll;
+		std::vector<metrePerSecondF> velocity;
+		std::vector<unitlessF> snr;
+	};
+	void readAdvancedFile(const sci::string& filename, std::vector<Profile>& profiles, ProgressReporter& progressReporter);
+private:
+	InstrumentInfo m_instrumentInfo;
+	CalibrationInfo m_calibrationInfo;
+	std::vector<sci::GridData<Profile, 2>> m_profiles; //one dimension for scans, one dimension for profiles within the scan
+	std::vector<std::vector<metrePerSecondF>> m_windU;
+	std::vector<std::vector<metrePerSecondF>> m_windV;
+	std::vector<std::vector<metrePerSecondF>> m_windW;
+	sci::GridData<sci::UtcTime, 1> m_windStartTimes;
+	sci::GridData<sci::UtcTime, 1> m_windEndTimes;
+	std::vector<metreF>m_windHeightInterval;
+	const metreF m_rangeInterval = metreF(30);
+	bool m_hasData;
+};

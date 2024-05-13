@@ -46,25 +46,30 @@
 	</person>
   
   <!--Projects-->
+	<project id="Test">
+		<name>Testing</name>
+		<!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
+		<principalInvestigator type="amfEntity/person" id="PhilRosenberg"></principalInvestigator>
+	</project>
   <project id="1">
     <name>Microbiology-Ocean-Cloud-Coupling in the High Arctic (MOCCHA)</name>
     <!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
-    <principalInvestigator type="amfEntity/person" id="2"></principalInvestigator>
+    <principalInvestigator type="amfEntity/person" id="IanBrooks"></principalInvestigator>
   </project>
   <project id="2">
     <name>AQUABLE</name>
     <!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
-    <principalInvestigator type="amfEntity/person" id="3"></principalInvestigator>
+    <principalInvestigator type="amfEntity/person" id="HugoRicketts"></principalInvestigator>
   </project>
 	<project id="3">
 		<name>Convection, Cirrus and Tropical Tropopause Layer Over the Indian Ocean (CONCIRTO)</name>
 		<!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
-		<principalInvestigator type="amfEntity/person" id="4"></principalInvestigator>
+		<principalInvestigator type="amfEntity/person" id="RyanNeely"></principalInvestigator>
 	</project>
 	<project id="4">
 		<name>Cloud REconstruction – A Training and Evaluation dataset (CREATE)</name>
 		<!--principalInvestigator can either have attributes type="amfEntity/person and id to point to another person, or have all the elements of a person  -->
-		<principalInvestigator type="amfEntity/person" id="5"></principalInvestigator>
+		<principalInvestigator type="amfEntity/person" id="EdGryspeerdt"></principalInvestigator>
 	</project>
 	<project id="5">
 		<name>Atmospheric rivers and the onset of sea ice melt (ARTofMELT)</name>
@@ -352,6 +357,17 @@
 		<serial>30136</serial>
 		<operatingSoftware>RPG-HATPRO</operatingSoftware>
 		<operatingSoftwareVersion>v9.47</operatingSoftwareVersion>
+	</instrument>
+
+
+	<instrument id="GALIONLIDAR">
+		<name>ncas lidar wind profiler 1</name>
+		<description>NCAS Lidar Wind Profiler unit 1</description>
+		<manufacturer>SgurrEnergy</manufacturer>
+		<model>Galion 4000</model>
+		<serial>unknown</serial>
+		<operatingSoftware>Galion 4000</operatingSoftware>
+		<operatingSoftwareVersion>unknown</operatingSoftwareVersion>
 	</instrument>
   
   <!--Calibration Info-->

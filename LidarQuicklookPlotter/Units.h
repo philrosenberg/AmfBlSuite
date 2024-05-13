@@ -7,6 +7,7 @@
 
 typedef sci::Physical<sci::Metre<>, float> metreF;
 typedef sci::Physical<sci::Second<>, double> second;
+typedef sci::Physical<sci::Hour<>, double> hour;
 typedef sci::Physical<sci::Second<>, float> secondF;
 typedef sci::Physical<sci::Kelvin<>, float> kelvinF;
 typedef sci::Physical<sci::Kelvin<1,-3>, float> millikelvinF;
