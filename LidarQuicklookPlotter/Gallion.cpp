@@ -244,7 +244,7 @@ void GalionAdvancedProcessor::readData(const std::vector<sci::string>& inputFile
 			}
 			
 		}
-		/*
+		
 		//now we have grouped all the profiles into scans we can do wind profiles
 		std::vector<bool> isVad(m_profiles.size());
 		for (size_t i = 0; i < isVad.size(); ++i)
@@ -342,7 +342,6 @@ void GalionAdvancedProcessor::readData(const std::vector<sci::string>& inputFile
 			}
 
 		}
-		*/
 	}
 	catch (...)
 	{
@@ -479,7 +478,7 @@ void GalionAdvancedProcessor::writeToNc(const sci::string& directory, const Pers
 	const Platform& platform, const ProcessingOptions& processingOptions, ProgressReporter& progressReporter)
 {
 	std::vector<sci::string> errorMessages;
-	/*try
+	try
 	{
 		writeWindProfilesToNc(directory, author, processingSoftwareInfo, projectInfo, platform, processingOptions, progressReporter,
 			m_instrumentInfo, m_calibrationInfo);
@@ -487,7 +486,7 @@ void GalionAdvancedProcessor::writeToNc(const sci::string& directory, const Pers
 	catch (sci::err err)
 	{
 		errorMessages.push_back(err.getErrorMessage());
-	}*/
+	}
 	for (size_t i = 0; i < m_profiles.size(); ++i)
 	{
 		try
